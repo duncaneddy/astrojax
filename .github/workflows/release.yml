@@ -7,8 +7,7 @@ on:
 
 permissions:
   contents: write
-  pages: write
-  id-token: write
+  id-token: write  # Required for PyPI trusted publishing
 
 jobs:
   test:
@@ -56,41 +55,9 @@ jobs:
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@release/v1
 
-  publish-docs:
-    name: Publish Docs
-    needs: test
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-      - uses: actions/checkout@v5
-
-      - uses: actions/configure-pages@v5
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-
-      - name: Install zensical
-        run: pip install zensical
-
-      - name: Build documentation
-        run: zensical build --clean
-
-      - name: Upload Pages artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: site
-
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
-
   github-release:
     name: Create GitHub Release
-    needs: [publish-pypi, publish-docs]
+    needs: publish-pypi
     runs-on: ubuntu-latest
 
     steps:

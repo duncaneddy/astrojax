@@ -4,9 +4,6 @@ on:
   push:
     branches:
       - main
-    # Don't run on tag pushes - release.yml handles those
-    tags-ignore:
-      - "v*"
 
 permissions:
   contents: read
