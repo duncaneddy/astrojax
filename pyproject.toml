@@ -1,0 +1,27 @@
+[project]
+name = "astrojax"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Duncan Eddy", email = "duncan.eddy@gmail.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "jax>=0.9.0",
+]
+
+[build-system]
+requires = ["uv_build>=0.9.26,<0.10.0"]
+build-backend = "uv_build"
+
+[dependency-groups]
+dev = [
+    "brahe>=1.0.1",
+    "hypothesis>=6.151.2",
+    "mkdocstrings-python>=2.0.1",
+    "pytest>=9.0.2",
+    "pytest-cov>=7.0.0",
+    "pytest-order>=1.3.0",
+    "zensical>=0.0.19",
+]
