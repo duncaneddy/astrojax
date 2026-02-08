@@ -31,6 +31,14 @@ from .attitude_representations import (
 
 from .epoch import Epoch
 
+from .relative_motion import (
+    rotation_rtn_to_eci,
+    rotation_eci_to_rtn,
+    state_eci_to_rtn,
+    state_rtn_to_eci,
+    hcw_derivative,
+)
+
 __all__ = [
     # Constants
     "DEG2RAD",
@@ -57,4 +65,10 @@ __all__ = [
     "Rz",
     # Epoch
     "Epoch",
+    # Relative Motion
+    "rotation_rtn_to_eci",
+    "rotation_eci_to_rtn",
+    "state_eci_to_rtn",
+    "state_rtn_to_eci",
+    "hcw_derivative",
 ]
