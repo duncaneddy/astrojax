@@ -22,6 +22,8 @@ from .third_body import accel_third_body_sun, accel_third_body_moon
 from .density import density_harris_priester
 from .drag import accel_drag
 from .srp import accel_srp, eclipse_conical, eclipse_cylindrical
+from .config import ForceModelConfig, SpacecraftParams
+from .factory import create_orbit_dynamics
 
 __all__ = [
     # Ephemerides
@@ -43,4 +45,8 @@ __all__ = [
     "accel_srp",
     "eclipse_conical",
     "eclipse_cylindrical",
+    # Dynamics factory
+    "ForceModelConfig",
+    "SpacecraftParams",
+    "create_orbit_dynamics",
 ]

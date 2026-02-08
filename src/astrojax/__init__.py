@@ -94,6 +94,9 @@ from .orbit_dynamics import (
     accel_srp,
     eclipse_conical,
     eclipse_cylindrical,
+    ForceModelConfig,
+    SpacecraftParams,
+    create_orbit_dynamics,
 )
 
 from .integrators import (
@@ -188,6 +191,9 @@ __all__ = [
     "accel_srp",
     "eclipse_conical",
     "eclipse_cylindrical",
+    "ForceModelConfig",
+    "SpacecraftParams",
+    "create_orbit_dynamics",
     # Integrators
     "StepResult",
     "AdaptiveConfig",
