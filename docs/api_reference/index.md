@@ -10,3 +10,5 @@ Complete reference for all public modules in astrojax.
 | [Epoch](epoch.md) | High-precision time representation with JAX pytree support |
 | [Frames](frames.md) | ECI-ECEF frame transformations using Earth rotation |
 | [Relative Motion](relative_motion.md) | ECI-RTN frame transformations and HCW relative dynamics |
+| [Orbits](orbits.md) | Orbital mechanics utilities and anomaly conversions |
+| [Orbit Dynamics](orbit_dynamics.md) | Perturbation force models (gravity, drag, SRP, third-body) |

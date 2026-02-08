@@ -33,6 +33,11 @@ Offset between Julian Date and Modified Julian Date. Units: *days*
 """
 JD_MJD_OFFSET = 2400000.5  # Offset between Julian Date and Modified Julian Date
 
+"""
+Modified Julian Date of the J2000.0 epoch (2000-01-01 12:00:00 TT). Units: *days*
+"""
+MJD2000 = 51544.5
+
 # Physical Constants
 """
 Speed of light in vacuum. Units: *m/s*

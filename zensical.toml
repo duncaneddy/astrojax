@@ -36,7 +36,8 @@ nav = [
         { "Epoch" = "user_guide/epoch.md" },
         { "Frames" = "user_guide/frames.md" },
         { "Orbits" = "user_guide/orbits.md" },
-        { "Relative Motion" = "user_guide/relative_motion.md" }
+        { "Relative Motion" = "user_guide/relative_motion.md" },
+        { "Orbit Dynamics" = "user_guide/orbit_dynamics.md" }
     ]},
     { "API Reference" = [
         { "API Reference" = "api_reference/index.md" },
@@ -46,7 +47,8 @@ nav = [
         { "Epoch" = "api_reference/epoch.md" },
         { "Frames" = "api_reference/frames.md" },
         { "Orbits" = "api_reference/orbits.md" },
-        { "Relative Motion" = "api_reference/relative_motion.md" }
+        { "Relative Motion" = "api_reference/relative_motion.md" },
+        { "Orbit Dynamics" = "api_reference/orbit_dynamics.md" }
     ]}
 ]
 
