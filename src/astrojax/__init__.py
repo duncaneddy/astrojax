@@ -96,6 +96,14 @@ from .orbit_dynamics import (
     eclipse_cylindrical,
 )
 
+from .integrators import (
+    StepResult,
+    AdaptiveConfig,
+    rk4_step,
+    rkf45_step,
+    dp54_step,
+)
+
 __all__ = [
     # Constants
     "DEG2RAD",
@@ -179,4 +187,10 @@ __all__ = [
     "accel_srp",
     "eclipse_conical",
     "eclipse_cylindrical",
+    # Integrators
+    "StepResult",
+    "AdaptiveConfig",
+    "rk4_step",
+    "rkf45_step",
+    "dp54_step",
 ]
