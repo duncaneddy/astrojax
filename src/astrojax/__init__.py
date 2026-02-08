@@ -47,6 +47,15 @@ from .relative_motion import (
     hcw_derivative,
 )
 
+from .coordinates import (
+    position_geocentric_to_ecef,
+    position_ecef_to_geocentric,
+    position_geodetic_to_ecef,
+    position_ecef_to_geodetic,
+    state_koe_to_eci,
+    state_eci_to_koe,
+)
+
 from .orbits import (
     orbital_period,
     orbital_period_from_state,
@@ -107,6 +116,13 @@ __all__ = [
     "state_eci_to_rtn",
     "state_rtn_to_eci",
     "hcw_derivative",
+    # Coordinates
+    "position_geocentric_to_ecef",
+    "position_ecef_to_geocentric",
+    "position_geodetic_to_ecef",
+    "position_ecef_to_geodetic",
+    "state_koe_to_eci",
+    "state_eci_to_koe",
     # Orbits
     "orbital_period",
     "orbital_period_from_state",
