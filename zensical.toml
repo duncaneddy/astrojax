@@ -29,9 +29,16 @@ Copyright &copy; 2026 Duncan Eddy
 # Read more: https://zensical.org/docs/setup/navigation/
 nav = [
     { "Home" = "index.md" },
+    { "User Guide" = [
+        { "User Guide" = "user_guide/index.md" },
+        { "Time" = "user_guide/time.md" },
+        { "Epoch" = "user_guide/epoch.md" }
+    ]},
     { "API Reference" = [
         { "API Reference" = "api_reference/index.md" },
-        { "Constants" = "api_reference/constants.md" }
+        { "Constants" = "api_reference/constants.md" },
+        { "Time" = "api_reference/time.md" },
+        { "Epoch" = "api_reference/epoch.md" }
     ]}
 ]
 

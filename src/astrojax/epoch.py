@@ -17,6 +17,8 @@ representation (int32 days + float32 seconds) provides ~8ms time precision,
 which is sufficient for most training and simulation workloads.
 """
 
+from __future__ import annotations
+
 import math
 import re
 
@@ -75,7 +77,7 @@ class Epoch:
 
     __slots__ = ('_jd', '_seconds', '_kahan_c')
 
-    def __init__(self, *args):
+    def __init__(self, *args: int | float | str | Epoch) -> None:
         """Initialize Epoch. Supports multiple constructor forms.
 
         Args:
@@ -217,7 +219,7 @@ class Epoch:
 
     # Arithmetic operators
 
-    def __iadd__(self, delta):
+    def __iadd__(self, delta: float) -> Epoch:
         """Add seconds to this epoch using Kahan compensated summation.
 
         Returns a new Epoch instance (Python rebinds the name on ``+=``).
@@ -243,7 +245,7 @@ class Epoch:
 
         return Epoch._from_internal(new_jd, new_seconds, new_kahan_c)
 
-    def __isub__(self, delta):
+    def __isub__(self, delta: float) -> Epoch:
         """Subtract seconds from this epoch.
 
         Args:
@@ -254,7 +256,7 @@ class Epoch:
         """
         return self.__iadd__(-jnp.float32(delta))
 
-    def __add__(self, delta):
+    def __add__(self, delta: float) -> Epoch:
         """Return a new Epoch with seconds added.
 
         Args:
@@ -265,7 +267,7 @@ class Epoch:
         """
         return self.__iadd__(delta)
 
-    def __sub__(self, other):
+    def __sub__(self, other: Epoch | float) -> Epoch | jax.Array:
         """Subtract seconds or compute difference between Epochs.
 
         Args:
@@ -326,7 +328,7 @@ class Epoch:
 
     # Time properties
 
-    def caldate(self):
+    def caldate(self) -> tuple[jax.Array, jax.Array, jax.Array, int, int, float]:
         """Return the calendar date components.
 
         This method extracts concrete Python values from JAX arrays and
@@ -354,7 +356,7 @@ class Epoch:
 
         return year, month, day, hour, minute, second
 
-    def jd(self):
+    def jd(self) -> jax.Array:
         """Return the Julian Date as a single float32.
 
         Note:
@@ -367,7 +369,7 @@ class Epoch:
         """
         return jnp.float32(self._jd) + self._compensated_seconds() / jnp.float32(_SECONDS_PER_DAY)
 
-    def mjd(self):
+    def mjd(self) -> jax.Array:
         """Return the Modified Julian Date as a single float32.
 
         Note:
@@ -382,7 +384,7 @@ class Epoch:
 
     # Sidereal time
 
-    def gmst(self, use_degrees=False):
+    def gmst(self, use_degrees: bool = False) -> jax.Array:
         """Compute Greenwich Mean Sidereal Time using the IAU 1982 model.
 
         Uses the Vallado GMST82 polynomial approximation. This implementation
