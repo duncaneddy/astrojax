@@ -22,26 +22,27 @@ DEGREES = bh.AngleFormat.DEGREES
 RADIANS = bh.AngleFormat.RADIANS
 
 # Float32 vs float64 tolerances (OE path — direct orbital element inputs)
-_DA_ATOL = 1e-5           # relative SMA (dimensionless)
-_ANGLE_DEG_ATOL = 0.01    # degrees
-_ANGLE_RAD_ATOL = 2e-4    # radians
-_ECC_VEC_ATOL = 1e-5      # eccentricity vector components
-_SMA_ATOL = 100.0         # metres
-_ECC_ATOL = 5e-4          # eccentricity (roundtrip)
+_DA_ATOL = 1e-5  # relative SMA (dimensionless)
+_ANGLE_DEG_ATOL = 0.01  # degrees
+_ANGLE_RAD_ATOL = 2e-4  # radians
+_ECC_VEC_ATOL = 1e-5  # eccentricity vector components
+_SMA_ATOL = 100.0  # metres
+_ECC_ATOL = 5e-4  # eccentricity (roundtrip)
 
 # ECI path tolerances — wider because ECI->KOE conversion introduces
 # additional float32 roundoff on position magnitudes of ~7e6 m
-_ECI_DA_ATOL = 1e-4       # relative SMA via ECI path
-_ECI_ANGLE_DEG_ATOL = 0.1 # degrees via ECI path
+_ECI_DA_ATOL = 1e-4  # relative SMA via ECI path
+_ECI_ANGLE_DEG_ATOL = 0.1  # degrees via ECI path
 _ECI_ANGLE_RAD_ATOL = 2e-3  # radians via ECI path
 _ECI_ECC_VEC_ATOL = 5e-4  # eccentricity vector via ECI path
-_ECI_POS_ATOL = 500.0     # metres (ECI roundtrip, 4x KOE conversion)
-_ECI_VEL_ATOL = 0.5       # m/s (ECI roundtrip)
+_ECI_POS_ATOL = 500.0  # metres (ECI roundtrip, 4x KOE conversion)
+_ECI_VEL_ATOL = 0.5  # m/s (ECI roundtrip)
 
 
 # ──────────────────────────────────────────────
 # OE -> ROE comparison tests
 # ──────────────────────────────────────────────
+
 
 class TestOEtoROEVsBrahe:
     @pytest.mark.parametrize(
@@ -141,9 +142,7 @@ class TestOEtoROEVsBrahe:
 
         # Verify brahe matches reference (sanity check)
         for i in range(6):
-            assert abs(roe_brahe[i] - expected[i]) < 1e-10, (
-                f"brahe reference mismatch at index {i}"
-            )
+            assert abs(roe_brahe[i] - expected[i]) < 1e-10, f"brahe reference mismatch at index {i}"
 
         # Verify astrojax matches brahe (within float32 tolerance)
         assert abs(float(roe_astrojax[0]) - expected[0]) < _DA_ATOL
@@ -157,6 +156,7 @@ class TestOEtoROEVsBrahe:
 # ──────────────────────────────────────────────
 # ROE -> OE comparison tests
 # ──────────────────────────────────────────────
+
 
 class TestROEtoOEVsBrahe:
     def test_roundtrip_degrees(self):
@@ -179,14 +179,26 @@ class TestROEtoOEVsBrahe:
     def test_roundtrip_radians(self):
         """OE->ROE->OE roundtrip matches brahe (radians)."""
         deg2rad = np.pi / 180.0
-        oe_c = np.array([
-            R_EARTH + 700e3, 0.001,
-            97.8 * deg2rad, 15.0 * deg2rad, 30.0 * deg2rad, 45.0 * deg2rad,
-        ])
-        oe_d_orig = np.array([
-            R_EARTH + 701e3, 0.0015,
-            97.85 * deg2rad, 15.05 * deg2rad, 30.05 * deg2rad, 45.05 * deg2rad,
-        ])
+        oe_c = np.array(
+            [
+                R_EARTH + 700e3,
+                0.001,
+                97.8 * deg2rad,
+                15.0 * deg2rad,
+                30.0 * deg2rad,
+                45.0 * deg2rad,
+            ]
+        )
+        oe_d_orig = np.array(
+            [
+                R_EARTH + 701e3,
+                0.0015,
+                97.85 * deg2rad,
+                15.05 * deg2rad,
+                30.05 * deg2rad,
+                45.05 * deg2rad,
+            ]
+        )
 
         roe_brahe = bh.state_oe_to_roe(oe_c, oe_d_orig, RADIANS)
         oe_d_brahe = bh.state_roe_to_oe(oe_c, roe_brahe, RADIANS)
@@ -234,6 +246,7 @@ class TestROEtoOEVsBrahe:
 # ECI <-> ROE comparison tests
 # ──────────────────────────────────────────────
 
+
 class TestECItoROEVsBrahe:
     def test_eci_to_roe_degrees(self):
         """state_eci_to_roe matches brahe (degrees, via ECI path)."""
@@ -258,14 +271,26 @@ class TestECItoROEVsBrahe:
     def test_eci_to_roe_radians(self):
         """state_eci_to_roe matches brahe (radians, via ECI path)."""
         deg2rad = np.pi / 180.0
-        oe_c = np.array([
-            R_EARTH + 700e3, 0.001,
-            97.8 * deg2rad, 15.0 * deg2rad, 30.0 * deg2rad, 45.0 * deg2rad,
-        ])
-        oe_d = np.array([
-            R_EARTH + 701e3, 0.0015,
-            97.85 * deg2rad, 15.05 * deg2rad, 30.05 * deg2rad, 45.05 * deg2rad,
-        ])
+        oe_c = np.array(
+            [
+                R_EARTH + 700e3,
+                0.001,
+                97.8 * deg2rad,
+                15.0 * deg2rad,
+                30.0 * deg2rad,
+                45.0 * deg2rad,
+            ]
+        )
+        oe_d = np.array(
+            [
+                R_EARTH + 701e3,
+                0.0015,
+                97.85 * deg2rad,
+                15.05 * deg2rad,
+                30.05 * deg2rad,
+                45.05 * deg2rad,
+            ]
+        )
 
         x_c_brahe = bh.state_koe_to_eci(oe_c, RADIANS)
         x_d_brahe = bh.state_koe_to_eci(oe_d, RADIANS)
@@ -325,14 +350,26 @@ class TestROEtoECIVsBrahe:
     def test_eci_roe_roundtrip_radians(self):
         """ECI->ROE->ECI roundtrip matches brahe (radians)."""
         deg2rad = np.pi / 180.0
-        oe_c = np.array([
-            R_EARTH + 700e3, 0.001,
-            97.8 * deg2rad, 15.0 * deg2rad, 30.0 * deg2rad, 45.0 * deg2rad,
-        ])
-        oe_d = np.array([
-            R_EARTH + 701e3, 0.0015,
-            97.85 * deg2rad, 15.05 * deg2rad, 30.05 * deg2rad, 45.05 * deg2rad,
-        ])
+        oe_c = np.array(
+            [
+                R_EARTH + 700e3,
+                0.001,
+                97.8 * deg2rad,
+                15.0 * deg2rad,
+                30.0 * deg2rad,
+                45.0 * deg2rad,
+            ]
+        )
+        oe_d = np.array(
+            [
+                R_EARTH + 701e3,
+                0.0015,
+                97.85 * deg2rad,
+                15.05 * deg2rad,
+                30.05 * deg2rad,
+                45.05 * deg2rad,
+            ]
+        )
 
         x_c_brahe = bh.state_koe_to_eci(oe_c, RADIANS)
         x_d_brahe = bh.state_koe_to_eci(oe_d, RADIANS)

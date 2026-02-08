@@ -30,6 +30,7 @@ from astrojax.orbit_dynamics.factory import create_orbit_dynamics
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _leo_state(alt_km: float = 500.0) -> jnp.ndarray:
     """Circular equatorial LEO state at given altitude."""
     _float = get_dtype()
@@ -228,9 +229,7 @@ class TestTwoBodyDynamics:
             result = rk4_step(dynamics, t, state, dt)
             return (t + dt, result.state), None
 
-        (_, x_final), _ = jax.lax.scan(
-            scan_step, (jnp.float32(0.0), x0), None, length=n_steps
-        )
+        (_, x_final), _ = jax.lax.scan(scan_step, (jnp.float32(0.0), x0), None, length=n_steps)
 
         # Position should return to near initial.
         # At float32 with dt=1s, RK4 truncation + float roundoff over ~5600
@@ -444,9 +443,7 @@ class TestFullForceModel:
             result = rk4_step(dynamics, t, state, dt)
             return (t + dt, result.state), result.state
 
-        (_, x_final), traj = jax.lax.scan(
-            scan_step, (jnp.float32(0.0), x0), None, length=n_steps
-        )
+        (_, x_final), traj = jax.lax.scan(scan_step, (jnp.float32(0.0), x0), None, length=n_steps)
 
         # No NaNs
         assert not jnp.any(jnp.isnan(x_final))

@@ -19,26 +19,31 @@ from astrojax.integrators import (
 )
 
 # Float32 vs float64 tolerances
-_RK4_ATOL = 1e-3       # RK4 state comparison (float32 rounding on ~7e6 m values)
-_ADAPTIVE_ATOL = 1.0    # Adaptive methods may take different steps
-_REL_TOL = 1e-4         # Relative tolerance for position comparisons
+_RK4_ATOL = 1e-3  # RK4 state comparison (float32 rounding on ~7e6 m values)
+_ADAPTIVE_ATOL = 1.0  # Adaptive methods may take different steps
+_REL_TOL = 1e-4  # Relative tolerance for position comparisons
 
 
 # ──────────────────────────────────────────────
 # Shared dynamics
 # ──────────────────────────────────────────────
 
+
 def _jax_harmonic(t, x):
     return jnp.array([x[1], -x[0]])
+
 
 def _np_harmonic(t, x):
     return np.array([x[1], -x[0]])
 
+
 def _jax_exp_decay(t, x):
     return -x
 
+
 def _np_exp_decay(t, x):
     return -x
+
 
 def _jax_two_body(t, state):
     r = state[:3]
@@ -46,6 +51,7 @@ def _jax_two_body(t, state):
     r_norm = jnp.linalg.norm(r)
     a = -GM_EARTH * r / r_norm**3
     return jnp.concatenate([v, a])
+
 
 def _np_two_body(t, state):
     r = state[:3]
@@ -58,6 +64,7 @@ def _np_two_body(t, state):
 # ──────────────────────────────────────────────
 # RK4 comparison
 # ──────────────────────────────────────────────
+
 
 class TestRK4Brahe:
     def test_harmonic_oscillator(self):
@@ -120,6 +127,7 @@ class TestRK4Brahe:
 # RKF45 comparison
 # ──────────────────────────────────────────────
 
+
 class TestRKF45Brahe:
     def test_harmonic_oscillator_state(self):
         """RKF45 state matches brahe for harmonic oscillator."""
@@ -175,6 +183,7 @@ class TestRKF45Brahe:
 # ──────────────────────────────────────────────
 # DP54 comparison
 # ──────────────────────────────────────────────
+
 
 class TestDP54Brahe:
     def test_harmonic_oscillator_state(self):

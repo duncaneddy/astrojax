@@ -137,29 +137,16 @@ def dp54_step(
         )
         k5 = f(
             t + _C[5] * h,
-            state
-            + h * (_A5[0] * k0 + _A5[1] * k1 + _A5[2] * k2 + _A5[3] * k3 + _A5[4] * k4),
+            state + h * (_A5[0] * k0 + _A5[1] * k1 + _A5[2] * k2 + _A5[3] * k3 + _A5[4] * k4),
         )
         k6 = f(
             t + _C[6] * h,
-            state
-            + h
-            * (
-                _A6[0] * k0
-                + _A6[2] * k2
-                + _A6[3] * k3
-                + _A6[4] * k4
-                + _A6[5] * k5
-            ),
+            state + h * (_A6[0] * k0 + _A6[2] * k2 + _A6[3] * k3 + _A6[4] * k4 + _A6[5] * k5),
         )
 
         # 5th-order solution (primary) — note _B_HIGH[1] = _B_HIGH[6] = 0
         state_high = state + h * (
-            _B_HIGH[0] * k0
-            + _B_HIGH[2] * k2
-            + _B_HIGH[3] * k3
-            + _B_HIGH[4] * k4
-            + _B_HIGH[5] * k5
+            _B_HIGH[0] * k0 + _B_HIGH[2] * k2 + _B_HIGH[3] * k3 + _B_HIGH[4] * k4 + _B_HIGH[5] * k5
         )
 
         # 4th-order solution (for error estimation)
@@ -173,9 +160,7 @@ def dp54_step(
         )
 
         error_vec = state_high - state_low
-        error = compute_error_norm(
-            error_vec, state_high, state, config.abs_tol, config.rel_tol
-        )
+        error = compute_error_norm(error_vec, state_high, state, config.abs_tol, config.rel_tol)
         return state_high, error
 
     # Adaptive step-rejection loop via lax.while_loop.
@@ -193,9 +178,14 @@ def dp54_step(
 
         # If rejected, shrink step size for next attempt
         h_reduced = compute_next_step_size(
-            error, h, 4.0, config.safety_factor,
-            config.min_scale_factor, config.max_scale_factor,
-            config.min_step, config.max_step,
+            error,
+            h,
+            4.0,
+            config.safety_factor,
+            config.min_scale_factor,
+            config.max_scale_factor,
+            config.min_step,
+            config.max_step,
         )
         h_next = jnp.where(step_accepted, h, h_reduced)
 
@@ -215,9 +205,14 @@ def dp54_step(
 
     # Compute suggested next step size from accepted error
     dt_next = compute_next_step_size(
-        error_out, h_final, 4.0, config.safety_factor,
-        config.min_scale_factor, config.max_scale_factor,
-        config.min_step, config.max_step,
+        error_out,
+        h_final,
+        4.0,
+        config.safety_factor,
+        config.min_scale_factor,
+        config.max_scale_factor,
+        config.min_step,
+        config.max_step,
     )
 
     return StepResult(

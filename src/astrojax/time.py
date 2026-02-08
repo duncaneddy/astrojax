@@ -8,7 +8,14 @@ from .config import get_dtype
 from .constants import JD_MJD_OFFSET
 
 
-def caldate_to_mjd(year: ArrayLike, month: ArrayLike, day: ArrayLike, hour: ArrayLike = 0, minute: ArrayLike = 0, second: ArrayLike = 0.0) -> jax.Array:
+def caldate_to_mjd(
+    year: ArrayLike,
+    month: ArrayLike,
+    day: ArrayLike,
+    hour: ArrayLike = 0,
+    minute: ArrayLike = 0,
+    second: ArrayLike = 0.0,
+) -> jax.Array:
     """Convert a calendar date to Modified Julian Date. Algorithm is only valid from year 1583 onward.
 
     Args:
@@ -33,13 +40,21 @@ def caldate_to_mjd(year: ArrayLike, month: ArrayLike, day: ArrayLike, hour: Arra
 
     B = jnp.floor(year / 400) - jnp.floor(year / 100) + jnp.floor(year / 4)
 
-    mjd = 365*year - 679004 + B + jnp.floor(30.6001 * (month + 1)) + day
+    mjd = 365 * year - 679004 + B + jnp.floor(30.6001 * (month + 1)) + day
 
     frac_day = (hour + (minute + second / 60.0) / 60.0) / 24.0
 
     return get_dtype()(jnp.floor(mjd).astype(jnp.int32)) + frac_day
 
-def caldate_to_jd(year: ArrayLike, month: ArrayLike, day: ArrayLike, hour: ArrayLike = 0, minute: ArrayLike = 0, second: ArrayLike = 0.0) -> jax.Array:
+
+def caldate_to_jd(
+    year: ArrayLike,
+    month: ArrayLike,
+    day: ArrayLike,
+    hour: ArrayLike = 0,
+    minute: ArrayLike = 0,
+    second: ArrayLike = 0.0,
+) -> jax.Array:
     """Convert a calendar date to Julian Date.
 
     Args:
@@ -62,6 +77,7 @@ def caldate_to_jd(year: ArrayLike, month: ArrayLike, day: ArrayLike, hour: Array
 
     return mjd + JD_MJD_OFFSET
 
+
 def jd_to_mjd(jd: ArrayLike) -> jax.Array:
     """Convert Julian Date to Modified Julian Date.
 
@@ -77,6 +93,7 @@ def jd_to_mjd(jd: ArrayLike) -> jax.Array:
     """
 
     return jd - JD_MJD_OFFSET
+
 
 def mjd_to_jd(mjd: ArrayLike) -> jax.Array:
     """Convert Modified Julian Date to Julian Date.
@@ -95,7 +112,9 @@ def mjd_to_jd(mjd: ArrayLike) -> jax.Array:
     return mjd + JD_MJD_OFFSET
 
 
-def jd_to_caldate(jd: ArrayLike) -> tuple[jax.Array, jax.Array, jax.Array, jax.Array, jax.Array, jax.Array]:
+def jd_to_caldate(
+    jd: ArrayLike,
+) -> tuple[jax.Array, jax.Array, jax.Array, jax.Array, jax.Array, jax.Array]:
     """Convert Julian Date to calendar date.
 
     Uses the algorithm from Montenbruck & Gill for Gregorian calendar dates.
@@ -151,7 +170,9 @@ def jd_to_caldate(jd: ArrayLike) -> tuple[jax.Array, jax.Array, jax.Array, jax.A
     return year, month, day, hour, minute, second
 
 
-def mjd_to_caldate(mjd: ArrayLike) -> tuple[jax.Array, jax.Array, jax.Array, jax.Array, jax.Array, jax.Array]:
+def mjd_to_caldate(
+    mjd: ArrayLike,
+) -> tuple[jax.Array, jax.Array, jax.Array, jax.Array, jax.Array, jax.Array]:
     """Convert Modified Julian Date to calendar date.
 
     Args:

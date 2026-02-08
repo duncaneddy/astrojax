@@ -55,12 +55,15 @@ def quaternion_derivative(q: ArrayLike, omega: ArrayLike) -> Array:
 
     wx, wy, wz = omega[0], omega[1], omega[2]
 
-    Omega = jnp.array([
-        [0.0, -wx, -wy, -wz],
-        [wx, 0.0, wz, -wy],
-        [wy, -wz, 0.0, wx],
-        [wz, wy, -wx, 0.0],
-    ], dtype=_float)
+    Omega = jnp.array(
+        [
+            [0.0, -wx, -wy, -wz],
+            [wx, 0.0, wz, -wy],
+            [wy, -wz, 0.0, wx],
+            [wz, wy, -wx, 0.0],
+        ],
+        dtype=_float,
+    )
 
     return 0.5 * Omega @ q
 

@@ -34,6 +34,7 @@ _ADAPTIVE_TOL = 1e-3
 # Helper dynamics functions
 # ──────────────────────────────────────────────
 
+
 def _exponential_decay(t, x):
     """dx/dt = -x. Solution: x(t) = x0 * exp(-t)."""
     return -x
@@ -78,6 +79,7 @@ def _circular_orbit_state(sma):
 # StepResult and AdaptiveConfig tests
 # ──────────────────────────────────────────────
 
+
 class TestTypes:
     def test_step_result_fields(self):
         """StepResult has the expected fields."""
@@ -110,6 +112,7 @@ class TestTypes:
 # ──────────────────────────────────────────────
 # RK4 tests
 # ──────────────────────────────────────────────
+
 
 class TestRK4:
     def test_exponential_decay(self):
@@ -216,6 +219,7 @@ class TestRK4:
 # RKF45 tests
 # ──────────────────────────────────────────────
 
+
 class TestRKF45:
     def test_exponential_decay(self):
         """RKF45 approximates exponential decay accurately."""
@@ -299,6 +303,7 @@ class TestRKF45:
 # DP54 tests
 # ──────────────────────────────────────────────
 
+
 class TestDP54:
     def test_exponential_decay(self):
         """DP54 approximates exponential decay accurately."""
@@ -379,6 +384,7 @@ class TestDP54:
 # Cross-method consistency tests
 # ──────────────────────────────────────────────
 
+
 class TestCrossMethod:
     def test_all_methods_agree_small_step(self):
         """All three methods agree for a small step on harmonic oscillator."""
@@ -414,6 +420,7 @@ class TestCrossMethod:
 # ──────────────────────────────────────────────
 # JAX compatibility tests
 # ──────────────────────────────────────────────
+
 
 class TestJAXCompatibility:
     def test_jit_rk4(self):
@@ -452,11 +459,13 @@ class TestJAXCompatibility:
 
     def test_vmap_rk4(self):
         """rk4_step works with vmap over a batch of initial conditions."""
-        x0_batch = jnp.array([
-            [1.0, 0.0],
-            [0.0, 1.0],
-            [0.5, 0.5],
-        ])
+        x0_batch = jnp.array(
+            [
+                [1.0, 0.0],
+                [0.0, 1.0],
+                [0.5, 0.5],
+            ]
+        )
 
         def step(x0):
             return rk4_step(_harmonic_oscillator, 0.0, x0, 0.01).state
@@ -466,10 +475,12 @@ class TestJAXCompatibility:
 
     def test_vmap_rkf45(self):
         """rkf45_step works with vmap over a batch of initial conditions."""
-        x0_batch = jnp.array([
-            [1.0, 0.0],
-            [0.0, 1.0],
-        ])
+        x0_batch = jnp.array(
+            [
+                [1.0, 0.0],
+                [0.0, 1.0],
+            ]
+        )
 
         def step(x0):
             return rkf45_step(_harmonic_oscillator, 0.0, x0, 0.1).state
@@ -479,10 +490,12 @@ class TestJAXCompatibility:
 
     def test_vmap_dp54(self):
         """dp54_step works with vmap over a batch of initial conditions."""
-        x0_batch = jnp.array([
-            [1.0, 0.0],
-            [0.0, 1.0],
-        ])
+        x0_batch = jnp.array(
+            [
+                [1.0, 0.0],
+                [0.0, 1.0],
+            ]
+        )
 
         def step(x0):
             return dp54_step(_harmonic_oscillator, 0.0, x0, 0.1).state
@@ -492,6 +505,7 @@ class TestJAXCompatibility:
 
     def test_grad_rk4(self):
         """rk4_step supports gradient computation."""
+
         def loss(x0):
             result = rk4_step(_harmonic_oscillator, 0.0, x0, 0.01)
             return jnp.sum(result.state**2)
@@ -534,10 +548,12 @@ class TestJAXCompatibility:
 
     def test_vmap_rkn1210(self):
         """rkn1210_step works with vmap over a batch of initial conditions."""
-        x0_batch = jnp.array([
-            [1.0, 0.0],
-            [0.0, 1.0],
-        ])
+        x0_batch = jnp.array(
+            [
+                [1.0, 0.0],
+                [0.0, 1.0],
+            ]
+        )
 
         def step(x0):
             return rkn1210_step(_harmonic_oscillator, 0.0, x0, 0.1).state
@@ -549,6 +565,7 @@ class TestJAXCompatibility:
 # ──────────────────────────────────────────────
 # RKN1210 tests
 # ──────────────────────────────────────────────
+
 
 class TestRKN1210:
     def test_harmonic_oscillator(self):
@@ -602,9 +619,7 @@ class TestRKN1210:
             return jnp.zeros_like(x)
 
         result_no_ctrl = rkn1210_step(_harmonic_oscillator, 0.0, x0, dt)
-        result_zero_ctrl = rkn1210_step(
-            _harmonic_oscillator, 0.0, x0, dt, control=zero_control
-        )
+        result_zero_ctrl = rkn1210_step(_harmonic_oscillator, 0.0, x0, dt, control=zero_control)
         assert jnp.allclose(result_no_ctrl.state, result_zero_ctrl.state, atol=1e-6)
 
     def test_error_estimate_nonzero(self):

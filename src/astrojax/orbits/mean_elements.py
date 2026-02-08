@@ -94,7 +94,7 @@ def _transform_koe(oe: Array, sign: float) -> Array:
     cos_2argp_3f = jnp.cos(two_argp + 3.0 * f)
     sin_2argp_3f = jnp.sin(two_argp + 3.0 * f)
 
-    a_over_r_cubed = a_over_r ** 3
+    a_over_r_cubed = a_over_r**3
 
     # (1 - 5*cos^2(i)) term
     one_minus_5cos2_i = 1.0 - 5.0 * cos2_i
@@ -107,24 +107,26 @@ def _transform_koe(oe: Array, sign: float) -> Array:
     )
 
     # ── (F.8) delta_e1 ──
-    delta_e1 = (gamma2_prime / 8.0) * e * eta2 * (
-        1.0 - 11.0 * cos2_i - 40.0 * cos4_i / one_minus_5cos2_i
-    ) * cos_2argp
+    delta_e1 = (
+        (gamma2_prime / 8.0)
+        * e
+        * eta2
+        * (1.0 - 11.0 * cos2_i - 40.0 * cos4_i / one_minus_5cos2_i)
+        * cos_2argp
+    )
 
     # ── (F.9) delta_e ──
     de_inner1 = ((3.0 * cos2_i - 1.0) / eta6) * (
-        e * eta + e / (1.0 + eta) + 3.0 * cos_f
-        + 3.0 * e * cos2_f + e * e * cos3_f
+        e * eta + e / (1.0 + eta) + 3.0 * cos_f + 3.0 * e * cos2_f + e * e * cos3_f
     )
     de_inner2 = (
-        3.0 * ((1.0 - cos2_i) / eta6)
+        3.0
+        * ((1.0 - cos2_i) / eta6)
         * (e + 3.0 * cos_f + 3.0 * e * cos2_f + e * e * cos3_f)
         * cos_2argp_2f
     )
     de_bracket = gamma2 * (de_inner1 + de_inner2)
-    de_third_term = (
-        -gamma2_prime * (1.0 - cos2_i) * (3.0 * cos_2argp_f + cos_2argp_3f)
-    )
+    de_third_term = -gamma2_prime * (1.0 - cos2_i) * (3.0 * cos_2argp_f + cos_2argp_3f)
     delta_e = delta_e1 + (eta2 / 2.0) * (de_bracket + de_third_term)
 
     # ── (F.10) delta_i ──
@@ -135,30 +137,38 @@ def _transform_koe(oe: Array, sign: float) -> Array:
 
     # ── (F.11) M' + omega' + Omega' combined ──
     mpo_line1 = (
-        m_anom + argp + raan
-        + (gamma2_prime / 8.0) * eta3
-        * (1.0 - 11.0 * cos2_i - 40.0 * cos4_i / one_minus_5cos2_i)
+        m_anom
+        + argp
+        + raan
+        + (gamma2_prime / 8.0) * eta3 * (1.0 - 11.0 * cos2_i - 40.0 * cos4_i / one_minus_5cos2_i)
     )
     mpo_line2 = -(gamma2_prime / 16.0) * (
-        2.0 + e * e
+        2.0
+        + e * e
         - 11.0 * (2.0 + 3.0 * e * e) * cos2_i
         - 40.0 * (2.0 + 5.0 * e * e) * cos4_i / one_minus_5cos2_i
         - 400.0 * e * e * cos6_i / one_minus_5cos2_i_sq
     )
     mpo_line3 = (gamma2_prime / 4.0) * (
         -6.0 * one_minus_5cos2_i * (f - m_anom + e * sin_f)
-        + (3.0 - 5.0 * cos2_i)
-        * (3.0 * sin_2argp_2f + 3.0 * e * sin_2argp_f + e * sin_2argp_3f)
+        + (3.0 - 5.0 * cos2_i) * (3.0 * sin_2argp_2f + 3.0 * e * sin_2argp_f + e * sin_2argp_3f)
     )
-    mpo_line4 = -(gamma2_prime / 8.0) * e * e * cos_i * (
-        11.0 + 80.0 * cos2_i / one_minus_5cos2_i
-        + 200.0 * cos4_i / one_minus_5cos2_i_sq
+    mpo_line4 = (
+        -(gamma2_prime / 8.0)
+        * e
+        * e
+        * cos_i
+        * (11.0 + 80.0 * cos2_i / one_minus_5cos2_i + 200.0 * cos4_i / one_minus_5cos2_i_sq)
     )
-    mpo_line5 = -(gamma2_prime / 2.0) * cos_i * (
-        6.0 * (f - m_anom + e * sin_f)
-        - 3.0 * sin_2argp_2f
-        - 3.0 * e * sin_2argp_f
-        - e * sin_2argp_3f
+    mpo_line5 = (
+        -(gamma2_prime / 2.0)
+        * cos_i
+        * (
+            6.0 * (f - m_anom + e * sin_f)
+            - 3.0 * sin_2argp_2f
+            - 3.0 * e * sin_2argp_f
+            - e * sin_2argp_3f
+        )
     )
     m_prime_plus_argp_prime_plus_raan_prime = (
         mpo_line1 + mpo_line2 + mpo_line3 + mpo_line4 + mpo_line5
@@ -168,28 +178,37 @@ def _transform_koe(oe: Array, sign: float) -> Array:
     aeta_over_r = a_over_r * eta
     aeta_over_r_sq = aeta_over_r * aeta_over_r
 
-    edm_line1 = (gamma2_prime / 8.0) * e * eta3 * (
-        1.0 - 11.0 * cos2_i - 40.0 * cos4_i / one_minus_5cos2_i
+    edm_line1 = (
+        (gamma2_prime / 8.0) * e * eta3 * (1.0 - 11.0 * cos2_i - 40.0 * cos4_i / one_minus_5cos2_i)
     )
-    edm_term1 = (
-        2.0 * (3.0 * cos2_i - 1.0) * (aeta_over_r_sq + a_over_r + 1.0) * sin_f
-    )
-    edm_term2 = 3.0 * (1.0 - cos2_i) * (
-        (-aeta_over_r_sq - a_over_r + 1.0) * sin_2argp_f
-        + (aeta_over_r_sq + a_over_r + 1.0 / 3.0) * sin_2argp_3f
+    edm_term1 = 2.0 * (3.0 * cos2_i - 1.0) * (aeta_over_r_sq + a_over_r + 1.0) * sin_f
+    edm_term2 = (
+        3.0
+        * (1.0 - cos2_i)
+        * (
+            (-aeta_over_r_sq - a_over_r + 1.0) * sin_2argp_f
+            + (aeta_over_r_sq + a_over_r + 1.0 / 3.0) * sin_2argp_3f
+        )
     )
     e_delta_m = edm_line1 - (gamma2_prime / 4.0) * eta3 * (edm_term1 + edm_term2)
 
     # ── (F.13) delta_Omega ──
-    do_line1 = -(gamma2_prime / 8.0) * e * e * cos_i * (
-        11.0 + 80.0 * cos2_i / one_minus_5cos2_i
-        + 200.0 * cos4_i / one_minus_5cos2_i_sq
+    do_line1 = (
+        -(gamma2_prime / 8.0)
+        * e
+        * e
+        * cos_i
+        * (11.0 + 80.0 * cos2_i / one_minus_5cos2_i + 200.0 * cos4_i / one_minus_5cos2_i_sq)
     )
-    do_line2 = -(gamma2_prime / 2.0) * cos_i * (
-        6.0 * (f - m_anom + e * sin_f)
-        - 3.0 * sin_2argp_2f
-        - 3.0 * e * sin_2argp_f
-        - e * sin_2argp_3f
+    do_line2 = (
+        -(gamma2_prime / 2.0)
+        * cos_i
+        * (
+            6.0 * (f - m_anom + e * sin_f)
+            - 3.0 * sin_2argp_2f
+            - 3.0 * e * sin_2argp_f
+            - e * sin_2argp_3f
+        )
     )
     delta_raan = do_line1 + do_line2
 
@@ -211,14 +230,12 @@ def _transform_koe(oe: Array, sign: float) -> Array:
     half_i = i / 2.0
     sin_half_i = jnp.sin(half_i)
     cos_half_i = jnp.cos(half_i)
-    d3 = (
-        (sin_half_i + cos_half_i * delta_i / 2.0) * jnp.sin(raan)
-        + sin_half_i * delta_raan * jnp.cos(raan)
-    )
-    d4 = (
-        (sin_half_i + cos_half_i * delta_i / 2.0) * jnp.cos(raan)
-        - sin_half_i * delta_raan * jnp.sin(raan)
-    )
+    d3 = (sin_half_i + cos_half_i * delta_i / 2.0) * jnp.sin(
+        raan
+    ) + sin_half_i * delta_raan * jnp.cos(raan)
+    d4 = (sin_half_i + cos_half_i * delta_i / 2.0) * jnp.cos(
+        raan
+    ) - sin_half_i * delta_raan * jnp.sin(raan)
 
     # (F.20) Omega' = atan2(d3, d4)
     raan_prime = jnp.arctan2(d3, d4)
@@ -235,14 +252,16 @@ def _transform_koe(oe: Array, sign: float) -> Array:
     raan_prime_norm = (raan_prime % two_pi + two_pi) % two_pi
     argp_prime_norm = (argp_prime_raw % two_pi + two_pi) % two_pi
 
-    return jnp.array([
-        a_prime,
-        e_prime,
-        i_prime,
-        raan_prime_norm,
-        argp_prime_norm,
-        m_prime_norm,
-    ])
+    return jnp.array(
+        [
+            a_prime,
+            e_prime,
+            i_prime,
+            raan_prime_norm,
+            argp_prime_norm,
+            m_prime_norm,
+        ]
+    )
 
 
 def state_koe_osc_to_mean(oe: ArrayLike, use_degrees: bool = False) -> Array:
@@ -273,23 +292,27 @@ def state_koe_osc_to_mean(oe: ArrayLike, use_degrees: bool = False) -> Array:
         ```
     """
     oe = jnp.asarray(oe, dtype=get_dtype())
-    oe_rad = jnp.array([
-        oe[0],
-        oe[1],
-        to_radians(oe[2], use_degrees),
-        to_radians(oe[3], use_degrees),
-        to_radians(oe[4], use_degrees),
-        to_radians(oe[5], use_degrees),
-    ])
+    oe_rad = jnp.array(
+        [
+            oe[0],
+            oe[1],
+            to_radians(oe[2], use_degrees),
+            to_radians(oe[3], use_degrees),
+            to_radians(oe[4], use_degrees),
+            to_radians(oe[5], use_degrees),
+        ]
+    )
     result_rad = _transform_koe(oe_rad, -1.0)
-    return jnp.array([
-        result_rad[0],
-        result_rad[1],
-        from_radians(result_rad[2], use_degrees),
-        from_radians(result_rad[3], use_degrees),
-        from_radians(result_rad[4], use_degrees),
-        from_radians(result_rad[5], use_degrees),
-    ])
+    return jnp.array(
+        [
+            result_rad[0],
+            result_rad[1],
+            from_radians(result_rad[2], use_degrees),
+            from_radians(result_rad[3], use_degrees),
+            from_radians(result_rad[4], use_degrees),
+            from_radians(result_rad[5], use_degrees),
+        ]
+    )
 
 
 def state_koe_mean_to_osc(oe: ArrayLike, use_degrees: bool = False) -> Array:
@@ -320,20 +343,24 @@ def state_koe_mean_to_osc(oe: ArrayLike, use_degrees: bool = False) -> Array:
         ```
     """
     oe = jnp.asarray(oe, dtype=get_dtype())
-    oe_rad = jnp.array([
-        oe[0],
-        oe[1],
-        to_radians(oe[2], use_degrees),
-        to_radians(oe[3], use_degrees),
-        to_radians(oe[4], use_degrees),
-        to_radians(oe[5], use_degrees),
-    ])
+    oe_rad = jnp.array(
+        [
+            oe[0],
+            oe[1],
+            to_radians(oe[2], use_degrees),
+            to_radians(oe[3], use_degrees),
+            to_radians(oe[4], use_degrees),
+            to_radians(oe[5], use_degrees),
+        ]
+    )
     result_rad = _transform_koe(oe_rad, +1.0)
-    return jnp.array([
-        result_rad[0],
-        result_rad[1],
-        from_radians(result_rad[2], use_degrees),
-        from_radians(result_rad[3], use_degrees),
-        from_radians(result_rad[4], use_degrees),
-        from_radians(result_rad[5], use_degrees),
-    ])
+    return jnp.array(
+        [
+            result_rad[0],
+            result_rad[1],
+            from_radians(result_rad[2], use_degrees),
+            from_radians(result_rad[3], use_degrees),
+            from_radians(result_rad[4], use_degrees),
+            from_radians(result_rad[5], use_degrees),
+        ]
+    )

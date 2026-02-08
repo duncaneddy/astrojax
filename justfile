@@ -3,9 +3,10 @@
 
 # ───── Installation ─────
 
-# Install/sync all dev dependencies
+# Install/sync all dev dependencies and set up pre-commit hooks
 install:
     uv sync --dev
+    uv run pre-commit install
 
 # ───── Testing ─────
 
@@ -48,3 +49,13 @@ docs-serve: docs-clean
 # Clear __pycache__ dirs (useful before docs build)
 docs-clean:
     find . -path ./.venv -prune -o -type d -name __pycache__ -print -exec rm -rf {} +
+
+# ───── Pre-Commit Hooks ─────
+
+# Install pre-commit hooks into .git/hooks
+hooks-install:
+    uv run pre-commit install
+
+# Run all pre-commit hooks on all files
+hooks-run:
+    uv run pre-commit run --all-files

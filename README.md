@@ -4,6 +4,8 @@
 [![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://duncaneddy.github.io/astrojax/)
 [![Coverage Status](https://coveralls.io/repos/github/duncaneddy/astrojax/badge.svg?branch=main)](https://coveralls.io/github/duncaneddy/astrojax?branch=main)
 
+---
+
 Astrodynamics written in JAX for massively parallel simulation.
 
 ## Install

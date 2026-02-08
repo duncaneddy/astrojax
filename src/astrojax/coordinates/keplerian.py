@@ -91,17 +91,21 @@ def state_koe_to_eci(
     cos_i = jnp.cos(i)
     sin_i = jnp.sin(i)
 
-    P = jnp.array([
-        cos_o * cos_R - sin_o * cos_i * sin_R,
-        cos_o * sin_R + sin_o * cos_i * cos_R,
-        sin_o * sin_i,
-    ])
+    P = jnp.array(
+        [
+            cos_o * cos_R - sin_o * cos_i * sin_R,
+            cos_o * sin_R + sin_o * cos_i * cos_R,
+            sin_o * sin_i,
+        ]
+    )
 
-    Q = jnp.array([
-        -sin_o * cos_R - cos_o * cos_i * sin_R,
-        -sin_o * sin_R + cos_o * cos_i * cos_R,
-        cos_o * sin_i,
-    ])
+    Q = jnp.array(
+        [
+            -sin_o * cos_R - cos_o * cos_i * sin_R,
+            -sin_o * sin_R + cos_o * cos_i * cos_R,
+            cos_o * sin_i,
+        ]
+    )
 
     # Position and velocity in the orbital plane
     cos_E = jnp.cos(E)
@@ -110,9 +114,7 @@ def state_koe_to_eci(
 
     r_vec = a * (cos_E - e) * P + a * sqrt_1me2 * sin_E * Q
     r_mag = jnp.linalg.norm(r_vec)
-    v_vec = (jnp.sqrt(GM_EARTH * a) / r_mag) * (
-        -sin_E * P + sqrt_1me2 * cos_E * Q
-    )
+    v_vec = (jnp.sqrt(GM_EARTH * a) / r_mag) * (-sin_E * P + sqrt_1me2 * cos_E * Q)
 
     return jnp.concatenate([r_vec, v_vec])
 

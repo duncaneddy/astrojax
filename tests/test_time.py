@@ -144,8 +144,12 @@ def test_caldate_to_mjd_vmap():
 
     for i in range(3):
         expected = caldate_to_mjd(
-            int(years[i]), int(months[i]), int(days[i]),
-            int(hours[i]), int(minutes[i]), float(seconds[i]),
+            int(years[i]),
+            int(months[i]),
+            int(days[i]),
+            int(hours[i]),
+            int(minutes[i]),
+            float(seconds[i]),
         )
         assert float(vmapped[i]) == pytest.approx(float(expected), abs=1e-6)
 

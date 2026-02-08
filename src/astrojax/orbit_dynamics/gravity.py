@@ -265,17 +265,11 @@ class GravityModel:
             ValueError: If validation fails.
         """
         if m > n:
-            raise ValueError(
-                f"Maximum order (m={m}) cannot exceed maximum degree (n={n})."
-            )
+            raise ValueError(f"Maximum order (m={m}) cannot exceed maximum degree (n={n}).")
         if n > self.n_max:
-            raise ValueError(
-                f"Requested degree (n={n}) exceeds model's n_max={self.n_max}."
-            )
+            raise ValueError(f"Requested degree (n={n}) exceeds model's n_max={self.n_max}.")
         if m > self.m_max:
-            raise ValueError(
-                f"Requested order (m={m}) exceeds model's m_max={self.m_max}."
-            )
+            raise ValueError(f"Requested order (m={m}) exceeds model's m_max={self.m_max}.")
         if n == self.n_max and m == self.m_max:
             return
 
@@ -460,8 +454,12 @@ def accel_gravity_spherical_harmonics(
 
     # Compute acceleration in body-fixed frame
     a_bf = _compute_spherical_harmonics(
-        r_bf, CS, n_max, m_max,
-        gravity_model.radius, gravity_model.gm,
+        r_bf,
+        CS,
+        n_max,
+        m_max,
+        gravity_model.radius,
+        gravity_model.gm,
         gravity_model.is_normalized,
     )
 
@@ -518,19 +516,14 @@ def _compute_spherical_harmonics(
     for n in range(2, n_max + 2):
         nf = float(n)
         V = V.at[n, 0].set(
-            ((2.0 * nf - 1.0) * z0 * V[n - 1, 0]
-             - (nf - 1.0) * rho * V[n - 2, 0]) / nf
+            ((2.0 * nf - 1.0) * z0 * V[n - 1, 0] - (nf - 1.0) * rho * V[n - 2, 0]) / nf
         )
 
     # Tesseral and sectorial terms
     for m in range(1, m_max + 2):
         mf = float(m)
-        V = V.at[m, m].set(
-            (2.0 * mf - 1.0) * (x0 * V[m - 1, m - 1] - y0 * W[m - 1, m - 1])
-        )
-        W = W.at[m, m].set(
-            (2.0 * mf - 1.0) * (x0 * W[m - 1, m - 1] + y0 * V[m - 1, m - 1])
-        )
+        V = V.at[m, m].set((2.0 * mf - 1.0) * (x0 * V[m - 1, m - 1] - y0 * W[m - 1, m - 1]))
+        W = W.at[m, m].set((2.0 * mf - 1.0) * (x0 * W[m - 1, m - 1] + y0 * V[m - 1, m - 1]))
 
         if m <= n_max:
             V = V.at[m + 1, m].set((2.0 * mf + 1.0) * z0 * V[m, m])
@@ -539,12 +532,12 @@ def _compute_spherical_harmonics(
         for n in range(m + 2, n_max + 2):
             nf = float(n)
             V = V.at[n, m].set(
-                ((2.0 * nf - 1.0) * z0 * V[n - 1, m]
-                 - (nf + mf - 1.0) * rho * V[n - 2, m]) / (nf - mf)
+                ((2.0 * nf - 1.0) * z0 * V[n - 1, m] - (nf + mf - 1.0) * rho * V[n - 2, m])
+                / (nf - mf)
             )
             W = W.at[n, m].set(
-                ((2.0 * nf - 1.0) * z0 * W[n - 1, m]
-                 - (nf + mf - 1.0) * rho * W[n - 2, m]) / (nf - mf)
+                ((2.0 * nf - 1.0) * z0 * W[n - 1, m] - (nf + mf - 1.0) * rho * W[n - 2, m])
+                / (nf - mf)
             )
 
     # Accumulate accelerations
@@ -571,10 +564,7 @@ def _compute_spherical_harmonics(
                 # Denormalize if needed
                 if is_normalized:
                     kron = 0.0 if m != 0 else 1.0
-                    N = math.sqrt(
-                        (2.0 - kron) * (2.0 * nf + 1.0)
-                        * _factorial_product(n, m)
-                    )
+                    N = math.sqrt((2.0 - kron) * (2.0 * nf + 1.0) * _factorial_product(n, m))
                     C = N * CS[n, m]
                     S = N * CS[m - 1, n]
                 else:

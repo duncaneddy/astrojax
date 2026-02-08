@@ -98,7 +98,7 @@ def eclipse_conical(r_object: ArrayLike, r_sun: ArrayLike) -> Array:
     d_norm = jnp.linalg.norm(d)
 
     # Apparent angular radii
-    a = jnp.arcsin(_float(R_SUN) / d_norm)   # Sun
+    a = jnp.arcsin(_float(R_SUN) / d_norm)  # Sun
     b = jnp.arcsin(_float(R_EARTH) / r_norm)  # Earth
 
     # Angular separation between Sun and anti-nadir

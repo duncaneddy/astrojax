@@ -68,11 +68,13 @@ def rotation_ellipsoid_to_enz(
     cos_lat = jnp.cos(lat)
 
     # Rows are E, N, Z basis vectors expressed in ECEF
-    return jnp.array([
-        [-sin_lon, cos_lon, 0.0],                             # East
-        [-sin_lat * cos_lon, -sin_lat * sin_lon, cos_lat],    # North
-        [cos_lat * cos_lon, cos_lat * sin_lon, sin_lat],      # Zenith
-    ])
+    return jnp.array(
+        [
+            [-sin_lon, cos_lon, 0.0],  # East
+            [-sin_lat * cos_lon, -sin_lat * sin_lon, cos_lat],  # North
+            [cos_lat * cos_lon, cos_lat * sin_lon, sin_lat],  # Zenith
+        ]
+    )
 
 
 def rotation_enz_to_ellipsoid(

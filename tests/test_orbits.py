@@ -28,15 +28,15 @@ from astrojax.orbits import (
 )
 
 # Tolerances for float32 arithmetic
-_PERIOD_TOL = 1.0        # seconds
-_DISTANCE_TOL = 1.0      # metres
-_VELOCITY_TOL = 0.1      # m/s
+_PERIOD_TOL = 1.0  # seconds
+_DISTANCE_TOL = 1.0  # metres
+_VELOCITY_TOL = 0.1  # m/s
 _ANOMALY_RAD_TOL = 1e-4  # radians
 _ANOMALY_DEG_TOL = 0.01  # degrees
-_ROUNDTRIP_DEG_TOL = 0.1 # degrees (anomaly roundtrips)
-_SMA_TOL = 10.0          # metres
-_SSI_DEG_TOL = 0.1       # degrees
-_GEO_SMA_TOL = 100.0     # metres
+_ROUNDTRIP_DEG_TOL = 0.1  # degrees (anomaly roundtrips)
+_SMA_TOL = 10.0  # metres
+_SSI_DEG_TOL = 0.1  # degrees
+_GEO_SMA_TOL = 100.0  # metres
 
 # Standard test orbit: 500 km circular LEO
 _SMA_500 = R_EARTH + 500e3
@@ -45,6 +45,7 @@ _SMA_500 = R_EARTH + 500e3
 # ──────────────────────────────────────────────
 # Orbital period
 # ──────────────────────────────────────────────
+
 
 class TestOrbitalPeriod:
     def test_orbital_period_500km(self):
@@ -77,6 +78,7 @@ class TestOrbitalPeriod:
 # Semi-major axis
 # ──────────────────────────────────────────────
 
+
 class TestSemimajorAxis:
     def test_semimajor_axis_from_period_roundtrip(self):
         """Period -> SMA -> Period roundtrip preserves value."""
@@ -101,6 +103,7 @@ class TestSemimajorAxis:
 # Mean motion
 # ──────────────────────────────────────────────
 
+
 class TestMeanMotion:
     def test_mean_motion_radians(self):
         """Mean motion of 500 km orbit in radians matches reference."""
@@ -116,6 +119,7 @@ class TestMeanMotion:
 # ──────────────────────────────────────────────
 # Velocity at apsides
 # ──────────────────────────────────────────────
+
 
 class TestVelocity:
     def test_perigee_velocity(self):
@@ -138,6 +142,7 @@ class TestVelocity:
 # ──────────────────────────────────────────────
 # Distances and altitudes
 # ──────────────────────────────────────────────
+
 
 class TestDistanceAltitude:
     def test_periapsis_distance_circular(self):
@@ -183,6 +188,7 @@ class TestDistanceAltitude:
 # Special orbits
 # ──────────────────────────────────────────────
 
+
 class TestSpecialOrbits:
     def test_sun_synchronous_inclination(self):
         """Sun-sync inclination at 500 km, e=0.001 matches reference."""
@@ -198,6 +204,7 @@ class TestSpecialOrbits:
 # ──────────────────────────────────────────────
 # Anomaly conversions — value tests
 # ──────────────────────────────────────────────
+
 
 class TestAnomalyEccentricMean:
     def test_eccentric_to_mean_zero(self):
@@ -325,6 +332,7 @@ class TestAnomalyMeanTrue:
 # Anomaly roundtrip bijectivity
 # ──────────────────────────────────────────────
 
+
 class TestAnomalyRoundtrip:
     @pytest.mark.parametrize("e", [0.0, 0.1, 0.3, 0.5, 0.7])
     @pytest.mark.parametrize("theta", [0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 179.0])
@@ -363,6 +371,7 @@ class TestAnomalyRoundtrip:
 # JAX compatibility
 # ──────────────────────────────────────────────
 
+
 class TestJAXCompatibility:
     def test_jit_orbital_period(self):
         """orbital_period is JIT-compilable."""
@@ -373,9 +382,7 @@ class TestJAXCompatibility:
     def test_jit_anomaly_mean_to_eccentric(self):
         """anomaly_mean_to_eccentric is JIT-compilable (fori_loop)."""
         E_eager = anomaly_mean_to_eccentric(90.0, 0.1, use_degrees=True)
-        E_jit = jax.jit(anomaly_mean_to_eccentric, static_argnums=2)(
-            90.0, 0.1, True
-        )
+        E_jit = jax.jit(anomaly_mean_to_eccentric, static_argnums=2)(90.0, 0.1, True)
         assert jnp.abs(E_eager - E_jit) < 1e-3
 
     def test_vmap_orbital_period(self):
@@ -389,9 +396,7 @@ class TestJAXCompatibility:
     def test_vmap_anomaly_mean_to_eccentric(self):
         """anomaly_mean_to_eccentric works with vmap over anomaly values."""
         Ms = jnp.array([30.0, 60.0, 90.0])
-        Es = jax.vmap(anomaly_mean_to_eccentric, in_axes=(0, None, None))(
-            Ms, 0.1, True
-        )
+        Es = jax.vmap(anomaly_mean_to_eccentric, in_axes=(0, None, None))(Ms, 0.1, True)
         assert Es.shape == (3,)
 
     def test_grad_orbital_period(self):
@@ -403,6 +408,7 @@ class TestJAXCompatibility:
 
     def test_grad_anomaly_mean_to_eccentric(self):
         """anomaly_mean_to_eccentric supports gradient (through fori_loop)."""
+
         def scalar_fn(M):
             return anomaly_mean_to_eccentric(M, 0.1, False)
 
@@ -412,6 +418,7 @@ class TestJAXCompatibility:
 
     def test_grad_sun_synchronous_inclination(self):
         """sun_synchronous_inclination supports gradient w.r.t. SMA."""
+
         def scalar_fn(a):
             return sun_synchronous_inclination(a, 0.001, use_degrees=False)
 
@@ -425,23 +432,25 @@ class TestJAXCompatibility:
 # ──────────────────────────────────────────────
 
 # Tolerances for mean-osculating roundtrips (first-order theory, J2^2 errors)
-_MO_SMA_TOL = 100.0       # metres
-_MO_ECC_TOL = 1e-4         # dimensionless
-_MO_ANGLE_RAD_TOL = 0.01   # radians (~0.6 degrees)
-_MO_ANGLE_DEG_TOL = 0.6    # degrees
+_MO_SMA_TOL = 100.0  # metres
+_MO_ECC_TOL = 1e-4  # dimensionless
+_MO_ANGLE_RAD_TOL = 0.01  # radians (~0.6 degrees)
+_MO_ANGLE_DEG_TOL = 0.6  # degrees
 
 
 class TestMeanOsculatingRoundtrip:
     def test_mean_to_osc_to_mean_radians(self):
         """mean -> osc -> mean roundtrip preserves elements (radians)."""
-        mean = jnp.array([
-            R_EARTH + 500e3,
-            0.01,
-            jnp.deg2rad(45.0),
-            jnp.deg2rad(30.0),
-            jnp.deg2rad(60.0),
-            jnp.deg2rad(90.0),
-        ])
+        mean = jnp.array(
+            [
+                R_EARTH + 500e3,
+                0.01,
+                jnp.deg2rad(45.0),
+                jnp.deg2rad(30.0),
+                jnp.deg2rad(60.0),
+                jnp.deg2rad(90.0),
+            ]
+        )
         osc = state_koe_mean_to_osc(mean)
         recovered = state_koe_osc_to_mean(osc)
 
@@ -463,14 +472,16 @@ class TestMeanOsculatingRoundtrip:
 
     def test_osc_to_mean_to_osc(self):
         """osc -> mean -> osc roundtrip preserves elements."""
-        osc = jnp.array([
-            R_EARTH + 600e3,
-            0.02,
-            jnp.deg2rad(60.0),
-            jnp.deg2rad(45.0),
-            jnp.deg2rad(120.0),
-            jnp.deg2rad(180.0),
-        ])
+        osc = jnp.array(
+            [
+                R_EARTH + 600e3,
+                0.02,
+                jnp.deg2rad(60.0),
+                jnp.deg2rad(45.0),
+                jnp.deg2rad(120.0),
+                jnp.deg2rad(180.0),
+            ]
+        )
         mean = state_koe_osc_to_mean(osc)
         recovered = state_koe_mean_to_osc(mean)
 
@@ -483,23 +494,32 @@ class TestMeanOsculatingRoundtrip:
 class TestMeanOsculatingOrbitTypes:
     def test_near_circular(self):
         """Near-circular orbit (e=0.0001) roundtrip succeeds."""
-        mean = jnp.array([
-            R_EARTH + 400e3, 0.0001, jnp.deg2rad(28.5), 0.0, 0.0, 0.0,
-        ])
+        mean = jnp.array(
+            [
+                R_EARTH + 400e3,
+                0.0001,
+                jnp.deg2rad(28.5),
+                0.0,
+                0.0,
+                0.0,
+            ]
+        )
         osc = state_koe_mean_to_osc(mean)
         recovered = state_koe_osc_to_mean(osc)
         assert jnp.abs(mean[0] - recovered[0]) < _MO_SMA_TOL
 
     def test_sun_synchronous(self):
         """Sun-synchronous orbit (i=98 deg) roundtrip succeeds."""
-        mean = jnp.array([
-            R_EARTH + 700e3,
-            0.001,
-            jnp.deg2rad(98.0),
-            jnp.deg2rad(45.0),
-            jnp.deg2rad(90.0),
-            jnp.deg2rad(270.0),
-        ])
+        mean = jnp.array(
+            [
+                R_EARTH + 700e3,
+                0.001,
+                jnp.deg2rad(98.0),
+                jnp.deg2rad(45.0),
+                jnp.deg2rad(90.0),
+                jnp.deg2rad(270.0),
+            ]
+        )
         osc = state_koe_mean_to_osc(mean)
         recovered = state_koe_osc_to_mean(osc)
         assert jnp.abs(mean[0] - recovered[0]) < _MO_SMA_TOL
@@ -507,14 +527,16 @@ class TestMeanOsculatingOrbitTypes:
 
     def test_moderate_eccentricity(self):
         """Moderate eccentricity (e=0.1) roundtrip succeeds."""
-        mean = jnp.array([
-            R_EARTH + 500e3,
-            0.1,
-            jnp.deg2rad(45.0),
-            jnp.deg2rad(30.0),
-            jnp.deg2rad(60.0),
-            jnp.deg2rad(90.0),
-        ])
+        mean = jnp.array(
+            [
+                R_EARTH + 500e3,
+                0.1,
+                jnp.deg2rad(45.0),
+                jnp.deg2rad(30.0),
+                jnp.deg2rad(60.0),
+                jnp.deg2rad(90.0),
+            ]
+        )
         osc = state_koe_mean_to_osc(mean)
         recovered = state_koe_osc_to_mean(osc)
         assert jnp.abs(mean[0] - recovered[0]) < _MO_SMA_TOL
@@ -522,9 +544,16 @@ class TestMeanOsculatingOrbitTypes:
 
     def test_geo(self):
         """GEO orbit (42164 km) roundtrip — J2 effects smaller at GEO."""
-        mean = jnp.array([
-            42164e3, 0.0001, jnp.deg2rad(0.1), jnp.deg2rad(45.0), 0.0, 0.0,
-        ])
+        mean = jnp.array(
+            [
+                42164e3,
+                0.0001,
+                jnp.deg2rad(0.1),
+                jnp.deg2rad(45.0),
+                0.0,
+                0.0,
+            ]
+        )
         osc = state_koe_mean_to_osc(mean)
         recovered = state_koe_osc_to_mean(osc)
         assert jnp.abs(mean[0] - recovered[0]) < 10.0
@@ -532,14 +561,16 @@ class TestMeanOsculatingOrbitTypes:
     @pytest.mark.parametrize("m_deg", [0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0])
     def test_various_mean_anomalies(self, m_deg):
         """Roundtrip across different mean anomaly values."""
-        mean = jnp.array([
-            R_EARTH + 500e3,
-            0.01,
-            jnp.deg2rad(45.0),
-            jnp.deg2rad(30.0),
-            jnp.deg2rad(60.0),
-            jnp.deg2rad(m_deg),
-        ])
+        mean = jnp.array(
+            [
+                R_EARTH + 500e3,
+                0.01,
+                jnp.deg2rad(45.0),
+                jnp.deg2rad(30.0),
+                jnp.deg2rad(60.0),
+                jnp.deg2rad(m_deg),
+            ]
+        )
         osc = state_koe_mean_to_osc(mean)
         recovered = state_koe_osc_to_mean(osc)
         assert jnp.abs(mean[0] - recovered[0]) < _MO_SMA_TOL
@@ -548,14 +579,16 @@ class TestMeanOsculatingOrbitTypes:
 class TestMeanOsculatingBehavior:
     def test_osc_differs_from_mean(self):
         """Osculating elements differ from mean (J2 perturbation effect)."""
-        mean = jnp.array([
-            R_EARTH + 500e3,
-            0.01,
-            jnp.deg2rad(45.0),
-            jnp.deg2rad(30.0),
-            jnp.deg2rad(60.0),
-            jnp.deg2rad(90.0),
-        ])
+        mean = jnp.array(
+            [
+                R_EARTH + 500e3,
+                0.01,
+                jnp.deg2rad(45.0),
+                jnp.deg2rad(30.0),
+                jnp.deg2rad(60.0),
+                jnp.deg2rad(90.0),
+            ]
+        )
         osc = state_koe_mean_to_osc(mean)
         assert jnp.abs(osc[0] - mean[0]) > 1.0  # SMA differs by > 1 metre
 
@@ -571,40 +604,60 @@ class TestMeanOsculatingBehavior:
 class TestMeanOsculatingJAXCompat:
     def test_jit_mean_to_osc(self):
         """state_koe_mean_to_osc is JIT-compilable."""
-        mean = jnp.array([
-            R_EARTH + 500e3, 0.01, jnp.deg2rad(45.0),
-            jnp.deg2rad(30.0), jnp.deg2rad(60.0), jnp.deg2rad(90.0),
-        ])
+        mean = jnp.array(
+            [
+                R_EARTH + 500e3,
+                0.01,
+                jnp.deg2rad(45.0),
+                jnp.deg2rad(30.0),
+                jnp.deg2rad(60.0),
+                jnp.deg2rad(90.0),
+            ]
+        )
         osc_eager = state_koe_mean_to_osc(mean)
         osc_jit = jax.jit(state_koe_mean_to_osc)(mean)
         assert jnp.allclose(osc_eager, osc_jit, atol=1e-3)
 
     def test_jit_osc_to_mean(self):
         """state_koe_osc_to_mean is JIT-compilable."""
-        osc = jnp.array([
-            R_EARTH + 500e3, 0.01, jnp.deg2rad(45.0),
-            jnp.deg2rad(30.0), jnp.deg2rad(60.0), jnp.deg2rad(90.0),
-        ])
+        osc = jnp.array(
+            [
+                R_EARTH + 500e3,
+                0.01,
+                jnp.deg2rad(45.0),
+                jnp.deg2rad(30.0),
+                jnp.deg2rad(60.0),
+                jnp.deg2rad(90.0),
+            ]
+        )
         mean_eager = state_koe_osc_to_mean(osc)
         mean_jit = jax.jit(state_koe_osc_to_mean)(osc)
         assert jnp.allclose(mean_eager, mean_jit, atol=1e-3)
 
     def test_vmap_mean_to_osc(self):
         """state_koe_mean_to_osc works with vmap over a batch."""
-        batch = jnp.array([
-            [R_EARTH + 400e3, 0.01, jnp.deg2rad(45.0), 0.0, 0.0, 0.0],
-            [R_EARTH + 500e3, 0.01, jnp.deg2rad(45.0), 0.0, 0.0, 0.0],
-            [R_EARTH + 600e3, 0.01, jnp.deg2rad(45.0), 0.0, 0.0, 0.0],
-        ])
+        batch = jnp.array(
+            [
+                [R_EARTH + 400e3, 0.01, jnp.deg2rad(45.0), 0.0, 0.0, 0.0],
+                [R_EARTH + 500e3, 0.01, jnp.deg2rad(45.0), 0.0, 0.0, 0.0],
+                [R_EARTH + 600e3, 0.01, jnp.deg2rad(45.0), 0.0, 0.0, 0.0],
+            ]
+        )
         result = jax.vmap(state_koe_mean_to_osc)(batch)
         assert result.shape == (3, 6)
 
     def test_grad_mean_to_osc(self):
         """state_koe_mean_to_osc supports gradient computation."""
-        mean = jnp.array([
-            R_EARTH + 500e3, 0.01, jnp.deg2rad(45.0),
-            jnp.deg2rad(30.0), jnp.deg2rad(60.0), jnp.deg2rad(90.0),
-        ])
+        mean = jnp.array(
+            [
+                R_EARTH + 500e3,
+                0.01,
+                jnp.deg2rad(45.0),
+                jnp.deg2rad(30.0),
+                jnp.deg2rad(60.0),
+                jnp.deg2rad(90.0),
+            ]
+        )
 
         def scalar_fn(oe):
             return state_koe_mean_to_osc(oe)[0]  # SMA component

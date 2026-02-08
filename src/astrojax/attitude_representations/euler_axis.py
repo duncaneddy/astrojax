@@ -38,7 +38,7 @@ class EulerAxis:
         use_degrees (bool): If ``True``, interpret ``angle`` as degrees. Default: ``False``.
     """
 
-    __slots__ = ('_axis', '_angle')
+    __slots__ = ("_axis", "_angle")
 
     def __init__(self, axis: jax.Array, angle: float, use_degrees: bool = False) -> None:
         _float = get_dtype()
@@ -78,7 +78,9 @@ class EulerAxis:
     # Factory methods
 
     @classmethod
-    def from_values(cls, x: float, y: float, z: float, angle: float, use_degrees: bool = False) -> EulerAxis:
+    def from_values(
+        cls, x: float, y: float, z: float, angle: float, use_degrees: bool = False
+    ) -> EulerAxis:
         """Create from individual axis components and angle.
 
         Args:
@@ -94,7 +96,9 @@ class EulerAxis:
         return cls(jnp.array([x, y, z]), angle, use_degrees=use_degrees)
 
     @classmethod
-    def from_vector(cls, v: jax.Array, use_degrees: bool = False, vector_first: bool = True) -> EulerAxis:
+    def from_vector(
+        cls, v: jax.Array, use_degrees: bool = False, vector_first: bool = True
+    ) -> EulerAxis:
         """Create from a 4-element vector.
 
         Args:

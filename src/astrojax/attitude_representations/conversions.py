@@ -20,6 +20,7 @@ import jax.numpy as jnp
 # Quaternion <-> Rotation Matrix
 # ---------------------------------------------------------------------------
 
+
 def quaternion_to_rotation_matrix(q: jax.Array) -> jax.Array:
     """Convert a unit quaternion to a 3x3 rotation matrix.
 
@@ -33,11 +34,25 @@ def quaternion_to_rotation_matrix(q: jax.Array) -> jax.Array:
     """
     qs, q1, q2, q3 = q[0], q[1], q[2], q[3]
 
-    return jnp.array([
-        [qs*qs + q1*q1 - q2*q2 - q3*q3,  2.0*q1*q2 + 2.0*qs*q3,          2.0*q1*q3 - 2.0*qs*q2],
-        [2.0*q1*q2 - 2.0*qs*q3,           qs*qs - q1*q1 + q2*q2 - q3*q3,  2.0*q2*q3 + 2.0*qs*q1],
-        [2.0*q1*q3 + 2.0*qs*q2,           2.0*q2*q3 - 2.0*qs*q1,          qs*qs - q1*q1 - q2*q2 + q3*q3],
-    ])
+    return jnp.array(
+        [
+            [
+                qs * qs + q1 * q1 - q2 * q2 - q3 * q3,
+                2.0 * q1 * q2 + 2.0 * qs * q3,
+                2.0 * q1 * q3 - 2.0 * qs * q2,
+            ],
+            [
+                2.0 * q1 * q2 - 2.0 * qs * q3,
+                qs * qs - q1 * q1 + q2 * q2 - q3 * q3,
+                2.0 * q2 * q3 + 2.0 * qs * q1,
+            ],
+            [
+                2.0 * q1 * q3 + 2.0 * qs * q2,
+                2.0 * q2 * q3 - 2.0 * qs * q1,
+                qs * qs - q1 * q1 - q2 * q2 + q3 * q3,
+            ],
+        ]
+    )
 
 
 def rotation_matrix_to_quaternion(R: jax.Array) -> jax.Array:
@@ -53,12 +68,14 @@ def rotation_matrix_to_quaternion(R: jax.Array) -> jax.Array:
         jnp.ndarray: Quaternion array of shape ``(4,)`` in scalar-first order ``[w, x, y, z]``.
     """
     # Diebel eqs. 131-134: the four candidate traces
-    qvec = jnp.array([
-        1.0 + R[0, 0] + R[1, 1] + R[2, 2],
-        1.0 + R[0, 0] - R[1, 1] - R[2, 2],
-        1.0 - R[0, 0] + R[1, 1] - R[2, 2],
-        1.0 - R[0, 0] - R[1, 1] + R[2, 2],
-    ])
+    qvec = jnp.array(
+        [
+            1.0 + R[0, 0] + R[1, 1] + R[2, 2],
+            1.0 + R[0, 0] - R[1, 1] - R[2, 2],
+            1.0 - R[0, 0] + R[1, 1] - R[2, 2],
+            1.0 - R[0, 0] - R[1, 1] + R[2, 2],
+        ]
+    )
 
     ind_max = jnp.argmax(qvec)
     q_max = qvec[ind_max]
@@ -66,39 +83,47 @@ def rotation_matrix_to_quaternion(R: jax.Array) -> jax.Array:
     # Four branch functions, one per argmax case
     def _case0(_):
         sq = jnp.sqrt(q_max)
-        return 0.5 * jnp.array([
-            sq,
-            (R[1, 2] - R[2, 1]) / sq,
-            (R[2, 0] - R[0, 2]) / sq,
-            (R[0, 1] - R[1, 0]) / sq,
-        ])
+        return 0.5 * jnp.array(
+            [
+                sq,
+                (R[1, 2] - R[2, 1]) / sq,
+                (R[2, 0] - R[0, 2]) / sq,
+                (R[0, 1] - R[1, 0]) / sq,
+            ]
+        )
 
     def _case1(_):
         sq = jnp.sqrt(q_max)
-        return 0.5 * jnp.array([
-            (R[1, 2] - R[2, 1]) / sq,
-            sq,
-            (R[0, 1] + R[1, 0]) / sq,
-            (R[2, 0] + R[0, 2]) / sq,
-        ])
+        return 0.5 * jnp.array(
+            [
+                (R[1, 2] - R[2, 1]) / sq,
+                sq,
+                (R[0, 1] + R[1, 0]) / sq,
+                (R[2, 0] + R[0, 2]) / sq,
+            ]
+        )
 
     def _case2(_):
         sq = jnp.sqrt(q_max)
-        return 0.5 * jnp.array([
-            (R[2, 0] - R[0, 2]) / sq,
-            (R[0, 1] + R[1, 0]) / sq,
-            sq,
-            (R[1, 2] + R[2, 1]) / sq,
-        ])
+        return 0.5 * jnp.array(
+            [
+                (R[2, 0] - R[0, 2]) / sq,
+                (R[0, 1] + R[1, 0]) / sq,
+                sq,
+                (R[1, 2] + R[2, 1]) / sq,
+            ]
+        )
 
     def _case3(_):
         sq = jnp.sqrt(q_max)
-        return 0.5 * jnp.array([
-            (R[0, 1] - R[1, 0]) / sq,
-            (R[2, 0] + R[0, 2]) / sq,
-            (R[1, 2] + R[2, 1]) / sq,
-            sq,
-        ])
+        return 0.5 * jnp.array(
+            [
+                (R[0, 1] - R[1, 0]) / sq,
+                (R[2, 0] + R[0, 2]) / sq,
+                (R[1, 2] + R[2, 1]) / sq,
+                sq,
+            ]
+        )
 
     return jax.lax.switch(ind_max, [_case0, _case1, _case2, _case3], None)
 
@@ -106,6 +131,7 @@ def rotation_matrix_to_quaternion(R: jax.Array) -> jax.Array:
 # ---------------------------------------------------------------------------
 # Euler Axis <-> Quaternion
 # ---------------------------------------------------------------------------
+
 
 def euler_axis_to_quaternion(axis: jax.Array, angle: jax.Array) -> jax.Array:
     """Convert an Euler axis-angle representation to a quaternion.
@@ -156,119 +182,182 @@ def quaternion_to_euler_axis(q: jax.Array) -> tuple[jax.Array, jax.Array]:
 # Euler Angle -> Quaternion (12 branches)
 # ---------------------------------------------------------------------------
 
-def _ea_to_q_xyx(cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array) -> jax.Array:
-    return jnp.array([
-        cp*ct*cs - sp*ct*ss,
-        cp*ct*ss + ct*cs*sp,
-        cp*cs*st + sp*st*ss,
-        cp*st*ss - sp*cs*st,
-    ])
 
-def _ea_to_q_xyz(cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array) -> jax.Array:
-    return jnp.array([
-        cp*ct*cs + sp*st*ss,
-        -cp*st*ss + ct*cs*sp,
-        cp*cs*st + sp*ct*ss,
-        cp*ct*ss - sp*cs*st,
-    ])
+def _ea_to_q_xyx(
+    cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array
+) -> jax.Array:
+    return jnp.array(
+        [
+            cp * ct * cs - sp * ct * ss,
+            cp * ct * ss + ct * cs * sp,
+            cp * cs * st + sp * st * ss,
+            cp * st * ss - sp * cs * st,
+        ]
+    )
 
-def _ea_to_q_xzx(cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array) -> jax.Array:
-    return jnp.array([
-        cp*ct*cs - sp*ct*ss,
-        cp*ct*ss + ct*cs*sp,
-        -cp*st*ss + sp*cs*st,
-        cp*cs*st + sp*st*ss,
-    ])
 
-def _ea_to_q_xzy(cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array) -> jax.Array:
-    return jnp.array([
-        cp*ct*cs - sp*st*ss,
-        cp*st*ss + ct*cs*sp,
-        cp*ct*ss + sp*cs*st,
-        cp*cs*st - sp*ct*ss,
-    ])
+def _ea_to_q_xyz(
+    cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array
+) -> jax.Array:
+    return jnp.array(
+        [
+            cp * ct * cs + sp * st * ss,
+            -cp * st * ss + ct * cs * sp,
+            cp * cs * st + sp * ct * ss,
+            cp * ct * ss - sp * cs * st,
+        ]
+    )
 
-def _ea_to_q_yxy(cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array) -> jax.Array:
-    return jnp.array([
-        cp*ct*cs - sp*ct*ss,
-        cp*cs*st + sp*st*ss,
-        cp*ct*ss + ct*cs*sp,
-        -cp*st*ss + sp*cs*st,
-    ])
 
-def _ea_to_q_yxz(cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array) -> jax.Array:
-    return jnp.array([
-        cp*ct*cs - sp*st*ss,
-        cp*cs*st - sp*ct*ss,
-        cp*st*ss + ct*cs*sp,
-        cp*ct*ss + sp*cs*st,
-    ])
+def _ea_to_q_xzx(
+    cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array
+) -> jax.Array:
+    return jnp.array(
+        [
+            cp * ct * cs - sp * ct * ss,
+            cp * ct * ss + ct * cs * sp,
+            -cp * st * ss + sp * cs * st,
+            cp * cs * st + sp * st * ss,
+        ]
+    )
 
-def _ea_to_q_yzx(cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array) -> jax.Array:
-    return jnp.array([
-        cp*ct*cs + sp*st*ss,
-        cp*ct*ss - sp*cs*st,
-        -cp*st*ss + ct*cs*sp,
-        cp*cs*st + sp*ct*ss,
-    ])
 
-def _ea_to_q_yzy(cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array) -> jax.Array:
-    return jnp.array([
-        cp*ct*cs - sp*ct*ss,
-        cp*st*ss - sp*cs*st,
-        cp*ct*ss + ct*cs*sp,
-        cp*cs*st + sp*st*ss,
-    ])
+def _ea_to_q_xzy(
+    cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array
+) -> jax.Array:
+    return jnp.array(
+        [
+            cp * ct * cs - sp * st * ss,
+            cp * st * ss + ct * cs * sp,
+            cp * ct * ss + sp * cs * st,
+            cp * cs * st - sp * ct * ss,
+        ]
+    )
 
-def _ea_to_q_zxy(cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array) -> jax.Array:
-    return jnp.array([
-        cp*ct*cs + sp*st*ss,
-        cp*cs*st + sp*ct*ss,
-        cp*ct*ss - sp*cs*st,
-        -cp*st*ss + ct*cs*sp,
-    ])
 
-def _ea_to_q_zxz(cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array) -> jax.Array:
-    return jnp.array([
-        cp*ct*cs - sp*ct*ss,
-        cp*cs*st + sp*st*ss,
-        cp*st*ss - sp*cs*st,
-        cp*ct*ss + ct*cs*sp,
-    ])
+def _ea_to_q_yxy(
+    cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array
+) -> jax.Array:
+    return jnp.array(
+        [
+            cp * ct * cs - sp * ct * ss,
+            cp * cs * st + sp * st * ss,
+            cp * ct * ss + ct * cs * sp,
+            -cp * st * ss + sp * cs * st,
+        ]
+    )
 
-def _ea_to_q_zyx(cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array) -> jax.Array:
-    return jnp.array([
-        cp*ct*cs - sp*st*ss,
-        cp*ct*ss + sp*cs*st,
-        cp*cs*st - sp*ct*ss,
-        cp*st*ss + ct*cs*sp,
-    ])
 
-def _ea_to_q_zyz(cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array) -> jax.Array:
-    return jnp.array([
-        cp*ct*cs - sp*ct*ss,
-        -cp*st*ss + sp*cs*st,
-        cp*cs*st + sp*st*ss,
-        cp*ct*ss + ct*cs*sp,
-    ])
+def _ea_to_q_yxz(
+    cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array
+) -> jax.Array:
+    return jnp.array(
+        [
+            cp * ct * cs - sp * st * ss,
+            cp * cs * st - sp * ct * ss,
+            cp * st * ss + ct * cs * sp,
+            cp * ct * ss + sp * cs * st,
+        ]
+    )
+
+
+def _ea_to_q_yzx(
+    cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array
+) -> jax.Array:
+    return jnp.array(
+        [
+            cp * ct * cs + sp * st * ss,
+            cp * ct * ss - sp * cs * st,
+            -cp * st * ss + ct * cs * sp,
+            cp * cs * st + sp * ct * ss,
+        ]
+    )
+
+
+def _ea_to_q_yzy(
+    cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array
+) -> jax.Array:
+    return jnp.array(
+        [
+            cp * ct * cs - sp * ct * ss,
+            cp * st * ss - sp * cs * st,
+            cp * ct * ss + ct * cs * sp,
+            cp * cs * st + sp * st * ss,
+        ]
+    )
+
+
+def _ea_to_q_zxy(
+    cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array
+) -> jax.Array:
+    return jnp.array(
+        [
+            cp * ct * cs + sp * st * ss,
+            cp * cs * st + sp * ct * ss,
+            cp * ct * ss - sp * cs * st,
+            -cp * st * ss + ct * cs * sp,
+        ]
+    )
+
+
+def _ea_to_q_zxz(
+    cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array
+) -> jax.Array:
+    return jnp.array(
+        [
+            cp * ct * cs - sp * ct * ss,
+            cp * cs * st + sp * st * ss,
+            cp * st * ss - sp * cs * st,
+            cp * ct * ss + ct * cs * sp,
+        ]
+    )
+
+
+def _ea_to_q_zyx(
+    cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array
+) -> jax.Array:
+    return jnp.array(
+        [
+            cp * ct * cs - sp * st * ss,
+            cp * ct * ss + sp * cs * st,
+            cp * cs * st - sp * ct * ss,
+            cp * st * ss + ct * cs * sp,
+        ]
+    )
+
+
+def _ea_to_q_zyz(
+    cp: jax.Array, ct: jax.Array, cs: jax.Array, sp: jax.Array, st: jax.Array, ss: jax.Array
+) -> jax.Array:
+    return jnp.array(
+        [
+            cp * ct * cs - sp * ct * ss,
+            -cp * st * ss + sp * cs * st,
+            cp * cs * st + sp * st * ss,
+            cp * ct * ss + ct * cs * sp,
+        ]
+    )
+
 
 _EA_TO_Q_BRANCHES = [
-    _ea_to_q_xyx,   # 0
-    _ea_to_q_xyz,   # 1
-    _ea_to_q_xzx,   # 2
-    _ea_to_q_xzy,   # 3
-    _ea_to_q_yxy,   # 4
-    _ea_to_q_yxz,   # 5
-    _ea_to_q_yzx,   # 6
-    _ea_to_q_yzy,   # 7
-    _ea_to_q_zxy,   # 8
-    _ea_to_q_zxz,   # 9
-    _ea_to_q_zyx,   # 10
-    _ea_to_q_zyz,   # 11
+    _ea_to_q_xyx,  # 0
+    _ea_to_q_xyz,  # 1
+    _ea_to_q_xzx,  # 2
+    _ea_to_q_xzy,  # 3
+    _ea_to_q_yxy,  # 4
+    _ea_to_q_yxz,  # 5
+    _ea_to_q_yzx,  # 6
+    _ea_to_q_yzy,  # 7
+    _ea_to_q_zxy,  # 8
+    _ea_to_q_zxz,  # 9
+    _ea_to_q_zyx,  # 10
+    _ea_to_q_zyz,  # 11
 ]
 
 
-def euler_angle_to_quaternion(order_idx: jax.Array, phi: jax.Array, theta: jax.Array, psi: jax.Array) -> jax.Array:
+def euler_angle_to_quaternion(
+    order_idx: jax.Array, phi: jax.Array, theta: jax.Array, psi: jax.Array
+) -> jax.Array:
     """Convert Euler angles to a quaternion via ``jax.lax.switch``.
 
     Args:
@@ -300,55 +389,92 @@ def euler_angle_to_quaternion(order_idx: jax.Array, phi: jax.Array, theta: jax.A
 # Rotation Matrix -> Euler Angle (12 branches)
 # ---------------------------------------------------------------------------
 
+
 def _rm_to_ea_xyx(R: jax.Array) -> jax.Array:
-    return jnp.array([jnp.arctan2(R[1, 0], R[2, 0]),  jnp.arccos(R[0, 0]),   jnp.arctan2(R[0, 1], -R[0, 2])])
+    return jnp.array(
+        [jnp.arctan2(R[1, 0], R[2, 0]), jnp.arccos(R[0, 0]), jnp.arctan2(R[0, 1], -R[0, 2])]
+    )
+
 
 def _rm_to_ea_xyz(R: jax.Array) -> jax.Array:
-    return jnp.array([jnp.arctan2(R[1, 2], R[2, 2]),  -jnp.arcsin(R[0, 2]),  jnp.arctan2(R[0, 1], R[0, 0])])
+    return jnp.array(
+        [jnp.arctan2(R[1, 2], R[2, 2]), -jnp.arcsin(R[0, 2]), jnp.arctan2(R[0, 1], R[0, 0])]
+    )
+
 
 def _rm_to_ea_xzx(R: jax.Array) -> jax.Array:
-    return jnp.array([jnp.arctan2(R[2, 0], -R[1, 0]), jnp.arccos(R[0, 0]),   jnp.arctan2(R[0, 2], R[0, 1])])
+    return jnp.array(
+        [jnp.arctan2(R[2, 0], -R[1, 0]), jnp.arccos(R[0, 0]), jnp.arctan2(R[0, 2], R[0, 1])]
+    )
+
 
 def _rm_to_ea_xzy(R: jax.Array) -> jax.Array:
-    return jnp.array([jnp.arctan2(-R[2, 1], R[1, 1]), jnp.arcsin(R[0, 1]),   jnp.arctan2(-R[0, 2], R[0, 0])])
+    return jnp.array(
+        [jnp.arctan2(-R[2, 1], R[1, 1]), jnp.arcsin(R[0, 1]), jnp.arctan2(-R[0, 2], R[0, 0])]
+    )
+
 
 def _rm_to_ea_yxy(R: jax.Array) -> jax.Array:
-    return jnp.array([jnp.arctan2(R[0, 1], -R[2, 1]), jnp.arccos(R[1, 1]),   jnp.arctan2(R[1, 0], R[1, 2])])
+    return jnp.array(
+        [jnp.arctan2(R[0, 1], -R[2, 1]), jnp.arccos(R[1, 1]), jnp.arctan2(R[1, 0], R[1, 2])]
+    )
+
 
 def _rm_to_ea_yxz(R: jax.Array) -> jax.Array:
-    return jnp.array([jnp.arctan2(-R[0, 2], R[2, 2]), jnp.arcsin(R[1, 2]),   jnp.arctan2(-R[1, 0], R[1, 1])])
+    return jnp.array(
+        [jnp.arctan2(-R[0, 2], R[2, 2]), jnp.arcsin(R[1, 2]), jnp.arctan2(-R[1, 0], R[1, 1])]
+    )
+
 
 def _rm_to_ea_yzx(R: jax.Array) -> jax.Array:
-    return jnp.array([jnp.arctan2(R[2, 0], R[0, 0]),  -jnp.arcsin(R[1, 0]),  jnp.arctan2(R[1, 2], R[1, 1])])
+    return jnp.array(
+        [jnp.arctan2(R[2, 0], R[0, 0]), -jnp.arcsin(R[1, 0]), jnp.arctan2(R[1, 2], R[1, 1])]
+    )
+
 
 def _rm_to_ea_yzy(R: jax.Array) -> jax.Array:
-    return jnp.array([jnp.arctan2(R[2, 1], R[0, 1]),  jnp.arccos(R[1, 1]),   jnp.arctan2(R[1, 2], -R[1, 0])])
+    return jnp.array(
+        [jnp.arctan2(R[2, 1], R[0, 1]), jnp.arccos(R[1, 1]), jnp.arctan2(R[1, 2], -R[1, 0])]
+    )
+
 
 def _rm_to_ea_zxy(R: jax.Array) -> jax.Array:
-    return jnp.array([jnp.arctan2(R[0, 1], R[1, 1]),  -jnp.arcsin(R[2, 1]),  jnp.arctan2(R[2, 0], R[2, 2])])
+    return jnp.array(
+        [jnp.arctan2(R[0, 1], R[1, 1]), -jnp.arcsin(R[2, 1]), jnp.arctan2(R[2, 0], R[2, 2])]
+    )
+
 
 def _rm_to_ea_zxz(R: jax.Array) -> jax.Array:
-    return jnp.array([jnp.arctan2(R[0, 2], R[1, 2]),  jnp.arccos(R[2, 2]),   jnp.arctan2(R[2, 0], -R[2, 1])])
+    return jnp.array(
+        [jnp.arctan2(R[0, 2], R[1, 2]), jnp.arccos(R[2, 2]), jnp.arctan2(R[2, 0], -R[2, 1])]
+    )
+
 
 def _rm_to_ea_zyx(R: jax.Array) -> jax.Array:
-    return jnp.array([jnp.arctan2(-R[1, 0], R[0, 0]), jnp.arcsin(R[2, 0]),   jnp.arctan2(-R[2, 1], R[2, 2])])
+    return jnp.array(
+        [jnp.arctan2(-R[1, 0], R[0, 0]), jnp.arcsin(R[2, 0]), jnp.arctan2(-R[2, 1], R[2, 2])]
+    )
+
 
 def _rm_to_ea_zyz(R: jax.Array) -> jax.Array:
-    return jnp.array([jnp.arctan2(R[1, 2], -R[0, 2]), jnp.arccos(R[2, 2]),   jnp.arctan2(R[2, 1], R[2, 0])])
+    return jnp.array(
+        [jnp.arctan2(R[1, 2], -R[0, 2]), jnp.arccos(R[2, 2]), jnp.arctan2(R[2, 1], R[2, 0])]
+    )
+
 
 _RM_TO_EA_BRANCHES = [
-    _rm_to_ea_xyx,   # 0
-    _rm_to_ea_xyz,   # 1
-    _rm_to_ea_xzx,   # 2
-    _rm_to_ea_xzy,   # 3
-    _rm_to_ea_yxy,   # 4
-    _rm_to_ea_yxz,   # 5
-    _rm_to_ea_yzx,   # 6
-    _rm_to_ea_yzy,   # 7
-    _rm_to_ea_zxy,   # 8
-    _rm_to_ea_zxz,   # 9
-    _rm_to_ea_zyx,   # 10
-    _rm_to_ea_zyz,   # 11
+    _rm_to_ea_xyx,  # 0
+    _rm_to_ea_xyz,  # 1
+    _rm_to_ea_xzx,  # 2
+    _rm_to_ea_xzy,  # 3
+    _rm_to_ea_yxy,  # 4
+    _rm_to_ea_yxz,  # 5
+    _rm_to_ea_yzx,  # 6
+    _rm_to_ea_yzy,  # 7
+    _rm_to_ea_zxy,  # 8
+    _rm_to_ea_zxz,  # 9
+    _rm_to_ea_zyx,  # 10
+    _rm_to_ea_zyz,  # 11
 ]
 
 
@@ -369,6 +495,7 @@ def rotation_matrix_to_euler_angle(order_idx: jax.Array, R: jax.Array) -> jax.Ar
 # ---------------------------------------------------------------------------
 # Quaternion multiplication and SLERP
 # ---------------------------------------------------------------------------
+
 
 def quaternion_multiply(q1: jax.Array, q2: jax.Array) -> jax.Array:
     """Hamilton product of two quaternions.

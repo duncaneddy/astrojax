@@ -201,11 +201,13 @@ class TestJAXCompatibility:
     def test_vmap_state_eci_to_ecef(self):
         """state_eci_to_ecef works with vmap over batched states."""
         epc = Epoch(2024, 1, 1)
-        states = jnp.stack([
-            _leo_eci_state(R_EARTH + 500e3),
-            _leo_eci_state(R_EARTH + 700e3),
-            _inclined_eci_state(),
-        ])
+        states = jnp.stack(
+            [
+                _leo_eci_state(R_EARTH + 500e3),
+                _leo_eci_state(R_EARTH + 700e3),
+                _inclined_eci_state(),
+            ]
+        )
         batched = jax.vmap(state_eci_to_ecef, in_axes=(None, 0))(epc, states)
         assert batched.shape == (3, 6)
 
@@ -213,16 +215,13 @@ class TestJAXCompatibility:
         """state_ecef_to_eci works with vmap over batched states."""
         epc = Epoch(2024, 1, 1)
         # Create ECEF states by transforming ECI states
-        eci_states = jnp.stack([
-            _leo_eci_state(R_EARTH + 500e3),
-            _leo_eci_state(R_EARTH + 700e3),
-        ])
-        ecef_states = jax.vmap(state_eci_to_ecef, in_axes=(None, 0))(
-            epc, eci_states
+        eci_states = jnp.stack(
+            [
+                _leo_eci_state(R_EARTH + 500e3),
+                _leo_eci_state(R_EARTH + 700e3),
+            ]
         )
-        eci_back = jax.vmap(state_ecef_to_eci, in_axes=(None, 0))(
-            epc, ecef_states
-        )
+        ecef_states = jax.vmap(state_eci_to_ecef, in_axes=(None, 0))(epc, eci_states)
+        eci_back = jax.vmap(state_ecef_to_eci, in_axes=(None, 0))(epc, ecef_states)
         assert eci_back.shape == (2, 6)
-        assert jnp.allclose(eci_back[:, :3], eci_states[:, :3],
-                            atol=_POS_ROUNDTRIP_TOL)
+        assert jnp.allclose(eci_back[:, :3], eci_states[:, :3], atol=_POS_ROUNDTRIP_TOL)

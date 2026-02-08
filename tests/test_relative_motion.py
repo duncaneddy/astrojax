@@ -44,6 +44,7 @@ def _inclined_orbit_state(sma, inc_deg):
 # Rotation matrix properties
 # ──────────────────────────────────────────────
 
+
 class TestRotationMatrix:
     def test_orthonormality(self):
         """R^T R should be the identity matrix."""
@@ -86,6 +87,7 @@ class TestRotationMatrix:
 # ──────────────────────────────────────────────
 # State transformation tests
 # ──────────────────────────────────────────────
+
 
 class TestStateTransformation:
     def test_radial_offset(self):
@@ -135,6 +137,7 @@ class TestStateTransformation:
 # HCW dynamics tests
 # ──────────────────────────────────────────────
 
+
 class TestHCWDynamics:
     @pytest.fixture()
     def n(self):
@@ -183,6 +186,7 @@ class TestHCWDynamics:
 # JAX compatibility tests
 # ──────────────────────────────────────────────
 
+
 class TestJAXCompatibility:
     def test_jit_rotation_rtn_to_eci(self):
         """rotation_rtn_to_eci is JIT-compilable."""
@@ -210,11 +214,13 @@ class TestJAXCompatibility:
     def test_vmap_hcw_derivative(self):
         """hcw_derivative works with vmap over a batch of states."""
         n = jnp.sqrt(GM_EARTH / (R_EARTH + 500e3) ** 3)
-        states = jnp.array([
-            [100.0, 0.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 200.0, 0.0, 0.0, 0.0, 0.0],
-            [0.0, 0.0, 50.0, 0.0, 0.0, 0.0],
-        ])
+        states = jnp.array(
+            [
+                [100.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 200.0, 0.0, 0.0, 0.0, 0.0],
+                [0.0, 0.0, 50.0, 0.0, 0.0, 0.0],
+            ]
+        )
         batched = jax.vmap(hcw_derivative, in_axes=(0, None))(states, n)
         assert batched.shape == (3, 6)
         # Spot-check: first row x_ddot = 3 n^2 * 100
@@ -225,10 +231,12 @@ class TestJAXCompatibility:
         """rotation_rtn_to_eci works with vmap over a batch of states."""
         sma1 = R_EARTH + 500e3
         sma2 = R_EARTH + 700e3
-        states = jnp.stack([
-            _circular_orbit_state(sma1),
-            _circular_orbit_state(sma2),
-        ])
+        states = jnp.stack(
+            [
+                _circular_orbit_state(sma1),
+                _circular_orbit_state(sma2),
+            ]
+        )
         Rs = jax.vmap(rotation_rtn_to_eci)(states)
         assert Rs.shape == (2, 3, 3)
 
@@ -251,12 +259,12 @@ class TestJAXCompatibility:
 # ──────────────────────────────────────────────
 
 # ROE tolerances — float32 introduces rounding on the large SMA values
-_ROE_DA_TOL = 1e-5       # relative SMA (dimensionless)
-_ROE_ANGLE_TOL = 1e-3    # degrees (angular ROE components)
-_ROE_ECC_TOL = 1e-5      # eccentricity vector components (dimensionless)
-_OE_SMA_TOL = 10.0       # metres (roundtrip SMA)
-_OE_ECC_RTOL = 1e-3      # eccentricity roundtrip (relative)
-_OE_ANGLE_DEG_TOL = 1e-2 # degrees (roundtrip angles)
+_ROE_DA_TOL = 1e-5  # relative SMA (dimensionless)
+_ROE_ANGLE_TOL = 1e-3  # degrees (angular ROE components)
+_ROE_ECC_TOL = 1e-5  # eccentricity vector components (dimensionless)
+_OE_SMA_TOL = 10.0  # metres (roundtrip SMA)
+_OE_ECC_RTOL = 1e-3  # eccentricity roundtrip (relative)
+_OE_ANGLE_DEG_TOL = 1e-2  # degrees (roundtrip angles)
 
 
 class TestOEtoROE:
@@ -298,14 +306,26 @@ class TestOEtoROE:
         oe_d_deg = jnp.array([R_EARTH + 701e3, 0.0015, 97.85, 15.05, 30.05, 45.05])
 
         deg2rad = jnp.pi / 180.0
-        oe_c_rad = jnp.array([
-            R_EARTH + 700e3, 0.001,
-            97.8 * deg2rad, 15.0 * deg2rad, 30.0 * deg2rad, 45.0 * deg2rad,
-        ])
-        oe_d_rad = jnp.array([
-            R_EARTH + 701e3, 0.0015,
-            97.85 * deg2rad, 15.05 * deg2rad, 30.05 * deg2rad, 45.05 * deg2rad,
-        ])
+        oe_c_rad = jnp.array(
+            [
+                R_EARTH + 700e3,
+                0.001,
+                97.8 * deg2rad,
+                15.0 * deg2rad,
+                30.0 * deg2rad,
+                45.0 * deg2rad,
+            ]
+        )
+        oe_d_rad = jnp.array(
+            [
+                R_EARTH + 701e3,
+                0.0015,
+                97.85 * deg2rad,
+                15.05 * deg2rad,
+                30.05 * deg2rad,
+                45.05 * deg2rad,
+            ]
+        )
 
         roe_deg = state_oe_to_roe(oe_c_deg, oe_d_deg, use_degrees=True)
         roe_rad = state_oe_to_roe(oe_c_rad, oe_d_rad, use_degrees=False)
@@ -317,7 +337,9 @@ class TestOEtoROE:
 
         # Angular components: convert deg result to radians and compare
         assert jnp.allclose(
-            jnp.deg2rad(roe_deg[1]), roe_rad[1], atol=1e-4,
+            jnp.deg2rad(roe_deg[1]),
+            roe_rad[1],
+            atol=1e-4,
         )
 
 
@@ -347,14 +369,26 @@ class TestROEtoOE:
     def test_roundtrip_radians(self):
         """OE -> ROE -> OE roundtrip recovers the original deputy OE (radians)."""
         deg2rad = jnp.pi / 180.0
-        oe_c = jnp.array([
-            R_EARTH + 700e3, 0.001,
-            97.8 * deg2rad, 15.0 * deg2rad, 30.0 * deg2rad, 45.0 * deg2rad,
-        ])
-        oe_d_orig = jnp.array([
-            R_EARTH + 701e3, 0.0015,
-            97.85 * deg2rad, 15.05 * deg2rad, 30.05 * deg2rad, 45.05 * deg2rad,
-        ])
+        oe_c = jnp.array(
+            [
+                R_EARTH + 700e3,
+                0.001,
+                97.8 * deg2rad,
+                15.0 * deg2rad,
+                30.0 * deg2rad,
+                45.0 * deg2rad,
+            ]
+        )
+        oe_d_orig = jnp.array(
+            [
+                R_EARTH + 701e3,
+                0.0015,
+                97.85 * deg2rad,
+                15.05 * deg2rad,
+                30.05 * deg2rad,
+                45.05 * deg2rad,
+            ]
+        )
 
         roe = state_oe_to_roe(oe_c, oe_d_orig, use_degrees=False)
         oe_d_recovered = state_roe_to_oe(oe_c, roe, use_degrees=False)
@@ -369,6 +403,7 @@ class TestROEtoOE:
 # ──────────────────────────────────────────────
 # ECI <-> ROE transformation tests
 # ──────────────────────────────────────────────
+
 
 class TestECItoROE:
     def test_output_shape(self):
@@ -441,6 +476,7 @@ class TestROEtoECI:
 # JAX compatibility for ROE functions
 # ──────────────────────────────────────────────
 
+
 class TestROEJAXCompatibility:
     def test_jit_state_oe_to_roe(self):
         """state_oe_to_roe is JIT-compilable."""
@@ -506,10 +542,12 @@ class TestROEJAXCompatibility:
     def test_vmap_state_oe_to_roe(self):
         """state_oe_to_roe works with vmap over batched deputies."""
         oe_c = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
-        oe_deputies = jnp.array([
-            [R_EARTH + 701e3, 0.0015, 97.85, 15.05, 30.05, 45.05],
-            [R_EARTH + 702e3, 0.002, 97.9, 15.1, 30.1, 45.1],
-        ])
+        oe_deputies = jnp.array(
+            [
+                [R_EARTH + 701e3, 0.0015, 97.85, 15.05, 30.05, 45.05],
+                [R_EARTH + 702e3, 0.002, 97.9, 15.1, 30.1, 45.1],
+            ]
+        )
 
         def f(oe_d):
             return state_oe_to_roe(oe_c, oe_d, use_degrees=True)

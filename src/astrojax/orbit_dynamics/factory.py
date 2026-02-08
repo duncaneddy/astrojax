@@ -90,8 +90,7 @@ def create_orbit_dynamics(
     use_sh = config.gravity_type == "spherical_harmonics"
     if use_sh and config.gravity_model is None:
         raise ValueError(
-            "gravity_model must be provided when gravity_type is "
-            "'spherical_harmonics'"
+            "gravity_model must be provided when gravity_type is 'spherical_harmonics'"
         )
 
     # Capture static configuration into local variables for the closure.
@@ -141,9 +140,7 @@ def create_orbit_dynamics(
 
         # --- Gravity ---
         if _use_sh:
-            a = accel_gravity_spherical_harmonics(
-                r, R_eci_ecef, _gravity_model, _n_max, _m_max
-            )
+            a = accel_gravity_spherical_harmonics(r, R_eci_ecef, _gravity_model, _n_max, _m_max)
         else:
             a = accel_gravity(r)
 

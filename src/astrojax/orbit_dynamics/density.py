@@ -21,45 +21,178 @@ from astrojax.config import get_dtype
 from astrojax.coordinates import position_ecef_to_geodetic
 
 # Harris-Priester model constants
-_HP_UPPER_LIMIT = 1000.0   # Upper height limit [km]
-_HP_LOWER_LIMIT = 100.0    # Lower height limit [km]
-_HP_RA_LAG = 0.523599      # Right ascension lag [rad] (~30 deg)
-_HP_N_PRM = 3.0            # Harris-Priester exponent (low inclination)
+_HP_UPPER_LIMIT = 1000.0  # Upper height limit [km]
+_HP_LOWER_LIMIT = 100.0  # Lower height limit [km]
+_HP_RA_LAG = 0.523599  # Right ascension lag [rad] (~30 deg)
+_HP_N_PRM = 3.0  # Harris-Priester exponent (low inclination)
 
 # Height table [km] — 50 entries
-_HP_H = jnp.array([
-    100.0, 120.0, 130.0, 140.0, 150.0, 160.0, 170.0, 180.0, 190.0, 200.0,
-    210.0, 220.0, 230.0, 240.0, 250.0, 260.0, 270.0, 280.0, 290.0, 300.0,
-    320.0, 340.0, 360.0, 380.0, 400.0, 420.0, 440.0, 460.0, 480.0, 500.0,
-    520.0, 540.0, 560.0, 580.0, 600.0, 620.0, 640.0, 660.0, 680.0, 700.0,
-    720.0, 740.0, 760.0, 780.0, 800.0, 840.0, 880.0, 920.0, 960.0, 1000.0,
-], )
+_HP_H = jnp.array(
+    [
+        100.0,
+        120.0,
+        130.0,
+        140.0,
+        150.0,
+        160.0,
+        170.0,
+        180.0,
+        190.0,
+        200.0,
+        210.0,
+        220.0,
+        230.0,
+        240.0,
+        250.0,
+        260.0,
+        270.0,
+        280.0,
+        290.0,
+        300.0,
+        320.0,
+        340.0,
+        360.0,
+        380.0,
+        400.0,
+        420.0,
+        440.0,
+        460.0,
+        480.0,
+        500.0,
+        520.0,
+        540.0,
+        560.0,
+        580.0,
+        600.0,
+        620.0,
+        640.0,
+        660.0,
+        680.0,
+        700.0,
+        720.0,
+        740.0,
+        760.0,
+        780.0,
+        800.0,
+        840.0,
+        880.0,
+        920.0,
+        960.0,
+        1000.0,
+    ],
+)
 
 # Minimum density [g/km^3]
-_HP_C_MIN = jnp.array([
-    4.974e+05, 2.490e+04, 8.377e+03, 3.899e+03, 2.122e+03, 1.263e+03,
-    8.008e+02, 5.283e+02, 3.617e+02, 2.557e+02, 1.839e+02, 1.341e+02,
-    9.949e+01, 7.488e+01, 5.709e+01, 4.403e+01, 3.430e+01, 2.697e+01,
-    2.139e+01, 1.708e+01, 1.099e+01, 7.214e+00, 4.824e+00, 3.274e+00,
-    2.249e+00, 1.558e+00, 1.091e+00, 7.701e-01, 5.474e-01, 3.916e-01,
-    2.819e-01, 2.042e-01, 1.488e-01, 1.092e-01, 8.070e-02, 6.012e-02,
-    4.519e-02, 3.430e-02, 2.632e-02, 2.043e-02, 1.607e-02, 1.281e-02,
-    1.036e-02, 8.496e-03, 7.069e-03, 4.680e-03, 3.200e-03, 2.210e-03,
-    1.560e-03, 1.150e-03,
-], )
+_HP_C_MIN = jnp.array(
+    [
+        4.974e05,
+        2.490e04,
+        8.377e03,
+        3.899e03,
+        2.122e03,
+        1.263e03,
+        8.008e02,
+        5.283e02,
+        3.617e02,
+        2.557e02,
+        1.839e02,
+        1.341e02,
+        9.949e01,
+        7.488e01,
+        5.709e01,
+        4.403e01,
+        3.430e01,
+        2.697e01,
+        2.139e01,
+        1.708e01,
+        1.099e01,
+        7.214e00,
+        4.824e00,
+        3.274e00,
+        2.249e00,
+        1.558e00,
+        1.091e00,
+        7.701e-01,
+        5.474e-01,
+        3.916e-01,
+        2.819e-01,
+        2.042e-01,
+        1.488e-01,
+        1.092e-01,
+        8.070e-02,
+        6.012e-02,
+        4.519e-02,
+        3.430e-02,
+        2.632e-02,
+        2.043e-02,
+        1.607e-02,
+        1.281e-02,
+        1.036e-02,
+        8.496e-03,
+        7.069e-03,
+        4.680e-03,
+        3.200e-03,
+        2.210e-03,
+        1.560e-03,
+        1.150e-03,
+    ],
+)
 
 # Maximum density [g/km^3]
-_HP_C_MAX = jnp.array([
-    4.974e+05, 2.490e+04, 8.710e+03, 4.059e+03, 2.215e+03, 1.344e+03,
-    8.758e+02, 6.010e+02, 4.297e+02, 3.162e+02, 2.396e+02, 1.853e+02,
-    1.455e+02, 1.157e+02, 9.308e+01, 7.555e+01, 6.182e+01, 5.095e+01,
-    4.226e+01, 3.526e+01, 2.511e+01, 1.819e+01, 1.337e+01, 9.955e+00,
-    7.492e+00, 5.684e+00, 4.355e+00, 3.362e+00, 2.612e+00, 2.042e+00,
-    1.605e+00, 1.267e+00, 1.005e+00, 7.997e-01, 6.390e-01, 5.123e-01,
-    4.121e-01, 3.325e-01, 2.691e-01, 2.185e-01, 1.779e-01, 1.452e-01,
-    1.190e-01, 9.776e-02, 8.059e-02, 5.741e-02, 4.210e-02, 3.130e-02,
-    2.360e-02, 1.810e-02,
-], )
+_HP_C_MAX = jnp.array(
+    [
+        4.974e05,
+        2.490e04,
+        8.710e03,
+        4.059e03,
+        2.215e03,
+        1.344e03,
+        8.758e02,
+        6.010e02,
+        4.297e02,
+        3.162e02,
+        2.396e02,
+        1.853e02,
+        1.455e02,
+        1.157e02,
+        9.308e01,
+        7.555e01,
+        6.182e01,
+        5.095e01,
+        4.226e01,
+        3.526e01,
+        2.511e01,
+        1.819e01,
+        1.337e01,
+        9.955e00,
+        7.492e00,
+        5.684e00,
+        4.355e00,
+        3.362e00,
+        2.612e00,
+        2.042e00,
+        1.605e00,
+        1.267e00,
+        1.005e00,
+        7.997e-01,
+        6.390e-01,
+        5.123e-01,
+        4.121e-01,
+        3.325e-01,
+        2.691e-01,
+        2.185e-01,
+        1.779e-01,
+        1.452e-01,
+        1.190e-01,
+        9.776e-02,
+        8.059e-02,
+        5.741e-02,
+        4.210e-02,
+        3.130e-02,
+        2.360e-02,
+        1.810e-02,
+    ],
+)
 
 
 def density_harris_priester(
@@ -99,17 +232,17 @@ def density_harris_priester(
 
     # Sun right ascension and declination
     ra_sun = jnp.arctan2(r_sun[1], r_sun[0])
-    dec_sun = jnp.arctan2(
-        r_sun[2], jnp.sqrt(r_sun[0] ** 2 + r_sun[1] ** 2)
-    )
+    dec_sun = jnp.arctan2(r_sun[2], jnp.sqrt(r_sun[0] ** 2 + r_sun[1] ** 2))
 
     # Unit vector towards diurnal bulge apex
     c_dec = jnp.cos(dec_sun)
-    u = jnp.array([
-        c_dec * jnp.cos(ra_sun + _float(_HP_RA_LAG)),
-        c_dec * jnp.sin(ra_sun + _float(_HP_RA_LAG)),
-        jnp.sin(dec_sun),
-    ])
+    u = jnp.array(
+        [
+            c_dec * jnp.cos(ra_sun + _float(_HP_RA_LAG)),
+            c_dec * jnp.sin(ra_sun + _float(_HP_RA_LAG)),
+            jnp.sin(dec_sun),
+        ]
+    )
 
     # Cosine of half angle between satellite and apex
     c_psi2 = _float(0.5) + _float(0.5) * jnp.dot(r_ecef, u) / jnp.linalg.norm(r_ecef)
@@ -129,7 +262,7 @@ def density_harris_priester(
     d_max = _HP_C_MAX[ih] * jnp.exp((_HP_H[ih] - height) / h_max)
 
     # Density with diurnal variation [g/km^3]
-    density = d_min + (d_max - d_min) * c_psi2 ** _HP_N_PRM
+    density = d_min + (d_max - d_min) * c_psi2**_HP_N_PRM
 
     # Convert from g/km^3 to kg/m^3
     density = density * _float(1.0e-12)

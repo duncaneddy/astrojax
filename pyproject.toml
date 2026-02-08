@@ -23,6 +23,7 @@ dev = [
     "brahe>=1.0.1",
     "hypothesis>=6.151.2",
     "mkdocstrings-python>=2.0.1",
+    "pre-commit>=4.0.0",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",
     "pytest-order>=1.3.0",
@@ -33,3 +34,29 @@ dev = [
 testpaths = [
     "tests",
 ]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+exclude = ["refs/"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B"]
+ignore = ["E501"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["astrojax"]
+
+[tool.ty.environment]
+python-version = "3.11"
+
+[tool.ty.rules]
+# JAX type stubs cause false positives for these rules.
+# Re-enable incrementally as ty's JAX support matures.
+call-non-callable = "ignore"
+not-subscriptable = "ignore"
+invalid-argument-type = "ignore"
+unsupported-operator = "ignore"
+unresolved-attribute = "ignore"
+invalid-assignment = "ignore"
+invalid-return-type = "ignore"

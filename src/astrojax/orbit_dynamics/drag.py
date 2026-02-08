@@ -74,7 +74,9 @@ def accel_drag(
     v_abs = jnp.linalg.norm(v_rel)
 
     # Drag acceleration in TOD frame
-    a_tod = _float(-0.5) * _float(cd) * (_float(area) / _float(mass)) * _float(density) * v_abs * v_rel
+    a_tod = (
+        _float(-0.5) * _float(cd) * (_float(area) / _float(mass)) * _float(density) * v_abs * v_rel
+    )
 
     # Transform back to ECI
     return T.T @ a_tod

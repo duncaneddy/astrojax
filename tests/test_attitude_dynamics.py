@@ -35,6 +35,7 @@ from astrojax.integrators import AdaptiveConfig, dp54_step, rk4_step
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _identity_q() -> jnp.ndarray:
     """Identity quaternion [w, x, y, z]."""
     return jnp.array([1.0, 0.0, 0.0, 0.0], dtype=get_dtype())
@@ -326,12 +327,8 @@ class TestGravityGradient:
         r1 = 7000e3
         r2 = 14000e3  # double the distance
 
-        r_eci_1 = jnp.array(
-            [r1 / jnp.sqrt(2.0), r1 / jnp.sqrt(2.0), 0.0], dtype=get_dtype()
-        )
-        r_eci_2 = jnp.array(
-            [r2 / jnp.sqrt(2.0), r2 / jnp.sqrt(2.0), 0.0], dtype=get_dtype()
-        )
+        r_eci_1 = jnp.array([r1 / jnp.sqrt(2.0), r1 / jnp.sqrt(2.0), 0.0], dtype=get_dtype())
+        r_eci_2 = jnp.array([r2 / jnp.sqrt(2.0), r2 / jnp.sqrt(2.0), 0.0], dtype=get_dtype())
 
         tau_1 = torque_gravity_gradient(q, r_eci_1, J)
         tau_2 = torque_gravity_gradient(q, r_eci_2, J)
@@ -350,9 +347,7 @@ class TestGravityGradient:
         so r_hat x (c * r_hat) = 0.
         """
         q = _identity_q()
-        r_eci = jnp.array(
-            [7000e3 / jnp.sqrt(3.0)] * 3, dtype=get_dtype()
-        )
+        r_eci = jnp.array([7000e3 / jnp.sqrt(3.0)] * 3, dtype=get_dtype())
         J = 10.0 * jnp.eye(3, dtype=get_dtype())
         tau = torque_gravity_gradient(q, r_eci, J)
         assert jnp.allclose(tau, jnp.zeros(3), atol=1e-10)
@@ -463,10 +458,12 @@ class TestTorqueFreePropagation:
         cfg = AttitudeDynamicsConfig.torque_free(inertia)
         dynamics = create_attitude_dynamics(cfg, _leo_position_fn())
 
-        x0 = jnp.concatenate([
-            _identity_q(),
-            jnp.array([0.1, -0.05, 0.2], dtype=_float),
-        ])
+        x0 = jnp.concatenate(
+            [
+                _identity_q(),
+                jnp.array([0.1, -0.05, 0.2], dtype=_float),
+            ]
+        )
 
         dt = 1.0
         n_steps = 1000
@@ -482,9 +479,7 @@ class TestTorqueFreePropagation:
 
         q_norm = float(jnp.linalg.norm(x_final[:4]))
         # Without normalization, drift should still be small for 1000 steps
-        assert abs(q_norm - 1.0) < 0.01, (
-            f"Quaternion norm drifted to {q_norm}"
-        )
+        assert abs(q_norm - 1.0) < 0.01, f"Quaternion norm drifted to {q_norm}"
 
 
 class TestGravityGradientPropagation:
@@ -506,6 +501,7 @@ class TestGravityGradientPropagation:
 
         # Position along z-axis in ECI
         r_mag = R_EARTH + 500e3
+
         def pos_fn(t):
             return jnp.array([0.0, 0.0, r_mag], dtype=_float)
 
@@ -527,9 +523,7 @@ class TestGravityGradientPropagation:
         # Positive theta pitches z-axis away from +z nadir, so the
         # restoring omega_dot_y should be negative.
         omega_dot_y = float(dx[5])
-        assert omega_dot_y < 0.0, (
-            f"Expected negative restoring omega_dot_y, got {omega_dot_y}"
-        )
+        assert omega_dot_y < 0.0, f"Expected negative restoring omega_dot_y, got {omega_dot_y}"
 
     def test_gravity_gradient_propagation_no_nan(self):
         """Gravity gradient propagation produces no NaN over 100 steps."""
@@ -538,8 +532,10 @@ class TestGravityGradientPropagation:
         cfg = AttitudeDynamicsConfig.with_gravity_gradient(inertia)
 
         r_mag = R_EARTH + 500e3
+
         def pos_fn(t):
             return jnp.array([r_mag, 0.0, 0.0], dtype=_float)
+
         dynamics = create_attitude_dynamics(cfg, pos_fn)
 
         theta = 0.05
@@ -722,10 +718,12 @@ class TestNormalizeAttitudeState:
 
     def test_jit_compatible(self):
         """normalize_attitude_state is JIT-compilable."""
-        x = jnp.concatenate([
-            jnp.array([1.01, 0.0, 0.0, 0.0]),
-            jnp.array([0.1, 0.2, 0.3]),
-        ])
+        x = jnp.concatenate(
+            [
+                jnp.array([1.01, 0.0, 0.0, 0.0]),
+                jnp.array([0.1, 0.2, 0.3]),
+            ]
+        )
         jit_norm = jax.jit(normalize_attitude_state)
         x_normed = jit_norm(x)
         q_norm = float(jnp.linalg.norm(x_normed[:4]))

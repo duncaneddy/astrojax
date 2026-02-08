@@ -43,8 +43,8 @@ def _ensure_float64():
 # EulerAngleOrder
 # ===========================================================================
 
-class TestEulerAngleOrder:
 
+class TestEulerAngleOrder:
     def test_all_orders_exist(self):
         orders = list(EulerAngleOrder)
         assert len(orders) == 12
@@ -55,9 +55,18 @@ class TestEulerAngleOrder:
 
     def test_names(self):
         expected = [
-            "XYX", "XYZ", "XZX", "XZY",
-            "YXY", "YXZ", "YZX", "YZY",
-            "ZXY", "ZXZ", "ZYX", "ZYZ",
+            "XYX",
+            "XYZ",
+            "XZX",
+            "XZY",
+            "YXY",
+            "YXZ",
+            "YZX",
+            "YZY",
+            "ZXY",
+            "ZXZ",
+            "ZYX",
+            "ZYZ",
         ]
         for name in expected:
             assert hasattr(EulerAngleOrder, name)
@@ -67,8 +76,8 @@ class TestEulerAngleOrder:
 # Quaternion
 # ===========================================================================
 
-class TestQuaternion:
 
+class TestQuaternion:
     def test_new_identity(self):
         q = Quaternion(1.0, 0.0, 0.0, 0.0)
         assert float(q.w) == pytest.approx(1.0, abs=ATOL)
@@ -186,8 +195,8 @@ class TestQuaternion:
 # Quaternion conversion round-trips
 # ===========================================================================
 
-class TestQuaternionConversions:
 
+class TestQuaternionConversions:
     def test_from_euler_axis_identity(self):
         ea = EulerAxis(jnp.array([1.0, 0.0, 0.0]), 0.0)
         q = Quaternion.from_euler_axis(ea)
@@ -206,9 +215,15 @@ class TestQuaternionConversions:
 
     def test_from_rotation_matrix(self):
         r = RotationMatrix(
-            1.0, 0.0, 0.0,
-            0.0, SQRT2_2, -SQRT2_2,
-            0.0, SQRT2_2, SQRT2_2,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            SQRT2_2,
+            -SQRT2_2,
+            0.0,
+            SQRT2_2,
+            SQRT2_2,
         )
         q = Quaternion.from_rotation_matrix(r)
         expected = Quaternion(0.9238795325112867, -0.3826834323650898, 0.0, 0.0)
@@ -257,13 +272,19 @@ class TestQuaternionConversions:
 # RotationMatrix
 # ===========================================================================
 
-class TestRotationMatrix:
 
+class TestRotationMatrix:
     def test_new_valid(self):
         r = RotationMatrix(
-            1.0, 0.0, 0.0,
-            0.0, SQRT2_2, SQRT2_2,
-            0.0, -SQRT2_2, SQRT2_2,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            SQRT2_2,
         )
         assert r.r11 == pytest.approx(1.0, abs=ATOL)
 
@@ -278,9 +299,15 @@ class TestRotationMatrix:
 
     def test_to_matrix(self):
         r = RotationMatrix(
-            1.0, 0.0, 0.0,
-            0.0, SQRT2_2, SQRT2_2,
-            0.0, -SQRT2_2, SQRT2_2,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            SQRT2_2,
         )
         m = r.to_matrix()
         assert m.shape == (3, 3)
@@ -289,27 +316,45 @@ class TestRotationMatrix:
     def test_rotation_x(self):
         r = RotationMatrix.rotation_x(45.0, use_degrees=True)
         expected = RotationMatrix(
-            1.0, 0.0, 0.0,
-            0.0, SQRT2_2, SQRT2_2,
-            0.0, -SQRT2_2, SQRT2_2,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            SQRT2_2,
         )
         assert r == expected
 
     def test_rotation_y(self):
         r = RotationMatrix.rotation_y(45.0, use_degrees=True)
         expected = RotationMatrix(
-            SQRT2_2, 0.0, -SQRT2_2,
-            0.0, 1.0, 0.0,
-            SQRT2_2, 0.0, SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            0.0,
+            1.0,
+            0.0,
+            SQRT2_2,
+            0.0,
+            SQRT2_2,
         )
         assert r == expected
 
     def test_rotation_z(self):
         r = RotationMatrix.rotation_z(45.0, use_degrees=True)
         expected = RotationMatrix(
-            SQRT2_2, SQRT2_2, 0.0,
-            -SQRT2_2, SQRT2_2, 0.0,
-            0.0, 0.0, 1.0,
+            SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            SQRT2_2,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
         )
         assert r == expected
 
@@ -337,7 +382,6 @@ class TestRotationMatrix:
 
 
 class TestRotationMatrixConversions:
-
     def test_from_quaternion_identity(self):
         q = Quaternion(1.0, 0.0, 0.0, 0.0)
         r = RotationMatrix.from_quaternion(q)
@@ -348,9 +392,15 @@ class TestRotationMatrixConversions:
         ea = EulerAxis(jnp.array([1.0, 0.0, 0.0]), 45.0, use_degrees=True)
         r = RotationMatrix.from_euler_axis(ea)
         expected = RotationMatrix(
-            1.0, 0.0, 0.0,
-            0.0, SQRT2_2, SQRT2_2,
-            0.0, -SQRT2_2, SQRT2_2,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            SQRT2_2,
         )
         assert r == expected
 
@@ -358,9 +408,15 @@ class TestRotationMatrixConversions:
         ea = EulerAxis(jnp.array([0.0, 1.0, 0.0]), 45.0, use_degrees=True)
         r = RotationMatrix.from_euler_axis(ea)
         expected = RotationMatrix(
-            SQRT2_2, 0.0, -SQRT2_2,
-            0.0, 1.0, 0.0,
-            SQRT2_2, 0.0, SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            0.0,
+            1.0,
+            0.0,
+            SQRT2_2,
+            0.0,
+            SQRT2_2,
         )
         assert r == expected
 
@@ -368,9 +424,15 @@ class TestRotationMatrixConversions:
         ea = EulerAxis(jnp.array([0.0, 0.0, 1.0]), 45.0, use_degrees=True)
         r = RotationMatrix.from_euler_axis(ea)
         expected = RotationMatrix(
-            SQRT2_2, SQRT2_2, 0.0,
-            -SQRT2_2, SQRT2_2, 0.0,
-            0.0, 0.0, 1.0,
+            SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            SQRT2_2,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
         )
         assert r == expected
 
@@ -378,17 +440,29 @@ class TestRotationMatrixConversions:
         e = EulerAngle(EulerAngleOrder.XYZ, 45.0, 0.0, 0.0, use_degrees=True)
         r = RotationMatrix.from_euler_angle(e)
         expected = RotationMatrix(
-            1.0, 0.0, 0.0,
-            0.0, SQRT2_2, SQRT2_2,
-            0.0, -SQRT2_2, SQRT2_2,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            SQRT2_2,
         )
         assert r == expected
 
     def test_to_quaternion(self):
         r = RotationMatrix(
-            1.0, 0.0, 0.0,
-            0.0, SQRT2_2, SQRT2_2,
-            0.0, -SQRT2_2, SQRT2_2,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            SQRT2_2,
         )
         q = r.to_quaternion()
         expected = Quaternion(0.9238795325112867, 0.3826834323650898, 0.0, 0.0)
@@ -396,9 +470,15 @@ class TestRotationMatrixConversions:
 
     def test_to_euler_axis_rx(self):
         r = RotationMatrix(
-            1.0, 0.0, 0.0,
-            0.0, SQRT2_2, SQRT2_2,
-            0.0, -SQRT2_2, SQRT2_2,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            SQRT2_2,
         )
         ea = r.to_euler_axis()
         expected = EulerAxis(jnp.array([1.0, 0.0, 0.0]), 45.0, use_degrees=True)
@@ -406,9 +486,15 @@ class TestRotationMatrixConversions:
 
     def test_to_euler_axis_ry(self):
         r = RotationMatrix(
-            SQRT2_2, 0.0, -SQRT2_2,
-            0.0, 1.0, 0.0,
-            SQRT2_2, 0.0, SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            0.0,
+            1.0,
+            0.0,
+            SQRT2_2,
+            0.0,
+            SQRT2_2,
         )
         ea = r.to_euler_axis()
         expected = EulerAxis(jnp.array([0.0, 1.0, 0.0]), 45.0, use_degrees=True)
@@ -416,9 +502,15 @@ class TestRotationMatrixConversions:
 
     def test_to_euler_axis_rz(self):
         r = RotationMatrix(
-            SQRT2_2, SQRT2_2, 0.0,
-            -SQRT2_2, SQRT2_2, 0.0,
-            0.0, 0.0, 1.0,
+            SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            SQRT2_2,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
         )
         ea = r.to_euler_axis()
         expected = EulerAxis(jnp.array([0.0, 0.0, 1.0]), 45.0, use_degrees=True)
@@ -447,8 +539,8 @@ class TestRotationMatrixConversions:
 # EulerAngle
 # ===========================================================================
 
-class TestEulerAngle:
 
+class TestEulerAngle:
     def test_new_degrees(self):
         e = EulerAngle(EulerAngleOrder.XYZ, 30.0, 45.0, 60.0, use_degrees=True)
         assert float(e.phi) == pytest.approx(30.0 * DEG2RAD, abs=ATOL)
@@ -457,14 +549,14 @@ class TestEulerAngle:
         assert e.order == EulerAngleOrder.XYZ
 
     def test_new_radians(self):
-        e = EulerAngle(EulerAngleOrder.XYZ, PI/6, PI/4, PI/3)
-        assert float(e.phi) == pytest.approx(PI/6, abs=ATOL)
-        assert float(e.theta) == pytest.approx(PI/4, abs=ATOL)
-        assert float(e.psi) == pytest.approx(PI/3, abs=ATOL)
+        e = EulerAngle(EulerAngleOrder.XYZ, PI / 6, PI / 4, PI / 3)
+        assert float(e.phi) == pytest.approx(PI / 6, abs=ATOL)
+        assert float(e.theta) == pytest.approx(PI / 4, abs=ATOL)
+        assert float(e.psi) == pytest.approx(PI / 3, abs=ATOL)
 
     def test_degree_radian_equivalence(self):
         e1 = EulerAngle(EulerAngleOrder.XYZ, 30.0, 45.0, 60.0, use_degrees=True)
-        e2 = EulerAngle(EulerAngleOrder.XYZ, PI/6, PI/4, PI/3)
+        e2 = EulerAngle(EulerAngleOrder.XYZ, PI / 6, PI / 4, PI / 3)
         assert e1 == e2
 
     def test_all_orders(self):
@@ -482,7 +574,7 @@ class TestEulerAngle:
         e = EulerAngle.from_quaternion(q, EulerAngleOrder.XYZ)
         assert float(e.phi) == pytest.approx(0.0, abs=ATOL)
         assert float(e.theta) == pytest.approx(0.0, abs=ATOL)
-        assert float(e.psi) == pytest.approx(PI/2, abs=ATOL)
+        assert float(e.psi) == pytest.approx(PI / 2, abs=ATOL)
 
     def test_from_euler_axis_x(self):
         ea = EulerAxis(jnp.array([1.0, 0.0, 0.0]), 45.0, use_degrees=True)
@@ -512,12 +604,18 @@ class TestEulerAngle:
 
     def test_from_rotation_matrix(self):
         r = RotationMatrix(
-            1.0, 0.0, 0.0,
-            0.0, SQRT2_2, SQRT2_2,
-            0.0, -SQRT2_2, SQRT2_2,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            SQRT2_2,
         )
         e = EulerAngle.from_rotation_matrix(r, EulerAngleOrder.XYZ)
-        assert float(e.phi) == pytest.approx(PI/4, abs=ATOL)
+        assert float(e.phi) == pytest.approx(PI / 4, abs=ATOL)
         assert float(e.theta) == pytest.approx(0.0, abs=ATOL)
         assert float(e.psi) == pytest.approx(0.0, abs=ATOL)
 
@@ -535,7 +633,7 @@ class TestEulerAngle:
         assert float(ea.axis[0]) == pytest.approx(1.0, abs=ATOL)
         assert float(ea.axis[1]) == pytest.approx(0.0, abs=ATOL)
         assert float(ea.axis[2]) == pytest.approx(0.0, abs=ATOL)
-        assert float(ea.angle) == pytest.approx(PI/4, abs=ATOL)
+        assert float(ea.angle) == pytest.approx(PI / 4, abs=ATOL)
 
     def test_to_euler_axis_y(self):
         e = EulerAngle(EulerAngleOrder.XYZ, 0.0, 45.0, 0.0, use_degrees=True)
@@ -543,7 +641,7 @@ class TestEulerAngle:
         assert float(ea.axis[0]) == pytest.approx(0.0, abs=ATOL)
         assert float(ea.axis[1]) == pytest.approx(1.0, abs=ATOL)
         assert float(ea.axis[2]) == pytest.approx(0.0, abs=ATOL)
-        assert float(ea.angle) == pytest.approx(PI/4, abs=ATOL)
+        assert float(ea.angle) == pytest.approx(PI / 4, abs=ATOL)
 
     def test_to_euler_axis_z(self):
         e = EulerAngle(EulerAngleOrder.XYZ, 0.0, 0.0, 45.0, use_degrees=True)
@@ -551,7 +649,7 @@ class TestEulerAngle:
         assert float(ea.axis[0]) == pytest.approx(0.0, abs=ATOL)
         assert float(ea.axis[1]) == pytest.approx(0.0, abs=ATOL)
         assert float(ea.axis[2]) == pytest.approx(1.0, abs=ATOL)
-        assert float(ea.angle) == pytest.approx(PI/4, abs=ATOL)
+        assert float(ea.angle) == pytest.approx(PI / 4, abs=ATOL)
 
     def test_to_euler_angle_order_change(self):
         e = EulerAngle(EulerAngleOrder.XYZ, 30.0, 45.0, 60.0, use_degrees=True)
@@ -606,15 +704,15 @@ class TestEulerAngle:
 # EulerAxis
 # ===========================================================================
 
-class TestEulerAxis:
 
+class TestEulerAxis:
     def test_new_degrees(self):
         ea = EulerAxis(jnp.array([1.0, 1.0, 1.0]), 45.0, use_degrees=True)
         assert float(ea.angle) == pytest.approx(45.0 * DEG2RAD, abs=ATOL)
 
     def test_new_radians(self):
-        ea = EulerAxis(jnp.array([1.0, 0.0, 0.0]), PI/4)
-        assert float(ea.angle) == pytest.approx(PI/4, abs=ATOL)
+        ea = EulerAxis(jnp.array([1.0, 0.0, 0.0]), PI / 4)
+        assert float(ea.angle) == pytest.approx(PI / 4, abs=ATOL)
 
     def test_from_values(self):
         ea = EulerAxis.from_values(1.0, 1.0, 1.0, 45.0, use_degrees=True)
@@ -660,49 +758,67 @@ class TestEulerAxis:
         e = EulerAngle(EulerAngleOrder.XYZ, 45.0, 0.0, 0.0, use_degrees=True)
         ea = EulerAxis.from_euler_angle(e)
         assert float(ea.axis[0]) == pytest.approx(1.0, abs=ATOL)
-        assert float(ea.angle) == pytest.approx(PI/4, abs=ATOL)
+        assert float(ea.angle) == pytest.approx(PI / 4, abs=ATOL)
 
     def test_from_euler_angle_y(self):
         e = EulerAngle(EulerAngleOrder.XYZ, 0.0, 45.0, 0.0, use_degrees=True)
         ea = EulerAxis.from_euler_angle(e)
         assert float(ea.axis[1]) == pytest.approx(1.0, abs=ATOL)
-        assert float(ea.angle) == pytest.approx(PI/4, abs=ATOL)
+        assert float(ea.angle) == pytest.approx(PI / 4, abs=ATOL)
 
     def test_from_euler_angle_z(self):
         e = EulerAngle(EulerAngleOrder.XYZ, 0.0, 0.0, 45.0, use_degrees=True)
         ea = EulerAxis.from_euler_angle(e)
         assert float(ea.axis[2]) == pytest.approx(1.0, abs=ATOL)
-        assert float(ea.angle) == pytest.approx(PI/4, abs=ATOL)
+        assert float(ea.angle) == pytest.approx(PI / 4, abs=ATOL)
 
     def test_from_rotation_matrix_rx(self):
         r = RotationMatrix(
-            1.0, 0.0, 0.0,
-            0.0, SQRT2_2, SQRT2_2,
-            0.0, -SQRT2_2, SQRT2_2,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            SQRT2_2,
         )
         ea = EulerAxis.from_rotation_matrix(r)
         assert float(ea.axis[0]) == pytest.approx(1.0, abs=ATOL)
-        assert float(ea.angle) == pytest.approx(PI/4, abs=ATOL)
+        assert float(ea.angle) == pytest.approx(PI / 4, abs=ATOL)
 
     def test_from_rotation_matrix_ry(self):
         r = RotationMatrix(
-            SQRT2_2, 0.0, -SQRT2_2,
-            0.0, 1.0, 0.0,
-            SQRT2_2, 0.0, SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            0.0,
+            1.0,
+            0.0,
+            SQRT2_2,
+            0.0,
+            SQRT2_2,
         )
         ea = EulerAxis.from_rotation_matrix(r)
         assert float(ea.axis[1]) == pytest.approx(1.0, abs=ATOL)
-        assert float(ea.angle) == pytest.approx(PI/4, abs=ATOL)
+        assert float(ea.angle) == pytest.approx(PI / 4, abs=ATOL)
 
     def test_from_rotation_matrix_rz(self):
         r = RotationMatrix(
-            SQRT2_2, SQRT2_2, 0.0,
-            -SQRT2_2, SQRT2_2, 0.0,
-            0.0, 0.0, 1.0,
+            SQRT2_2,
+            SQRT2_2,
+            0.0,
+            -SQRT2_2,
+            SQRT2_2,
+            0.0,
+            0.0,
+            0.0,
+            1.0,
         )
         ea = EulerAxis.from_rotation_matrix(r)
         assert float(ea.axis[2]) == pytest.approx(1.0, abs=ATOL)
-        assert float(ea.angle) == pytest.approx(PI/4, abs=ATOL)
+        assert float(ea.angle) == pytest.approx(PI / 4, abs=ATOL)
 
     def test_to_quaternion_identity(self):
         ea = EulerAxis.from_values(1.0, 0.0, 0.0, 0.0)
@@ -715,14 +831,14 @@ class TestEulerAxis:
         assert ea == ea2
 
     def test_to_euler_angle_rx(self):
-        ea = EulerAxis.from_values(1.0, 0.0, 0.0, PI/4)
+        ea = EulerAxis.from_values(1.0, 0.0, 0.0, PI / 4)
         e = ea.to_euler_angle(EulerAngleOrder.XYZ)
-        assert float(e.phi) == pytest.approx(PI/4, abs=ATOL)
+        assert float(e.phi) == pytest.approx(PI / 4, abs=ATOL)
         assert float(e.theta) == pytest.approx(0.0, abs=ATOL)
         assert float(e.psi) == pytest.approx(0.0, abs=ATOL)
 
     def test_to_rotation_matrix_rx(self):
-        ea = EulerAxis.from_values(1.0, 0.0, 0.0, PI/4)
+        ea = EulerAxis.from_values(1.0, 0.0, 0.0, PI / 4)
         r = ea.to_rotation_matrix()
         assert float(r[0, 0]) == pytest.approx(1.0, abs=ATOL)
         assert float(r[1, 1]) == pytest.approx(SQRT2_2, abs=ATOL)
@@ -731,17 +847,17 @@ class TestEulerAxis:
         assert float(r[2, 2]) == pytest.approx(SQRT2_2, abs=ATOL)
 
     def test_eq(self):
-        ea1 = EulerAxis.from_values(1.0, 0.0, 0.0, PI/4)
-        ea2 = EulerAxis.from_values(1.0, 0.0, 0.0, PI/4)
+        ea1 = EulerAxis.from_values(1.0, 0.0, 0.0, PI / 4)
+        ea2 = EulerAxis.from_values(1.0, 0.0, 0.0, PI / 4)
         assert ea1 == ea2
 
     def test_ne(self):
-        ea1 = EulerAxis.from_values(1.0, 0.0, 0.0, PI/4)
-        ea2 = EulerAxis.from_values(0.0, 1.0, 0.0, PI/4)
+        ea1 = EulerAxis.from_values(1.0, 0.0, 0.0, PI / 4)
+        ea2 = EulerAxis.from_values(0.0, 1.0, 0.0, PI / 4)
         assert ea1 != ea2
 
     def test_getitem(self):
-        ea = EulerAxis.from_values(1.0, 2.0, 3.0, PI/4)
+        ea = EulerAxis.from_values(1.0, 2.0, 3.0, PI / 4)
         assert float(ea[0]) == pytest.approx(1.0, abs=ATOL)
         assert float(ea[1]) == pytest.approx(2.0, abs=ATOL)
         assert float(ea[2]) == pytest.approx(3.0, abs=ATOL)
@@ -751,8 +867,8 @@ class TestEulerAxis:
 # JIT compatibility
 # ===========================================================================
 
-class TestJIT:
 
+class TestJIT:
     def test_quaternion_to_rotation_matrix_jit(self):
         @jax.jit
         def convert(q):
@@ -779,7 +895,7 @@ class TestJIT:
         def convert(ea):
             return ea.to_quaternion()
 
-        ea = EulerAxis(jnp.array([1.0, 0.0, 0.0]), PI/4)
+        ea = EulerAxis(jnp.array([1.0, 0.0, 0.0]), PI / 4)
         q = convert(ea)
         assert isinstance(q, Quaternion)
 
@@ -827,8 +943,8 @@ class TestJIT:
 # Pytree
 # ===========================================================================
 
-class TestPytree:
 
+class TestPytree:
     def test_quaternion_pytree(self):
         q = Quaternion(1.0, 0.0, 0.0, 0.0)
         leaves, treedef = jax.tree_util.tree_flatten(q)
@@ -844,7 +960,7 @@ class TestPytree:
         assert r == r2
 
     def test_euler_axis_pytree(self):
-        ea = EulerAxis(jnp.array([1.0, 0.0, 0.0]), PI/4)
+        ea = EulerAxis(jnp.array([1.0, 0.0, 0.0]), PI / 4)
         leaves, treedef = jax.tree_util.tree_flatten(ea)
         assert len(leaves) == 2
         ea2 = jax.tree_util.tree_unflatten(treedef, leaves)

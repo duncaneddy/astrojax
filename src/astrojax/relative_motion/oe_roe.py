@@ -209,10 +209,7 @@ def state_roe_to_oe(
 
     # Compute deputy OE
     ad = ac * (1.0 + da)
-    ed = jnp.sqrt(
-        (dex + ec * jnp.cos(omega_c)) ** 2
-        + (dey + ec * jnp.sin(omega_c)) ** 2
-    )
+    ed = jnp.sqrt((dex + ec * jnp.cos(omega_c)) ** 2 + (dey + ec * jnp.sin(omega_c)) ** 2)
     i_dep = dix + ic
     raan_d = raan_c + diy / jnp.sin(ic)
     omega_d = jnp.arctan2(

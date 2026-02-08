@@ -15,6 +15,7 @@ _F32_SEC_TOL = 0.01
 # Construction: date components
 # ──────────────────────────────────────────────
 
+
 class TestEpochDateConstruction:
     def test_epoch_from_date(self):
         epc = Epoch(2000, 1, 1, 12, 0, 0.0)
@@ -71,6 +72,7 @@ class TestEpochDateConstruction:
 # Construction: string
 # ──────────────────────────────────────────────
 
+
 class TestEpochStringConstruction:
     def test_epoch_from_string_date_only(self):
         epc = Epoch("2000-01-01")
@@ -116,6 +118,7 @@ class TestEpochStringConstruction:
 # Construction: copy
 # ──────────────────────────────────────────────
 
+
 class TestEpochCopyConstruction:
     def test_epoch_copy(self):
         original = Epoch(2000, 1, 1, 12, 0, 0.0)
@@ -134,6 +137,7 @@ class TestEpochCopyConstruction:
 # Construction: invalid
 # ──────────────────────────────────────────────
 
+
 class TestEpochInvalidConstruction:
     def test_epoch_no_args(self):
         with pytest.raises(ValueError):
@@ -151,6 +155,7 @@ class TestEpochInvalidConstruction:
 # ──────────────────────────────────────────────
 # Julian Date and MJD
 # ──────────────────────────────────────────────
+
 
 class TestEpochJulianDate:
     def test_epoch_jd_j2000(self):
@@ -175,6 +180,7 @@ class TestEpochJulianDate:
 # ──────────────────────────────────────────────
 # Arithmetic: addition
 # ──────────────────────────────────────────────
+
 
 class TestEpochAddition:
     def test_epoch_add_seconds(self):
@@ -217,6 +223,7 @@ class TestEpochAddition:
 # Arithmetic: subtraction
 # ──────────────────────────────────────────────
 
+
 class TestEpochSubtraction:
     def test_epoch_subtract_seconds(self):
         epc = Epoch(2000, 1, 1, 1, 0, 0.0) - 3600.0
@@ -250,6 +257,7 @@ class TestEpochSubtraction:
 # Arithmetic: Kahan precision
 # ──────────────────────────────────────────────
 
+
 class TestEpochKahanPrecision:
     def test_kahan_many_small_additions(self):
         """Kahan summation limits error to O(eps) rather than O(N*eps)."""
@@ -279,6 +287,7 @@ class TestEpochKahanPrecision:
 # ──────────────────────────────────────────────
 # Comparison operators
 # ──────────────────────────────────────────────
+
 
 class TestEpochComparison:
     def test_epoch_equality(self):
@@ -319,6 +328,7 @@ class TestEpochComparison:
 # GMST
 # ──────────────────────────────────────────────
 
+
 class TestEpochGMST:
     def test_gmst_j2000_midnight(self):
         epc = Epoch(2000, 1, 1)
@@ -348,8 +358,7 @@ class TestEpochGMST:
         epc1 = Epoch(2000, 1, 1)
         epc2 = Epoch(2000, 1, 2)
         # GMST advances ~361 degrees per day (sidereal rate)
-        diff = (float(epc2.gmst(use_degrees=True))
-                - float(epc1.gmst(use_degrees=True))) % 360.0
+        diff = (float(epc2.gmst(use_degrees=True)) - float(epc1.gmst(use_degrees=True))) % 360.0
         # Should be approximately 0.985 degrees (360.985 - 360)
         assert diff == pytest.approx(0.986, abs=0.2)
 
@@ -357,6 +366,7 @@ class TestEpochGMST:
 # ──────────────────────────────────────────────
 # String representation
 # ──────────────────────────────────────────────
+
 
 class TestEpochString:
     def test_epoch_str_format(self):
@@ -379,6 +389,7 @@ class TestEpochString:
 # Hash
 # ──────────────────────────────────────────────
 
+
 class TestEpochHash:
     def test_epoch_hash_equal_epochs(self):
         e1 = Epoch(2000, 1, 1)
@@ -397,6 +408,7 @@ class TestEpochHash:
 # ──────────────────────────────────────────────
 # JAX compatibility
 # ──────────────────────────────────────────────
+
 
 class TestEpochJAXCompatibility:
     def test_epoch_jit_add(self):

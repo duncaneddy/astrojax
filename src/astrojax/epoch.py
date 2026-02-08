@@ -40,11 +40,11 @@ _SECONDS_PER_DAY = 86400.0
 # Valid ISO 8601 epoch string patterns
 _EPOCH_PATTERNS = [
     # YYYY-MM-DD
-    re.compile(r'^(\d{4})-(\d{2})-(\d{2})$'),
+    re.compile(r"^(\d{4})-(\d{2})-(\d{2})$"),
     # YYYY-MM-DDTHH:MM:SSZ
-    re.compile(r'^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$'),
+    re.compile(r"^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})Z$"),
     # YYYY-MM-DDTHH:MM:SS.fffZ
-    re.compile(r'^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d+)Z$'),
+    re.compile(r"^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})\.(\d+)Z$"),
 ]
 
 
@@ -79,7 +79,7 @@ class Epoch:
         Epoch(other_epoch)
     """
 
-    __slots__ = ('_jd', '_seconds', '_kahan_c')
+    __slots__ = ("_jd", "_seconds", "_kahan_c")
 
     def __init__(self, *args: int | float | str | Epoch) -> None:
         """Initialize Epoch. Supports multiple constructor forms.
@@ -102,9 +102,7 @@ class Epoch:
         elif 3 <= len(args) <= 6:
             self._init_date(*args)
         else:
-            raise ValueError(
-                "Epoch requires date components (3-6 args), a string, or an Epoch"
-            )
+            raise ValueError("Epoch requires date components (3-6 args), a string, or an Epoch")
 
     @classmethod
     def _from_internal(cls, jd, seconds, kahan_c):
@@ -145,8 +143,7 @@ class Epoch:
         frac_day = jd_full - jd_int
 
         # Convert fractional day to seconds and add time components
-        seconds = (frac_day * _SECONDS_PER_DAY
-                   + hour * 3600.0 + minute * 60.0 + second)
+        seconds = frac_day * _SECONDS_PER_DAY + hour * 3600.0 + minute * 60.0 + second
 
         self._jd = jnp.int32(jd_int)
         self._seconds = get_dtype()(seconds)
@@ -189,9 +186,7 @@ class Epoch:
                 self._init_date(year, month, day, hour, minute, second)
                 return
 
-        raise ValueError(
-            f'Invalid Epoch string: "{string}" is not ISO 8601 compliant'
-        )
+        raise ValueError(f'Invalid Epoch string: "{string}" is not ISO 8601 compliant')
 
     def _init_epoch(self, other):
         """Initialize as a copy of another Epoch.
@@ -282,9 +277,9 @@ class Epoch:
             float or Epoch: Time difference in seconds, or new Epoch.
         """
         if isinstance(other, Epoch):
-            return ((self._jd - other._jd) * _SECONDS_PER_DAY
-                    + (self._compensated_seconds()
-                       - other._compensated_seconds()))
+            return (self._jd - other._jd) * _SECONDS_PER_DAY + (
+                self._compensated_seconds() - other._compensated_seconds()
+            )
         return self.__iadd__(-get_dtype()(other))
 
     # Comparison operators
@@ -293,8 +288,8 @@ class Epoch:
         if not isinstance(other, Epoch):
             return NotImplemented
         return (self._jd == other._jd) & (
-            jnp.abs(self._compensated_seconds()
-                    - other._compensated_seconds()) < get_epoch_eq_tolerance()
+            jnp.abs(self._compensated_seconds() - other._compensated_seconds())
+            < get_epoch_eq_tolerance()
         )
 
     def __ne__(self, other):
@@ -423,10 +418,12 @@ class Epoch:
         t_ut1 = (days_from_j2000 + frac_day) / _float(36525.0)
 
         # GMST in seconds of time (polynomial in Julian centuries from J2000)
-        gmst_sec = (_float(67310.54841)
-                    + _float(876600.0 * 3600.0 + 8640184.812866) * t_ut1
-                    + _float(0.093104) * t_ut1 * t_ut1
-                    - _float(6.2e-6) * t_ut1 * t_ut1 * t_ut1)
+        gmst_sec = (
+            _float(67310.54841)
+            + _float(876600.0 * 3600.0 + 8640184.812866) * t_ut1
+            + _float(0.093104) * t_ut1 * t_ut1
+            - _float(6.2e-6) * t_ut1 * t_ut1 * t_ut1
+        )
 
         # Convert seconds of time to radians (1 second = 1/240 degree)
         # and normalize to [0, 2*pi)
@@ -440,12 +437,13 @@ class Epoch:
 
     def __str__(self):
         year, month, day, hour, minute, second = self.caldate()
-        return (f'{year:04d}-{month:02d}-{day:02d}T'
-                f'{hour:02d}:{minute:02d}:{second:06.3f}Z')
+        return f"{year:04d}-{month:02d}-{day:02d}T{hour:02d}:{minute:02d}:{second:06.3f}Z"
 
     def __repr__(self):
-        return (f'Epoch(_jd={int(self._jd)}, _seconds={float(self._seconds)}, '
-                f'_kahan_c={float(self._kahan_c)})')
+        return (
+            f"Epoch(_jd={int(self._jd)}, _seconds={float(self._seconds)}, "
+            f"_kahan_c={float(self._kahan_c)})"
+        )
 
     def __hash__(self):
         return hash((int(self._jd), round(float(self._seconds), 3)))

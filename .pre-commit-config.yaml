@@ -1,0 +1,36 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.11.13
+    hooks:
+      - id: ruff-format
+        name: ruff format (auto-fix)
+        types_or: [python, pyi]
+      - id: ruff-check
+        name: ruff check (auto-fix)
+        types_or: [python, pyi]
+        args: [--fix]
+
+  - repo: local
+    hooks:
+      - id: ty-check
+        name: ty check (type checking)
+        entry: uvx ty check
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: zensical-build
+        name: zensical build (docs)
+        entry: uv run zensical build --strict
+        language: system
+        pass_filenames: false
+        always_run: true
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: debug-statements
+        name: check for debug statements
+      - id: name-tests-test
+        name: check test naming
+        args: [--pytest-test-first]
+        exclude: tests/conftest.py

@@ -40,7 +40,7 @@ class Quaternion:
         v3 (float): Third vector (imaginary) component.
     """
 
-    __slots__ = ('_data',)
+    __slots__ = ("_data",)
 
     def __init__(self, s: float, v1: float, v2: float, v3: float) -> None:
         _float = get_dtype()

@@ -38,17 +38,18 @@ DEGREES = bh.AngleFormat.DEGREES
 RADIANS = bh.AngleFormat.RADIANS
 
 # Float32 vs float64 tolerances
-_REL_TOL = 5e-6   # relative tolerance (~float32 precision)
-_PERIOD_ATOL = 1.0       # seconds
-_DISTANCE_ATOL = 10.0    # metres
-_VELOCITY_ATOL = 0.1     # m/s
-_ANGLE_DEG_ATOL = 0.01   # degrees
-_ANGLE_RAD_ATOL = 2e-4   # radians
+_REL_TOL = 5e-6  # relative tolerance (~float32 precision)
+_PERIOD_ATOL = 1.0  # seconds
+_DISTANCE_ATOL = 10.0  # metres
+_VELOCITY_ATOL = 0.1  # m/s
+_ANGLE_DEG_ATOL = 0.01  # degrees
+_ANGLE_RAD_ATOL = 2e-4  # radians
 
 
 # ──────────────────────────────────────────────
 # Orbital period
 # ──────────────────────────────────────────────
+
 
 class TestOrbitalPeriodVsBrahe:
     @pytest.mark.parametrize("alt_km", [200, 500, 800, 2000, 35786])
@@ -86,6 +87,7 @@ class TestOrbitalPeriodVsBrahe:
 # Semi-major axis
 # ──────────────────────────────────────────────
 
+
 class TestSemimajorAxisVsBrahe:
     def test_semimajor_axis_from_period(self):
         """semimajor_axis_from_orbital_period matches brahe."""
@@ -115,6 +117,7 @@ class TestSemimajorAxisVsBrahe:
 # Mean motion
 # ──────────────────────────────────────────────
 
+
 class TestMeanMotionVsBrahe:
     @pytest.mark.parametrize("alt_km", [200, 500, 800, 2000])
     def test_mean_motion_radians(self, alt_km):
@@ -137,6 +140,7 @@ class TestMeanMotionVsBrahe:
 # Velocities at apsides
 # ──────────────────────────────────────────────
 
+
 class TestVelocityVsBrahe:
     @pytest.mark.parametrize("e", [0.0, 0.001, 0.01, 0.1, 0.5])
     def test_perigee_velocity(self, e):
@@ -158,6 +162,7 @@ class TestVelocityVsBrahe:
 # ──────────────────────────────────────────────
 # Distances and altitudes
 # ──────────────────────────────────────────────
+
 
 class TestDistanceAltitudeVsBrahe:
     @pytest.mark.parametrize("e", [0.0, 0.01, 0.1, 0.5])
@@ -197,14 +202,13 @@ class TestDistanceAltitudeVsBrahe:
 # Special orbits
 # ──────────────────────────────────────────────
 
+
 class TestSpecialOrbitsVsBrahe:
     @pytest.mark.parametrize("alt_km", [400, 500, 600, 800])
     def test_sun_synchronous_inclination(self, alt_km):
         """sun_synchronous_inclination matches brahe across altitudes."""
         a = bh.R_EARTH + alt_km * 1e3
-        expected = bh.sun_synchronous_inclination(
-            a, 0.001, angle_format=DEGREES
-        )
+        expected = bh.sun_synchronous_inclination(a, 0.001, angle_format=DEGREES)
         actual = float(sun_synchronous_inclination(a, 0.001, use_degrees=True))
         assert abs(actual - expected) < _ANGLE_DEG_ATOL + abs(expected) * _REL_TOL
 
@@ -219,14 +223,13 @@ class TestSpecialOrbitsVsBrahe:
 # Anomaly conversions — value tests
 # ──────────────────────────────────────────────
 
+
 class TestAnomalyConversionsVsBrahe:
     @pytest.mark.parametrize("E_deg", [0.0, 30.0, 60.0, 90.0, 120.0, 150.0, 179.0])
     @pytest.mark.parametrize("e", [0.0, 0.1, 0.3, 0.5, 0.7])
     def test_eccentric_to_mean_degrees(self, E_deg, e):
         """anomaly_eccentric_to_mean matches brahe in degrees."""
-        expected = bh.anomaly_eccentric_to_mean(
-            E_deg, e, angle_format=DEGREES
-        )
+        expected = bh.anomaly_eccentric_to_mean(E_deg, e, angle_format=DEGREES)
         actual = float(anomaly_eccentric_to_mean(E_deg, e, use_degrees=True))
         assert abs(actual - expected) < _ANGLE_DEG_ATOL + abs(expected) * _REL_TOL
 
@@ -234,9 +237,7 @@ class TestAnomalyConversionsVsBrahe:
     @pytest.mark.parametrize("e", [0.0, 0.1, 0.3, 0.5, 0.7])
     def test_mean_to_eccentric_degrees(self, M_deg, e):
         """anomaly_mean_to_eccentric matches brahe in degrees."""
-        expected = bh.anomaly_mean_to_eccentric(
-            M_deg, e, angle_format=DEGREES
-        )
+        expected = bh.anomaly_mean_to_eccentric(M_deg, e, angle_format=DEGREES)
         actual = float(anomaly_mean_to_eccentric(M_deg, e, use_degrees=True))
         assert abs(actual - expected) < _ANGLE_DEG_ATOL + abs(expected) * _REL_TOL
 
@@ -244,9 +245,7 @@ class TestAnomalyConversionsVsBrahe:
     @pytest.mark.parametrize("e", [0.0, 0.1, 0.3, 0.5, 0.7])
     def test_true_to_eccentric_degrees(self, nu_deg, e):
         """anomaly_true_to_eccentric matches brahe in degrees."""
-        expected = bh.anomaly_true_to_eccentric(
-            nu_deg, e, angle_format=DEGREES
-        )
+        expected = bh.anomaly_true_to_eccentric(nu_deg, e, angle_format=DEGREES)
         actual = float(anomaly_true_to_eccentric(nu_deg, e, use_degrees=True))
         assert abs(actual - expected) < _ANGLE_DEG_ATOL + abs(expected) * _REL_TOL
 
@@ -254,9 +253,7 @@ class TestAnomalyConversionsVsBrahe:
     @pytest.mark.parametrize("e", [0.0, 0.1, 0.3, 0.5, 0.7])
     def test_eccentric_to_true_degrees(self, E_deg, e):
         """anomaly_eccentric_to_true matches brahe in degrees."""
-        expected = bh.anomaly_eccentric_to_true(
-            E_deg, e, angle_format=DEGREES
-        )
+        expected = bh.anomaly_eccentric_to_true(E_deg, e, angle_format=DEGREES)
         actual = float(anomaly_eccentric_to_true(E_deg, e, use_degrees=True))
         assert abs(actual - expected) < _ANGLE_DEG_ATOL + abs(expected) * _REL_TOL
 
@@ -264,9 +261,7 @@ class TestAnomalyConversionsVsBrahe:
     @pytest.mark.parametrize("e", [0.0, 0.1, 0.3, 0.5, 0.7])
     def test_true_to_mean_degrees(self, nu_deg, e):
         """anomaly_true_to_mean matches brahe in degrees."""
-        expected = bh.anomaly_true_to_mean(
-            nu_deg, e, angle_format=DEGREES
-        )
+        expected = bh.anomaly_true_to_mean(nu_deg, e, angle_format=DEGREES)
         actual = float(anomaly_true_to_mean(nu_deg, e, use_degrees=True))
         assert abs(actual - expected) < _ANGLE_DEG_ATOL + abs(expected) * _REL_TOL
 
@@ -274,9 +269,7 @@ class TestAnomalyConversionsVsBrahe:
     @pytest.mark.parametrize("e", [0.0, 0.1, 0.3, 0.5, 0.7])
     def test_mean_to_true_degrees(self, M_deg, e):
         """anomaly_mean_to_true matches brahe in degrees."""
-        expected = bh.anomaly_mean_to_true(
-            M_deg, e, angle_format=DEGREES
-        )
+        expected = bh.anomaly_mean_to_true(M_deg, e, angle_format=DEGREES)
         actual = float(anomaly_mean_to_true(M_deg, e, use_degrees=True))
         assert abs(actual - expected) < _ANGLE_DEG_ATOL + abs(expected) * _REL_TOL
 
@@ -285,14 +278,13 @@ class TestAnomalyConversionsVsBrahe:
 # Anomaly conversions — radians
 # ──────────────────────────────────────────────
 
+
 class TestAnomalyRadiansVsBrahe:
     @pytest.mark.parametrize("E_rad", [0.0, 0.5, 1.0, 1.5707963, 2.5, 3.0])
     def test_eccentric_to_mean_radians(self, E_rad):
         """anomaly_eccentric_to_mean matches brahe in radians."""
         e = 0.1
-        expected = bh.anomaly_eccentric_to_mean(
-            E_rad, e, angle_format=RADIANS
-        )
+        expected = bh.anomaly_eccentric_to_mean(E_rad, e, angle_format=RADIANS)
         actual = float(anomaly_eccentric_to_mean(E_rad, e, use_degrees=False))
         assert abs(actual - expected) < _ANGLE_RAD_ATOL + abs(expected) * _REL_TOL
 
@@ -300,9 +292,7 @@ class TestAnomalyRadiansVsBrahe:
     def test_mean_to_eccentric_radians(self, M_rad):
         """anomaly_mean_to_eccentric matches brahe in radians."""
         e = 0.1
-        expected = bh.anomaly_mean_to_eccentric(
-            M_rad, e, angle_format=RADIANS
-        )
+        expected = bh.anomaly_mean_to_eccentric(M_rad, e, angle_format=RADIANS)
         actual = float(anomaly_mean_to_eccentric(M_rad, e, use_degrees=False))
         assert abs(actual - expected) < _ANGLE_RAD_ATOL + abs(expected) * _REL_TOL
 
@@ -312,10 +302,10 @@ class TestAnomalyRadiansVsBrahe:
 # ──────────────────────────────────────────────
 
 # Tolerances for mean-osculating comparisons (float32 vs float64)
-_MO_SMA_ATOL = 50.0       # metres
-_MO_ECC_ATOL = 1e-5       # dimensionless
+_MO_SMA_ATOL = 50.0  # metres
+_MO_ECC_ATOL = 1e-5  # dimensionless
 _MO_ANGLE_RAD_ATOL = 0.01  # radians (~0.6 deg, accommodates float32 at M=pi)
-_MO_ANGLE_DEG_ATOL = 0.6   # degrees
+_MO_ANGLE_DEG_ATOL = 0.6  # degrees
 
 
 def _angle_diff_rad(a, b):
@@ -330,16 +320,21 @@ def _angle_diff_deg(a, b):
     return min(d, 360.0 - d)
 
 
-def _compare_koe_rad(actual_jax, expected_brahe, sma_atol=_MO_SMA_ATOL,
-                     ecc_atol=_MO_ECC_ATOL, angle_atol=_MO_ANGLE_RAD_ATOL):
+def _compare_koe_rad(
+    actual_jax,
+    expected_brahe,
+    sma_atol=_MO_SMA_ATOL,
+    ecc_atol=_MO_ECC_ATOL,
+    angle_atol=_MO_ANGLE_RAD_ATOL,
+):
     """Compare two KOE vectors element-by-element (radians)."""
     actual = np.array(actual_jax)
     expected = np.array(expected_brahe)
     assert abs(actual[0] - expected[0]) < sma_atol, (
-        f"SMA: {actual[0]:.3f} vs {expected[0]:.3f}, diff={abs(actual[0]-expected[0]):.3f}"
+        f"SMA: {actual[0]:.3f} vs {expected[0]:.3f}, diff={abs(actual[0] - expected[0]):.3f}"
     )
     assert abs(actual[1] - expected[1]) < ecc_atol, (
-        f"ecc: {actual[1]:.8f} vs {expected[1]:.8f}, diff={abs(actual[1]-expected[1]):.8f}"
+        f"ecc: {actual[1]:.8f} vs {expected[1]:.8f}, diff={abs(actual[1] - expected[1]):.8f}"
     )
     for idx, name in [(2, "inc"), (3, "raan"), (4, "argp"), (5, "M")]:
         diff = _angle_diff_rad(float(actual[idx]), float(expected[idx]))
@@ -348,8 +343,13 @@ def _compare_koe_rad(actual_jax, expected_brahe, sma_atol=_MO_SMA_ATOL,
         )
 
 
-def _compare_koe_deg(actual_jax, expected_brahe, sma_atol=_MO_SMA_ATOL,
-                     ecc_atol=_MO_ECC_ATOL, angle_atol=_MO_ANGLE_DEG_ATOL):
+def _compare_koe_deg(
+    actual_jax,
+    expected_brahe,
+    sma_atol=_MO_SMA_ATOL,
+    ecc_atol=_MO_ECC_ATOL,
+    angle_atol=_MO_ANGLE_DEG_ATOL,
+):
     """Compare two KOE vectors element-by-element (degrees)."""
     actual = np.array(actual_jax)
     expected = np.array(expected_brahe)
@@ -363,11 +363,16 @@ def _compare_koe_deg(actual_jax, expected_brahe, sma_atol=_MO_SMA_ATOL,
 class TestMeanToOscVsBrahe:
     def test_leo_radians(self):
         """state_koe_mean_to_osc matches brahe for LEO (radians)."""
-        oe = np.array([
-            bh.R_EARTH + 500e3, 0.01,
-            np.radians(45.0), np.radians(30.0),
-            np.radians(60.0), np.radians(90.0),
-        ])
+        oe = np.array(
+            [
+                bh.R_EARTH + 500e3,
+                0.01,
+                np.radians(45.0),
+                np.radians(30.0),
+                np.radians(60.0),
+                np.radians(90.0),
+            ]
+        )
         expected = bh.state_koe_mean_to_osc(oe, RADIANS)
         actual = state_koe_mean_to_osc(jnp.array(oe))
         _compare_koe_rad(actual, expected)
@@ -382,11 +387,16 @@ class TestMeanToOscVsBrahe:
     @pytest.mark.parametrize("m_deg", [0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0])
     def test_mean_to_osc_various_M(self, m_deg):
         """state_koe_mean_to_osc matches brahe across mean anomaly values."""
-        oe = np.array([
-            bh.R_EARTH + 500e3, 0.01,
-            np.radians(45.0), np.radians(30.0),
-            np.radians(60.0), np.radians(m_deg),
-        ])
+        oe = np.array(
+            [
+                bh.R_EARTH + 500e3,
+                0.01,
+                np.radians(45.0),
+                np.radians(30.0),
+                np.radians(60.0),
+                np.radians(m_deg),
+            ]
+        )
         expected = bh.state_koe_mean_to_osc(oe, RADIANS)
         actual = state_koe_mean_to_osc(jnp.array(oe))
         _compare_koe_rad(actual, expected)
@@ -394,32 +404,48 @@ class TestMeanToOscVsBrahe:
     @pytest.mark.parametrize("ecc", [0.0001, 0.001, 0.01, 0.1])
     def test_mean_to_osc_various_e(self, ecc):
         """state_koe_mean_to_osc matches brahe across eccentricity values."""
-        oe = np.array([
-            bh.R_EARTH + 500e3, ecc,
-            np.radians(45.0), np.radians(30.0),
-            np.radians(60.0), np.radians(90.0),
-        ])
+        oe = np.array(
+            [
+                bh.R_EARTH + 500e3,
+                ecc,
+                np.radians(45.0),
+                np.radians(30.0),
+                np.radians(60.0),
+                np.radians(90.0),
+            ]
+        )
         expected = bh.state_koe_mean_to_osc(oe, RADIANS)
         actual = state_koe_mean_to_osc(jnp.array(oe))
         _compare_koe_rad(actual, expected)
 
     def test_geo(self):
         """state_koe_mean_to_osc matches brahe for GEO orbit."""
-        oe = np.array([
-            42164e3, 0.0001,
-            np.radians(0.1), np.radians(45.0), 0.0, 0.0,
-        ])
+        oe = np.array(
+            [
+                42164e3,
+                0.0001,
+                np.radians(0.1),
+                np.radians(45.0),
+                0.0,
+                0.0,
+            ]
+        )
         expected = bh.state_koe_mean_to_osc(oe, RADIANS)
         actual = state_koe_mean_to_osc(jnp.array(oe))
         _compare_koe_rad(actual, expected, sma_atol=10.0)
 
     def test_sun_synchronous(self):
         """state_koe_mean_to_osc matches brahe for sun-sync orbit."""
-        oe = np.array([
-            bh.R_EARTH + 700e3, 0.001,
-            np.radians(98.0), np.radians(45.0),
-            np.radians(90.0), np.radians(270.0),
-        ])
+        oe = np.array(
+            [
+                bh.R_EARTH + 700e3,
+                0.001,
+                np.radians(98.0),
+                np.radians(45.0),
+                np.radians(90.0),
+                np.radians(270.0),
+            ]
+        )
         expected = bh.state_koe_mean_to_osc(oe, RADIANS)
         actual = state_koe_mean_to_osc(jnp.array(oe))
         _compare_koe_rad(actual, expected)
@@ -428,11 +454,16 @@ class TestMeanToOscVsBrahe:
 class TestOscToMeanVsBrahe:
     def test_leo_radians(self):
         """state_koe_osc_to_mean matches brahe for LEO (radians)."""
-        oe = np.array([
-            bh.R_EARTH + 500e3, 0.01,
-            np.radians(45.0), np.radians(30.0),
-            np.radians(60.0), np.radians(90.0),
-        ])
+        oe = np.array(
+            [
+                bh.R_EARTH + 500e3,
+                0.01,
+                np.radians(45.0),
+                np.radians(30.0),
+                np.radians(60.0),
+                np.radians(90.0),
+            ]
+        )
         expected = bh.state_koe_osc_to_mean(oe, RADIANS)
         actual = state_koe_osc_to_mean(jnp.array(oe))
         _compare_koe_rad(actual, expected)
@@ -447,11 +478,16 @@ class TestOscToMeanVsBrahe:
     @pytest.mark.parametrize("m_deg", [0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0])
     def test_osc_to_mean_various_M(self, m_deg):
         """state_koe_osc_to_mean matches brahe across mean anomaly values."""
-        oe = np.array([
-            bh.R_EARTH + 500e3, 0.01,
-            np.radians(45.0), np.radians(30.0),
-            np.radians(60.0), np.radians(m_deg),
-        ])
+        oe = np.array(
+            [
+                bh.R_EARTH + 500e3,
+                0.01,
+                np.radians(45.0),
+                np.radians(30.0),
+                np.radians(60.0),
+                np.radians(m_deg),
+            ]
+        )
         expected = bh.state_koe_osc_to_mean(oe, RADIANS)
         actual = state_koe_osc_to_mean(jnp.array(oe))
         _compare_koe_rad(actual, expected)

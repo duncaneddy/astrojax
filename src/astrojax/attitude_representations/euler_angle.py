@@ -81,7 +81,7 @@ class EulerAngle:
         use_degrees (bool): If ``True``, interpret angles as degrees. Default: ``False``.
     """
 
-    __slots__ = ('_order', '_phi', '_theta', '_psi')
+    __slots__ = ("_order", "_phi", "_theta", "_psi")
 
     def __init__(
         self,
@@ -98,7 +98,9 @@ class EulerAngle:
         self._psi = _float(to_radians(psi, use_degrees))
 
     @classmethod
-    def _from_internal(cls, order: EulerAngleOrder, phi: jax.Array, theta: jax.Array, psi: jax.Array) -> EulerAngle:
+    def _from_internal(
+        cls, order: EulerAngleOrder, phi: jax.Array, theta: jax.Array, psi: jax.Array
+    ) -> EulerAngle:
         """Create from raw JAX arrays without conversion.
 
         Used by pytree unflatten and conversion outputs.
@@ -144,7 +146,9 @@ class EulerAngle:
     # Factory methods
 
     @classmethod
-    def from_vector(cls, vec: jax.Array, order: EulerAngleOrder, use_degrees: bool = False) -> EulerAngle:
+    def from_vector(
+        cls, vec: jax.Array, order: EulerAngleOrder, use_degrees: bool = False
+    ) -> EulerAngle:
         """Create from a 3-element vector [phi, theta, psi].
 
         Args:

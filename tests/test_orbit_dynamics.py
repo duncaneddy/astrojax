@@ -262,6 +262,7 @@ class TestGravityModel:
     def test_set_max_degree_order_computation_parity(self):
         """Truncated model should match full model at same degree."""
         from astrojax.config import set_dtype
+
         set_dtype(jnp.float64)
 
         truncated = GravityModel.from_type("JGM3")
@@ -298,6 +299,7 @@ class TestAccelSphericalHarmonics:
     def test_degree_0_matches_point_mass(self):
         """Degree-0 spherical harmonics should equal point-mass gravity."""
         from astrojax.config import set_dtype
+
         set_dtype(jnp.float64)
 
         model = GravityModel.from_type("EGM2008_360")
@@ -314,6 +316,7 @@ class TestAccelSphericalHarmonics:
     def test_degree_60_egm2008(self):
         """Degree-60 EGM2008 at R_EARTH on x-axis should match reference."""
         from astrojax.config import set_dtype
+
         set_dtype(jnp.float64)
 
         model = GravityModel.from_type("EGM2008_360")
@@ -327,30 +330,34 @@ class TestAccelSphericalHarmonics:
 
         set_dtype(jnp.float32)
 
-    @pytest.mark.parametrize("n,m,ax,ay,az", [
-        (2, 2, -6.97922756436, -1.8292810538, -2.69001658552),
-        (3, 3, -6.97926211185, -1.82929165145, -2.68998602761),
-        (4, 4, -6.97931189287, -1.82931487069, -2.6899914012),
-        (5, 5, -6.9792700471, -1.82929795164, -2.68997917147),
-        (6, 6, -6.979220667, -1.8292787808, -2.68997263887),
-        (7, 7, -6.97925478463, -1.82926946742, -2.68999296889),
-        (8, 8, -6.97927699747, -1.82928186346, -2.68998582282),
-        (9, 9, -6.97925893036, -1.82928170212, -2.68997442046),
-        (10, 10, -6.97924447943, -1.82928331386, -2.68997524437),
-        (11, 11, -6.9792517591, -1.82928094754, -2.68998382906),
-        (12, 12, -6.97924725688, -1.82928130662, -2.68998625958),
-        (13, 13, -6.97924858679, -1.82928591192, -2.6899891726),
-        (14, 14, -6.97924919386, -1.82928546814, -2.68999164569),
-        (15, 15, -6.97925490319, -1.82928469874, -2.68999376747),
-        (16, 16, -6.97926211023, -1.82928438361, -2.68999719587),
-        (17, 17, -6.97926308133, -1.82928484644, -2.68999716187),
-        (18, 18, -6.97926208121, -1.829284918, -2.6899952379),
-        (19, 19, -6.97926229494, -1.82928369323, -2.68999256236),
-        (20, 20, -6.979261862, -1.82928315091, -2.68999053339),
-    ])
+    @pytest.mark.parametrize(
+        "n,m,ax,ay,az",
+        [
+            (2, 2, -6.97922756436, -1.8292810538, -2.69001658552),
+            (3, 3, -6.97926211185, -1.82929165145, -2.68998602761),
+            (4, 4, -6.97931189287, -1.82931487069, -2.6899914012),
+            (5, 5, -6.9792700471, -1.82929795164, -2.68997917147),
+            (6, 6, -6.979220667, -1.8292787808, -2.68997263887),
+            (7, 7, -6.97925478463, -1.82926946742, -2.68999296889),
+            (8, 8, -6.97927699747, -1.82928186346, -2.68998582282),
+            (9, 9, -6.97925893036, -1.82928170212, -2.68997442046),
+            (10, 10, -6.97924447943, -1.82928331386, -2.68997524437),
+            (11, 11, -6.9792517591, -1.82928094754, -2.68998382906),
+            (12, 12, -6.97924725688, -1.82928130662, -2.68998625958),
+            (13, 13, -6.97924858679, -1.82928591192, -2.6899891726),
+            (14, 14, -6.97924919386, -1.82928546814, -2.68999164569),
+            (15, 15, -6.97925490319, -1.82928469874, -2.68999376747),
+            (16, 16, -6.97926211023, -1.82928438361, -2.68999719587),
+            (17, 17, -6.97926308133, -1.82928484644, -2.68999716187),
+            (18, 18, -6.97926208121, -1.829284918, -2.6899952379),
+            (19, 19, -6.97926229494, -1.82928369323, -2.68999256236),
+            (20, 20, -6.979261862, -1.82928315091, -2.68999053339),
+        ],
+    )
     def test_jgm3_validation(self, n, m, ax, ay, az):
         """JGM3 validation against Satellite Orbits reference values."""
         from astrojax.config import set_dtype
+
         set_dtype(jnp.float64)
 
         model = GravityModel.from_type("JGM3")
@@ -457,6 +464,7 @@ class TestDensityHarrisPriester:
     def test_zero_below_100km(self):
         """Density should be 0 below 100 km altitude."""
         from astrojax.coordinates import position_geodetic_to_ecef
+
         r = position_geodetic_to_ecef(jnp.array([0.0, 0.0, 50.0e3]))
         rho = density_harris_priester(r, self._R_SUN)
         assert float(rho) == 0.0
@@ -464,6 +472,7 @@ class TestDensityHarrisPriester:
     def test_zero_above_1000km(self):
         """Density should be 0 above 1000 km altitude."""
         from astrojax.coordinates import position_geodetic_to_ecef
+
         r = position_geodetic_to_ecef(jnp.array([0.0, 0.0, 1100.0e3]))
         rho = density_harris_priester(r, self._R_SUN)
         assert float(rho) == 0.0
@@ -532,8 +541,10 @@ class TestAccelDrag:
     def test_rust_reference_magnitude(self):
         """Drag with identity T at LEO should match Rust reference magnitude."""
         from astrojax.coordinates import state_koe_to_eci
-        oe = jnp.array([R_EARTH + 500e3, 0.01, 97.3 * DEG2RAD,
-                         15.0 * DEG2RAD, 30.0 * DEG2RAD, 45.0 * DEG2RAD])
+
+        oe = jnp.array(
+            [R_EARTH + 500e3, 0.01, 97.3 * DEG2RAD, 15.0 * DEG2RAD, 30.0 * DEG2RAD, 45.0 * DEG2RAD]
+        )
         x = state_koe_to_eci(oe)
         a = accel_drag(x, 1.0e-12, 1000.0, 1.0, 2.0, jnp.eye(3))
         mag = float(jnp.linalg.norm(a))

@@ -317,7 +317,10 @@ def sun_synchronous_inclination(a: ArrayLike, e: ArrayLike, use_degrees: bool = 
     omega_dot_ss = 2.0 * jnp.pi / 365.2421897 / 86400.0
 
     i = jnp.arccos(
-        -2.0 * a**3.5 * omega_dot_ss * (1.0 - e**2) ** 2
+        -2.0
+        * a**3.5
+        * omega_dot_ss
+        * (1.0 - e**2) ** 2
         / (3.0 * R_EARTH**2 * J2_EARTH * jnp.sqrt(GM_EARTH))
     )
     return from_radians(i, use_degrees)
@@ -374,7 +377,9 @@ def anomaly_eccentric_to_mean(anm_ecc: ArrayLike, e: ArrayLike, use_degrees: boo
     return from_radians(M, use_degrees)
 
 
-def anomaly_mean_to_eccentric(anm_mean: ArrayLike, e: ArrayLike, use_degrees: bool = False) -> Array:
+def anomaly_mean_to_eccentric(
+    anm_mean: ArrayLike, e: ArrayLike, use_degrees: bool = False
+) -> Array:
     """Convert mean anomaly to eccentric anomaly.
 
     Solves Kepler's equation ``M = E - e * sin(E)`` for ``E`` using
@@ -413,7 +418,9 @@ def anomaly_mean_to_eccentric(anm_mean: ArrayLike, e: ArrayLike, use_degrees: bo
     return from_radians(E, use_degrees)
 
 
-def anomaly_true_to_eccentric(anm_true: ArrayLike, e: ArrayLike, use_degrees: bool = False) -> Array:
+def anomaly_true_to_eccentric(
+    anm_true: ArrayLike, e: ArrayLike, use_degrees: bool = False
+) -> Array:
     """Convert true anomaly to eccentric anomaly.
 
     Args:

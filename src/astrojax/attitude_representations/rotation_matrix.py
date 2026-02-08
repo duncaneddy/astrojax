@@ -68,24 +68,31 @@ class RotationMatrix:
         r33 (float): Element (2, 2).
     """
 
-    __slots__ = ('_data',)
+    __slots__ = ("_data",)
 
     def __init__(
         self,
-        r11: float, r12: float, r13: float,
-        r21: float, r22: float, r23: float,
-        r31: float, r32: float, r33: float,
+        r11: float,
+        r12: float,
+        r13: float,
+        r21: float,
+        r22: float,
+        r23: float,
+        r31: float,
+        r32: float,
+        r33: float,
     ) -> None:
         _float = get_dtype()
-        data = jnp.array([
-            [_float(r11), _float(r12), _float(r13)],
-            [_float(r21), _float(r22), _float(r23)],
-            [_float(r31), _float(r32), _float(r33)],
-        ])
+        data = jnp.array(
+            [
+                [_float(r11), _float(r12), _float(r13)],
+                [_float(r21), _float(r22), _float(r23)],
+                [_float(r31), _float(r32), _float(r33)],
+            ]
+        )
         if not _is_so3(data):
             raise ValueError(
-                f"Matrix is not a proper rotation matrix. "
-                f"det={float(jnp.linalg.det(data)):.6f}"
+                f"Matrix is not a proper rotation matrix. det={float(jnp.linalg.det(data)):.6f}"
             )
         self._data = data
 
@@ -171,8 +178,7 @@ class RotationMatrix:
         data = jnp.asarray(matrix, dtype=get_dtype())
         if validate and not _is_so3(data):
             raise ValueError(
-                f"Matrix is not a proper rotation matrix. "
-                f"det={float(jnp.linalg.det(data)):.6f}"
+                f"Matrix is not a proper rotation matrix. det={float(jnp.linalg.det(data)):.6f}"
             )
         return cls._from_internal(data)
 
@@ -363,9 +369,9 @@ class RotationMatrix:
         d = self._data
         return (
             f"RotationMatrix(\n"
-            f"  [{float(d[0,0]):10.6f} {float(d[0,1]):10.6f} {float(d[0,2]):10.6f}]\n"
-            f"  [{float(d[1,0]):10.6f} {float(d[1,1]):10.6f} {float(d[1,2]):10.6f}]\n"
-            f"  [{float(d[2,0]):10.6f} {float(d[2,1]):10.6f} {float(d[2,2]):10.6f}])"
+            f"  [{float(d[0, 0]):10.6f} {float(d[0, 1]):10.6f} {float(d[0, 2]):10.6f}]\n"
+            f"  [{float(d[1, 0]):10.6f} {float(d[1, 1]):10.6f} {float(d[1, 2]):10.6f}]\n"
+            f"  [{float(d[2, 0]):10.6f} {float(d[2, 1]):10.6f} {float(d[2, 2]):10.6f}])"
         )
 
     def __repr__(self) -> str:

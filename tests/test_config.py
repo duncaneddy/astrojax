@@ -176,6 +176,7 @@ class TestJITRetrace:
 
     def test_jit_retrace_on_dtype_change(self):
         """JIT should retrace when input dtypes change."""
+
         @jax.jit
         def compute_period(a):
             return orbital_period(a)

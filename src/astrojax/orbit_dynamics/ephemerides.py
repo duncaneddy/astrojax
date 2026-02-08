@@ -91,8 +91,7 @@ def sun_position(epc: Epoch) -> Array:
     L = pi2 * _frac(
         _float(0.7859444)
         + M / pi2
-        + (_float(6892.0) * jnp.sin(M) + _float(72.0) * jnp.sin(_float(2.0) * M))
-        / _float(1296.0e3)
+        + (_float(6892.0) * jnp.sin(M) + _float(72.0) * jnp.sin(_float(2.0) * M)) / _float(1296.0e3)
     )
 
     # Distance [m]
@@ -136,27 +135,27 @@ def moon_position(epc: Epoch) -> Array:
     T = _julian_centuries_from_j2000(epc)
 
     # Mean elements of the lunar orbit
-    L_0 = _frac(_float(0.606433) + _float(1336.851344) * T)     # Mean longitude [rev]
+    L_0 = _frac(_float(0.606433) + _float(1336.851344) * T)  # Mean longitude [rev]
     l_m = pi2 * _frac(_float(0.374897) + _float(1325.552410) * T)  # Moon mean anomaly [rad]
-    lp = pi2 * _frac(_float(0.993133) + _float(99.997361) * T)   # Sun mean anomaly [rad]
+    lp = pi2 * _frac(_float(0.993133) + _float(99.997361) * T)  # Sun mean anomaly [rad]
     D = pi2 * _frac(_float(0.827361) + _float(1236.853086) * T)  # Diff longitude Moon-Sun [rad]
     F = pi2 * _frac(_float(0.259086) + _float(1342.227825) * T)  # Argument of latitude [rad]
 
     # Ecliptic longitude perturbation [arcsec]
     dL = (
         _float(22640.0) * jnp.sin(l_m)
-        - _float(4586.0) * jnp.sin(l_m- _float(2.0) * D)
+        - _float(4586.0) * jnp.sin(l_m - _float(2.0) * D)
         + _float(2370.0) * jnp.sin(_float(2.0) * D)
         + _float(769.0) * jnp.sin(_float(2.0) * l_m)
         - _float(668.0) * jnp.sin(lp)
         - _float(412.0) * jnp.sin(_float(2.0) * F)
         - _float(212.0) * jnp.sin(_float(2.0) * l_m - _float(2.0) * D)
-        - _float(206.0) * jnp.sin(l_m+ lp - _float(2.0) * D)
-        + _float(192.0) * jnp.sin(l_m+ _float(2.0) * D)
+        - _float(206.0) * jnp.sin(l_m + lp - _float(2.0) * D)
+        + _float(192.0) * jnp.sin(l_m + _float(2.0) * D)
         - _float(165.0) * jnp.sin(lp - _float(2.0) * D)
         - _float(125.0) * jnp.sin(D)
-        - _float(110.0) * jnp.sin(l_m+ lp)
-        + _float(148.0) * jnp.sin(l_m- lp)
+        - _float(110.0) * jnp.sin(l_m + lp)
+        + _float(148.0) * jnp.sin(l_m - lp)
         - _float(55.0) * jnp.sin(_float(2.0) * F - _float(2.0) * D)
     )
 
@@ -164,16 +163,18 @@ def moon_position(epc: Epoch) -> Array:
     L = pi2 * _frac(L_0 + dL / _float(1296.0e3))
 
     # Ecliptic latitude [rad]
-    S = F + (dL + _float(412.0) * jnp.sin(_float(2.0) * F) + _float(541.0) * jnp.sin(lp)) * _float(AS2RAD)
+    S = F + (dL + _float(412.0) * jnp.sin(_float(2.0) * F) + _float(541.0) * jnp.sin(lp)) * _float(
+        AS2RAD
+    )
     h = F - _float(2.0) * D
     N = (
         -_float(526.0) * jnp.sin(h)
-        + _float(44.0) * jnp.sin(l_m+ h)
-        - _float(31.0) * jnp.sin(-l_m+ h)
+        + _float(44.0) * jnp.sin(l_m + h)
+        - _float(31.0) * jnp.sin(-l_m + h)
         - _float(23.0) * jnp.sin(lp + h)
         + _float(11.0) * jnp.sin(-lp + h)
-        - _float(25.0) * jnp.sin(-_float(2.0) * l_m+ F)
-        + _float(21.0) * jnp.sin(-l_m+ F)
+        - _float(25.0) * jnp.sin(-_float(2.0) * l_m + F)
+        + _float(21.0) * jnp.sin(-l_m + F)
     )
     B = (_float(18520.0) * jnp.sin(S) + N) * _float(AS2RAD)
 
@@ -191,11 +192,13 @@ def moon_position(epc: Epoch) -> Array:
     )
 
     # Position in ecliptic coordinates
-    r_ecliptic = jnp.array([
-        r * jnp.cos(L) * jnp.cos(B),
-        r * jnp.sin(L) * jnp.cos(B),
-        r * jnp.sin(B),
-    ])
+    r_ecliptic = jnp.array(
+        [
+            r * jnp.cos(L) * jnp.cos(B),
+            r * jnp.sin(L) * jnp.cos(B),
+            r * jnp.sin(B),
+        ]
+    )
 
     # Rotate from ecliptic to equatorial (EME2000) via Rx(-epsilon)
     R = Rx(-_EPSILON)

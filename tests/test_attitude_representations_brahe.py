@@ -37,6 +37,7 @@ def _ensure_float64():
     yield
     set_dtype(jnp.float64)
 
+
 # Map astrojax EulerAngleOrder to brahe EulerAngleOrder
 _ORDER_MAP = {
     EulerAngleOrder.XYX: bh.EulerAngleOrder.XYX,
@@ -70,14 +71,17 @@ def _brahe_r_to_array(r):
 # Quaternion conversions vs brahe
 # ===========================================================================
 
-class TestQuaternionVsBrahe:
 
-    @pytest.mark.parametrize("s,v1,v2,v3", [
-        (1.0, 0.0, 0.0, 0.0),
-        (1.0, 1.0, 1.0, 1.0),
-        (0.675, 0.42, 0.5, 0.71),
-        (0.5, 0.5, 0.5, 0.5),
-    ])
+class TestQuaternionVsBrahe:
+    @pytest.mark.parametrize(
+        "s,v1,v2,v3",
+        [
+            (1.0, 0.0, 0.0, 0.0),
+            (1.0, 1.0, 1.0, 1.0),
+            (0.675, 0.42, 0.5, 0.71),
+            (0.5, 0.5, 0.5, 0.5),
+        ],
+    )
     def test_quaternion_to_rotation_matrix(self, s, v1, v2, v3):
         aj_q = Quaternion(s, v1, v2, v3)
         bh_q = bh.Quaternion(s, v1, v2, v3)
@@ -87,10 +91,13 @@ class TestQuaternionVsBrahe:
 
         np.testing.assert_allclose(np.array(aj_r), bh_r, atol=ATOL)
 
-    @pytest.mark.parametrize("s,v1,v2,v3", [
-        (1.0, 0.0, 0.0, 0.0),
-        (0.675, 0.42, 0.5, 0.71),
-    ])
+    @pytest.mark.parametrize(
+        "s,v1,v2,v3",
+        [
+            (1.0, 0.0, 0.0, 0.0),
+            (0.675, 0.42, 0.5, 0.71),
+        ],
+    )
     def test_quaternion_to_euler_axis(self, s, v1, v2, v3):
         aj_q = Quaternion(s, v1, v2, v3)
         bh_q = bh.Quaternion(s, v1, v2, v3)
@@ -98,12 +105,8 @@ class TestQuaternionVsBrahe:
         aj_ea = aj_q.to_euler_axis()
         bh_ea = bh_q.to_euler_axis()
 
-        np.testing.assert_allclose(
-            np.array(aj_ea.axis), np.array(bh_ea.axis), atol=ATOL
-        )
-        np.testing.assert_allclose(
-            float(aj_ea.angle), float(bh_ea.angle), atol=ATOL
-        )
+        np.testing.assert_allclose(np.array(aj_ea.axis), np.array(bh_ea.axis), atol=ATOL)
+        np.testing.assert_allclose(float(aj_ea.angle), float(bh_ea.angle), atol=ATOL)
 
     @pytest.mark.parametrize("order", list(EulerAngleOrder))
     def test_quaternion_to_euler_angle(self, order):
@@ -140,9 +143,7 @@ class TestQuaternionVsBrahe:
         aj_c = aj_q.conjugate()
         bh_c = bh_q.conjugate()
 
-        np.testing.assert_allclose(
-            np.array(aj_c.to_vector()), _brahe_q_to_array(bh_c), atol=ATOL
-        )
+        np.testing.assert_allclose(np.array(aj_c.to_vector()), _brahe_q_to_array(bh_c), atol=ATOL)
 
     def test_quaternion_inverse(self):
         aj_q = Quaternion(1.0, 2.0, 3.0, 4.0)
@@ -160,8 +161,8 @@ class TestQuaternionVsBrahe:
 # Euler Angle conversions vs brahe
 # ===========================================================================
 
-class TestEulerAngleVsBrahe:
 
+class TestEulerAngleVsBrahe:
     @pytest.mark.parametrize("order", list(EulerAngleOrder))
     def test_euler_angle_to_quaternion(self, order):
         bh_order = _ORDER_MAP[order]
@@ -172,9 +173,7 @@ class TestEulerAngleVsBrahe:
         aj_q = aj_e.to_quaternion()
         bh_q = bh_e.to_quaternion()
 
-        np.testing.assert_allclose(
-            np.array(aj_q.to_vector()), _brahe_q_to_array(bh_q), atol=ATOL
-        )
+        np.testing.assert_allclose(np.array(aj_q.to_vector()), _brahe_q_to_array(bh_q), atol=ATOL)
 
     @pytest.mark.parametrize("order", list(EulerAngleOrder))
     def test_euler_angle_to_rotation_matrix(self, order):
@@ -193,15 +192,18 @@ class TestEulerAngleVsBrahe:
 # Euler Axis conversions vs brahe
 # ===========================================================================
 
-class TestEulerAxisVsBrahe:
 
-    @pytest.mark.parametrize("axis,angle_deg", [
-        ([1.0, 0.0, 0.0], 45.0),
-        ([0.0, 1.0, 0.0], 45.0),
-        ([0.0, 0.0, 1.0], 45.0),
-        ([1.0, 0.0, 0.0], 90.0),
-        ([1.0, 1.0, 1.0], 60.0),
-    ])
+class TestEulerAxisVsBrahe:
+    @pytest.mark.parametrize(
+        "axis,angle_deg",
+        [
+            ([1.0, 0.0, 0.0], 45.0),
+            ([0.0, 1.0, 0.0], 45.0),
+            ([0.0, 0.0, 1.0], 45.0),
+            ([1.0, 0.0, 0.0], 90.0),
+            ([1.0, 1.0, 1.0], 60.0),
+        ],
+    )
     def test_euler_axis_to_quaternion(self, axis, angle_deg):
         aj_ea = EulerAxis(jnp.array(axis), angle_deg, use_degrees=True)
         bh_ea = bh.EulerAxis(axis, angle_deg, bh.AngleFormat.DEGREES)
@@ -209,15 +211,16 @@ class TestEulerAxisVsBrahe:
         aj_q = aj_ea.to_quaternion()
         bh_q = bh_ea.to_quaternion()
 
-        np.testing.assert_allclose(
-            np.array(aj_q.to_vector()), _brahe_q_to_array(bh_q), atol=ATOL
-        )
+        np.testing.assert_allclose(np.array(aj_q.to_vector()), _brahe_q_to_array(bh_q), atol=ATOL)
 
-    @pytest.mark.parametrize("axis,angle_deg", [
-        ([1.0, 0.0, 0.0], 45.0),
-        ([0.0, 1.0, 0.0], 45.0),
-        ([0.0, 0.0, 1.0], 45.0),
-    ])
+    @pytest.mark.parametrize(
+        "axis,angle_deg",
+        [
+            ([1.0, 0.0, 0.0], 45.0),
+            ([0.0, 1.0, 0.0], 45.0),
+            ([0.0, 0.0, 1.0], 45.0),
+        ],
+    )
     def test_euler_axis_to_rotation_matrix(self, axis, angle_deg):
         aj_ea = EulerAxis(jnp.array(axis), angle_deg, use_degrees=True)
         bh_ea = bh.EulerAxis(axis, angle_deg, bh.AngleFormat.DEGREES)
@@ -232,27 +235,37 @@ class TestEulerAxisVsBrahe:
 # Rotation Matrix conversions vs brahe
 # ===========================================================================
 
-class TestRotationMatrixVsBrahe:
 
+class TestRotationMatrixVsBrahe:
     def test_rotation_matrix_to_quaternion(self):
         s2 = math.sqrt(2.0) / 2.0
         aj_r = RotationMatrix(
-            1.0, 0.0, 0.0,
-            0.0, s2, s2,
-            0.0, -s2, s2,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            s2,
+            s2,
+            0.0,
+            -s2,
+            s2,
         )
         bh_r = bh.RotationMatrix(
-            1.0, 0.0, 0.0,
-            0.0, s2, s2,
-            0.0, -s2, s2,
+            1.0,
+            0.0,
+            0.0,
+            0.0,
+            s2,
+            s2,
+            0.0,
+            -s2,
+            s2,
         )
 
         aj_q = aj_r.to_quaternion()
         bh_q = bh_r.to_quaternion()
 
-        np.testing.assert_allclose(
-            np.array(aj_q.to_vector()), _brahe_q_to_array(bh_q), atol=ATOL
-        )
+        np.testing.assert_allclose(np.array(aj_q.to_vector()), _brahe_q_to_array(bh_q), atol=ATOL)
 
     @pytest.mark.parametrize("order", list(EulerAngleOrder))
     def test_rotation_matrix_to_euler_angle(self, order):
