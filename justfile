@@ -44,7 +44,7 @@ docs-build:
 
 # Serve documentation locally (clean pycache + build)
 docs-serve: docs-clean
-    uv run zensical serve --clean
+    uv run zensical serve --open
 
 # Clear __pycache__ dirs (useful before docs build)
 docs-clean:

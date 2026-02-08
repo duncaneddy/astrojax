@@ -11,14 +11,16 @@ site_name = "astrojax"
 site_description = "A minimal satellite dynamics library writen in JAX"
 site_author = "Duncan Eddy"
 site_url = "https://duncaneddy.github.io/astrojax/"
+repo_url = "https://github.com/duncaneddy/astrojax"
+repo_name = "duncaneddy/astrojax"
 
 # The copyright notice appears in the page footer and can contain an HTML
 # fragment.
 #
 # Read more: https://zensical.org/docs/setup/basics/#copyright
-copyright = """
-Copyright &copy; 2026 Duncan Eddy
-"""
+#copyright = """
+#Copyright &copy; 2026 Duncan Eddy
+#"""
 
 # Zensical supports both implicit navigation and explicitly defined navigation.
 # If you decide not to define a navigation here then Zensical will simply
@@ -64,8 +66,19 @@ nav = [
             { "Relative Orbital Elements" = "user_guide/relative_motion/roe.md" },
             { "HCW Dynamics" = "user_guide/relative_motion/hcw.md" },
         ]},
-        { "Attitude Representations" = "user_guide/attitude_representations.md" },
-        { "Attitude Dynamics" = "user_guide/attitude_dynamics.md" },
+        { "Attitude Modeling" = [
+            { "Overview" = "user_guide/attitude_modeling/index.md" },
+            { "Attitude Representations" = [
+                { "Overview" = "user_guide/attitude_modeling/representations/index.md" },
+                { "Quaternion" = "user_guide/attitude_modeling/representations/quaternion.md" },
+                { "Rotation Matrix" = "user_guide/attitude_modeling/representations/rotation_matrix.md" },
+                { "Elementary Rotations" = "user_guide/attitude_modeling/representations/elementary_rotations.md" },
+                { "Euler Angles" = "user_guide/attitude_modeling/representations/euler_angles.md" },
+                { "Euler Axis" = "user_guide/attitude_modeling/representations/euler_axis.md" },
+                { "Conversions" = "user_guide/attitude_modeling/representations/conversions.md" },
+            ]},
+            { "Attitude Dynamics" = "user_guide/attitude_modeling/dynamics.md" },
+        ]},
         { "Integrators" = "user_guide/integrators.md" },
     ]},
     { "API Reference" = [
@@ -105,8 +118,19 @@ nav = [
             { "ECI-ROE" = "api_reference/relative_motion/eci_roe.md" },
             { "HCW Dynamics" = "api_reference/relative_motion/hcw_dynamics.md" },
         ]},
-        { "Attitude Representations" = "api_reference/attitude_representations.md" },
-        { "Attitude Dynamics" = "api_reference/attitude_dynamics.md" },
+        { "Attitude Modeling" = [
+            { "Overview" = "api_reference/attitude_modeling/index.md" },
+            { "Attitude Representations" = [
+                { "Overview" = "api_reference/attitude_modeling/representations/index.md" },
+                { "Quaternion" = "api_reference/attitude_modeling/representations/quaternion.md" },
+                { "Rotation Matrix" = "api_reference/attitude_modeling/representations/rotation_matrix.md" },
+                { "Elementary Rotations" = "api_reference/attitude_modeling/representations/elementary_rotations.md" },
+                { "Euler Angles" = "api_reference/attitude_modeling/representations/euler_angles.md" },
+                { "Euler Axis" = "api_reference/attitude_modeling/representations/euler_axis.md" },
+                { "Conversions" = "api_reference/attitude_modeling/representations/conversions.md" },
+            ]},
+            { "Attitude Dynamics" = "api_reference/attitude_modeling/dynamics.md" },
+        ]},
         { "Integrators" = "api_reference/integrators.md" },
     ]},
 ]
@@ -136,6 +160,7 @@ extra_javascript = [
 # Section for configuring theme options
 # ----------------------------------------------------------------------------
 [project.theme]
+logo = "images/logo.svg"
 
 # change this to "classic" to use the traditional Material for MkDocs look.
 #variant = "classic"
@@ -158,7 +183,7 @@ extra_javascript = [
 # - https://zensical.org/docs/setup/logo-and-icons/#favicon
 # - https://developer.mozilla.org/en-US/docs/Glossary/Favicon
 #
-#favicon = "images/favicon.png"
+favicon = "images/logo.svg"
 
 # Zensical supports more than 60 different languages. This means that the
 # labels and tooltips that Zensical's templates produce are translated.
@@ -357,16 +382,15 @@ code = "Jetbrains Mono"
 # - https://zensical.org/docs/setup/logo-and-icons
 # - https://zensical.org/docs/authoring/icons-emojis/#search
 # ----------------------------------------------------------------------------
-#[project.theme.icon]
-#logo = "lucide/smile"
-#repo = "lucide/smile"
+[project.theme.icon]
+repo = "fontawesome/brands/github"
 
 # ----------------------------------------------------------------------------
 # The "extra" section contains miscellaneous settings.
 # ----------------------------------------------------------------------------
 #[[project.extra.social]]
 #icon = "fontawesome/brands/github"
-#link = "https://github.com/user/repo"
+#link = "https://github.com/duncaneddy/astrojax"
 
 # ----------------------------------------------------------------------------
 # The "plugins" section contains plugin settings.
