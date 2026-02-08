@@ -9,6 +9,7 @@ Available integrators:
 - :func:`rk4_step` -- Classic 4th-order Runge-Kutta (fixed step)
 - :func:`rkf45_step` -- Runge-Kutta-Fehlberg 4(5) (adaptive step)
 - :func:`dp54_step` -- Dormand-Prince 5(4) (adaptive step)
+- :func:`rkn1210_step` -- Runge-Kutta-Nyström 12(10) (adaptive step, second-order ODE)
 
 All step functions share a common interface::
 
@@ -22,6 +23,7 @@ from astrojax.integrators._types import AdaptiveConfig, StepResult
 from astrojax.integrators.dp54 import dp54_step
 from astrojax.integrators.rk4 import rk4_step
 from astrojax.integrators.rkf45 import rkf45_step
+from astrojax.integrators.rkn1210 import rkn1210_step
 
 __all__ = [
     "AdaptiveConfig",
@@ -29,4 +31,5 @@ __all__ = [
     "rk4_step",
     "rkf45_step",
     "dp54_step",
+    "rkn1210_step",
 ]

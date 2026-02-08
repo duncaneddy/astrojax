@@ -12,6 +12,7 @@ integrators are implemented in pure JAX and are compatible with
 | `rk4_step` | 4 | Fixed | 4 | Simple propagation, differentiable control |
 | `rkf45_step` | 4(5) | Adaptive | 6 | General-purpose adaptive integration |
 | `dp54_step` | 5(4) | Adaptive | 7 | High-accuracy adaptive integration |
+| `rkn1210_step` | 12(10) | Adaptive | 17 | Tight-tolerance second-order ODE integration |
 
 ## Common Interface
 
@@ -85,6 +86,44 @@ print(f"Error: {result.error_estimate}")
 print(f"Suggested next dt: {result.dt_next}")
 ```
 
+## RKN1210: Second-Order ODE Specialist
+
+The `rkn1210_step` integrator is a Runge-Kutta-Nyström 12(10) method
+specialized for **second-order ODEs** of the form $y'' = f(t, y)$. It
+achieves 12th-order accuracy with 17 stages per step by exploiting the
+second-order structure: the state is split into position and velocity
+halves, and only the acceleration is computed at each stage.
+
+This makes RKN1210 significantly more efficient than standard RK methods
+for orbital mechanics and other second-order systems, particularly when
+tight tolerances (< $10^{-10}$) are required.
+
+The public API is identical to the other integrators — the dynamics
+function returns `[velocity, acceleration]` for a state `[position,
+velocity]`, and the integrator internally extracts only the acceleration
+half:
+
+```python
+from astrojax.integrators import rkn1210_step, AdaptiveConfig
+
+def two_body(t, state):
+    r = state[:3]
+    v = state[3:]
+    r_norm = jnp.linalg.norm(r)
+    a = -GM_EARTH * r / r_norm**3
+    return jnp.concatenate([v, a])
+
+# Tight tolerances where RKN1210 excels
+config = AdaptiveConfig(abs_tol=1e-12, rel_tol=1e-10)
+result = rkn1210_step(two_body, 0.0, state0, 60.0, config=config)
+```
+
+!!! note "State vector requirement"
+    The state vector must have an **even** number of elements, with the
+    first half representing positions and the second half velocities.
+    This is the standard format for orbital mechanics state vectors
+    `[x, y, z, vx, vy, vz]`.
+
 ## Adaptive Configuration
 
 The `AdaptiveConfig` named tuple controls step-size adaptation:
@@ -150,8 +189,31 @@ result = jit_step(0.0, state0, 60.0)
 ```
 
 RK4 also supports `jax.grad` for differentiable simulation. The adaptive
-methods (RKF45, DP54) use `jax.lax.while_loop` internally, which supports
+methods (RKF45, DP54, RKN1210) use `jax.lax.while_loop` internally, which supports
 forward-mode differentiation but **not** reverse-mode `jax.grad`.
+
+!!! warning "Differentiability trade-off"
+    The adaptive integrators (RKF45, DP54, RKN1210) use `jax.lax.while_loop` for
+    step rejection, which makes them JIT-compatible but blocks reverse-mode
+    autodiff. This is intentional -- for the primary use case (orbit
+    propagation), forward simulation without gradients is the norm. Users
+    who need differentiable simulation should use `rk4_step` inside
+    `jax.lax.scan`, which fully supports `jax.grad`:
+
+    ```python
+    def loss(x0):
+        def scan_step(state, _):
+            result = rk4_step(dynamics, 0.0, state, dt)
+            return result.state, None
+
+        final, _ = jax.lax.scan(scan_step, x0, None, length=n_steps)
+        return jnp.sum((final - target) ** 2)
+
+    grad = jax.grad(loss)(x0)
+    ```
+
+    This keeps each integrator focused on its strength rather than
+    compromising with a one-size-fits-all approach.
 
 !!! note "Configurable precision"
     All integrators respect `astrojax.set_dtype()`. Call `set_dtype()`

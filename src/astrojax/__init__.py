@@ -102,6 +102,7 @@ from .integrators import (
     rk4_step,
     rkf45_step,
     dp54_step,
+    rkn1210_step,
 )
 
 __all__ = [
@@ -193,4 +194,5 @@ __all__ = [
     "rk4_step",
     "rkf45_step",
     "dp54_step",
+    "rkn1210_step",
 ]

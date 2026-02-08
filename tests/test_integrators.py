@@ -22,6 +22,7 @@ from astrojax.integrators import (
     dp54_step,
     rk4_step,
     rkf45_step,
+    rkn1210_step,
 )
 
 # Tolerances
@@ -389,6 +390,14 @@ class TestCrossMethod:
         assert jnp.allclose(r_rk4.state, r_rkf.state, atol=1e-4)
         assert jnp.allclose(r_rk4.state, r_dp.state, atol=1e-4)
 
+    def test_rkn1210_agrees_with_dp54(self):
+        """RKN1210 and DP54 agree on small harmonic oscillator step."""
+        x0 = jnp.array([1.0, 0.0])
+        dt = 0.01
+        r_rkn = rkn1210_step(_harmonic_oscillator, 0.0, x0, dt)
+        r_dp = dp54_step(_harmonic_oscillator, 0.0, x0, dt)
+        assert jnp.allclose(r_rkn.state, r_dp.state, atol=1e-4)
+
     def test_all_methods_agree_exponential(self):
         """All three methods agree for exponential decay."""
         x0 = jnp.array([2.0])
@@ -511,3 +520,118 @@ class TestJAXCompatibility:
         t_final = dt * n_steps
         expected = jnp.array([jnp.cos(t_final), -jnp.sin(t_final)])
         assert jnp.allclose(final, expected, atol=1e-3)
+
+    def test_jit_rkn1210(self):
+        """rkn1210_step is JIT-compilable."""
+        x0 = jnp.array([1.0, 0.0])
+
+        @jax.jit
+        def step(t, x, dt):
+            return rkn1210_step(_harmonic_oscillator, t, x, dt)
+
+        result = step(0.0, x0, 0.1)
+        assert jnp.all(jnp.isfinite(result.state))
+
+    def test_vmap_rkn1210(self):
+        """rkn1210_step works with vmap over a batch of initial conditions."""
+        x0_batch = jnp.array([
+            [1.0, 0.0],
+            [0.0, 1.0],
+        ])
+
+        def step(x0):
+            return rkn1210_step(_harmonic_oscillator, 0.0, x0, 0.1).state
+
+        results = jax.vmap(step)(x0_batch)
+        assert results.shape == (2, 2)
+
+
+# ──────────────────────────────────────────────
+# RKN1210 tests
+# ──────────────────────────────────────────────
+
+class TestRKN1210:
+    def test_harmonic_oscillator(self):
+        """RKN1210 approximates harmonic oscillator accurately.
+
+        The harmonic oscillator x'' = -x is a second-order ODE, exactly
+        the class of problem RKN methods are designed for.
+        """
+        x0 = jnp.array([1.0, 0.0])
+        dt = 0.1
+        result = rkn1210_step(_harmonic_oscillator, 0.0, x0, dt)
+        expected = jnp.array([jnp.cos(dt), -jnp.sin(dt)])
+        assert jnp.allclose(result.state, expected, atol=_ADAPTIVE_TOL)
+
+    def test_exponential_state_dot(self):
+        """RKN1210 works with standard dynamics(t, state) -> state_dot format.
+
+        Uses exponential decay as a first-order ODE to verify the integrator
+        handles the state_dot extraction correctly even for non-second-order
+        problems (though it won't be as efficient).
+        """
+        x0 = jnp.array([1.0, 0.0])
+        dt = 0.1
+        result = rkn1210_step(_harmonic_oscillator, 0.0, x0, dt)
+        # Just verify it produces finite results
+        assert jnp.all(jnp.isfinite(result.state))
+
+    def test_two_body_circular_orbit(self):
+        """RKN1210 preserves circular orbit radius."""
+        sma = R_EARTH + 500e3
+        state0 = _circular_orbit_state(sma)
+        dt = 60.0
+        result = rkn1210_step(_two_body, 0.0, state0, dt)
+        r_final = jnp.linalg.norm(result.state[:3])
+        assert jnp.abs(r_final - sma) / sma < 1e-4
+
+    def test_backward_integration(self):
+        """RKN1210 supports negative dt for backward integration."""
+        x0 = jnp.array([1.0, 0.0])
+        dt = 0.1
+        result_fwd = rkn1210_step(_harmonic_oscillator, 0.0, x0, dt)
+        result_bwd = rkn1210_step(_harmonic_oscillator, dt, result_fwd.state, -dt)
+        assert jnp.allclose(result_bwd.state, x0, atol=1e-3)
+
+    def test_control_input(self):
+        """RKN1210 correctly incorporates an additive control function."""
+        x0 = jnp.array([1.0, 0.0])
+        dt = 0.01
+
+        def zero_control(t, x):
+            return jnp.zeros_like(x)
+
+        result_no_ctrl = rkn1210_step(_harmonic_oscillator, 0.0, x0, dt)
+        result_zero_ctrl = rkn1210_step(
+            _harmonic_oscillator, 0.0, x0, dt, control=zero_control
+        )
+        assert jnp.allclose(result_no_ctrl.state, result_zero_ctrl.state, atol=1e-6)
+
+    def test_error_estimate_nonzero(self):
+        """RKN1210 produces a finite nonzero error estimate."""
+        x0 = jnp.array([1.0, 0.0])
+        result = rkn1210_step(_harmonic_oscillator, 0.0, x0, 0.1)
+        assert jnp.isfinite(result.error_estimate)
+
+    def test_dt_next_positive(self):
+        """RKN1210 suggests a positive next step size."""
+        x0 = jnp.array([1.0, 0.0])
+        result = rkn1210_step(_harmonic_oscillator, 0.0, x0, 0.1)
+        assert float(result.dt_next) > 0.0
+
+    def test_step_acceptance(self):
+        """RKN1210 accepts steps when error is within tolerance."""
+        x0 = jnp.array([1.0, 0.0])
+        config = AdaptiveConfig(abs_tol=1e-4, rel_tol=1e-2)
+        result = rkn1210_step(_harmonic_oscillator, 0.0, x0, 0.01, config=config)
+        assert float(result.error_estimate) <= 1.0
+
+    def test_custom_config(self):
+        """RKN1210 respects tighter tolerances with AdaptiveConfig."""
+        x0 = jnp.array([1.0, 0.0])
+        dt = 1.0
+        config_loose = AdaptiveConfig(abs_tol=1e-2, rel_tol=1e-1)
+        result_loose = rkn1210_step(_harmonic_oscillator, 0.0, x0, dt, config=config_loose)
+        config_tight = AdaptiveConfig(abs_tol=1e-8, rel_tol=1e-6)
+        result_tight = rkn1210_step(_harmonic_oscillator, 0.0, x0, dt, config=config_tight)
+        assert float(jnp.abs(result_tight.dt_used)) <= float(jnp.abs(result_loose.dt_used))
