@@ -22,6 +22,8 @@ from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
+from jax import Array
+from jax.typing import ArrayLike
 
 from astrojax.config import get_dtype
 from astrojax.constants import GM_EARTH, J2_EARTH, OMEGA_EARTH, R_EARTH
@@ -33,7 +35,7 @@ from astrojax.utils import from_radians, to_radians
 # ──────────────────────────────────────────────
 
 
-def orbital_period(a):
+def orbital_period(a: ArrayLike) -> Array:
     """Compute the orbital period of an object around Earth.
 
     Args:
@@ -51,7 +53,7 @@ def orbital_period(a):
     return 2.0 * jnp.pi * jnp.sqrt(a**3 / GM_EARTH)
 
 
-def orbital_period_from_state(state_eci):
+def orbital_period_from_state(state_eci: ArrayLike) -> Array:
     """Compute orbital period from an ECI state vector using the vis-viva equation.
 
     Derives the semi-major axis from the state vector's position and velocity
@@ -80,7 +82,7 @@ def orbital_period_from_state(state_eci):
     return orbital_period(a)
 
 
-def semimajor_axis_from_orbital_period(period):
+def semimajor_axis_from_orbital_period(period: ArrayLike) -> Array:
     """Compute semi-major axis from orbital period around Earth.
 
     Args:
@@ -97,7 +99,7 @@ def semimajor_axis_from_orbital_period(period):
     return (period**2 * GM_EARTH / (4.0 * jnp.pi**2)) ** (1.0 / 3.0)
 
 
-def semimajor_axis(n, use_degrees=False):
+def semimajor_axis(n: ArrayLike, use_degrees: bool = False) -> Array:
     """Compute semi-major axis from mean motion around Earth.
 
     Args:
@@ -121,7 +123,7 @@ def semimajor_axis(n, use_degrees=False):
 # ──────────────────────────────────────────────
 
 
-def mean_motion(a, use_degrees=False):
+def mean_motion(a: ArrayLike, use_degrees: bool = False) -> Array:
     """Compute the mean motion of an object orbiting Earth.
 
     Args:
@@ -146,7 +148,7 @@ def mean_motion(a, use_degrees=False):
 # ──────────────────────────────────────────────
 
 
-def perigee_velocity(a, e):
+def perigee_velocity(a: ArrayLike, e: ArrayLike) -> Array:
     """Compute velocity at perigee for an Earth orbit.
 
     Args:
@@ -166,7 +168,7 @@ def perigee_velocity(a, e):
     return jnp.sqrt(GM_EARTH / a) * jnp.sqrt((1.0 + e) / (1.0 - e))
 
 
-def apogee_velocity(a, e):
+def apogee_velocity(a: ArrayLike, e: ArrayLike) -> Array:
     """Compute velocity at apogee for an Earth orbit.
 
     Args:
@@ -191,7 +193,7 @@ def apogee_velocity(a, e):
 # ──────────────────────────────────────────────
 
 
-def periapsis_distance(a, e):
+def periapsis_distance(a: ArrayLike, e: ArrayLike) -> Array:
     """Compute the distance at periapsis.
 
     Args:
@@ -210,7 +212,7 @@ def periapsis_distance(a, e):
     return a * (1.0 - e)
 
 
-def apoapsis_distance(a, e):
+def apoapsis_distance(a: ArrayLike, e: ArrayLike) -> Array:
     """Compute the distance at apoapsis.
 
     Args:
@@ -229,7 +231,7 @@ def apoapsis_distance(a, e):
     return a * (1.0 + e)
 
 
-def perigee_altitude(a, e):
+def perigee_altitude(a: ArrayLike, e: ArrayLike) -> Array:
     """Compute altitude above Earth's surface at perigee.
 
     Args:
@@ -247,7 +249,7 @@ def perigee_altitude(a, e):
     return periapsis_distance(a, e) - R_EARTH
 
 
-def apogee_altitude(a, e):
+def apogee_altitude(a: ArrayLike, e: ArrayLike) -> Array:
     """Compute altitude above Earth's surface at apogee.
 
     Args:
@@ -270,7 +272,7 @@ def apogee_altitude(a, e):
 # ──────────────────────────────────────────────
 
 
-def sun_synchronous_inclination(a, e, use_degrees=False):
+def sun_synchronous_inclination(a: ArrayLike, e: ArrayLike, use_degrees: bool = False) -> Array:
     """Compute the inclination for a Sun-synchronous orbit around Earth.
 
     Uses the J2 gravitational perturbation to compute the inclination
@@ -303,7 +305,7 @@ def sun_synchronous_inclination(a, e, use_degrees=False):
     return from_radians(i, use_degrees)
 
 
-def geo_sma():
+def geo_sma() -> Array:
     """Compute the semi-major axis for a geostationary orbit around Earth.
 
     Returns:
@@ -321,7 +323,7 @@ def geo_sma():
 # ──────────────────────────────────────────────
 
 
-def anomaly_eccentric_to_mean(anm_ecc, e, use_degrees=False):
+def anomaly_eccentric_to_mean(anm_ecc: ArrayLike, e: ArrayLike, use_degrees: bool = False) -> Array:
     """Convert eccentric anomaly to mean anomaly.
 
     Applies Kepler's equation: ``M = E - e * sin(E)``.
@@ -350,7 +352,7 @@ def anomaly_eccentric_to_mean(anm_ecc, e, use_degrees=False):
     return from_radians(M, use_degrees)
 
 
-def anomaly_mean_to_eccentric(anm_mean, e, use_degrees=False):
+def anomaly_mean_to_eccentric(anm_mean: ArrayLike, e: ArrayLike, use_degrees: bool = False) -> Array:
     """Convert mean anomaly to eccentric anomaly.
 
     Solves Kepler's equation ``M = E - e * sin(E)`` for ``E`` using
@@ -387,7 +389,7 @@ def anomaly_mean_to_eccentric(anm_mean, e, use_degrees=False):
     return from_radians(E, use_degrees)
 
 
-def anomaly_true_to_eccentric(anm_true, e, use_degrees=False):
+def anomaly_true_to_eccentric(anm_true: ArrayLike, e: ArrayLike, use_degrees: bool = False) -> Array:
     """Convert true anomaly to eccentric anomaly.
 
     Args:
@@ -414,7 +416,7 @@ def anomaly_true_to_eccentric(anm_true, e, use_degrees=False):
     return from_radians(E, use_degrees)
 
 
-def anomaly_eccentric_to_true(anm_ecc, e, use_degrees=False):
+def anomaly_eccentric_to_true(anm_ecc: ArrayLike, e: ArrayLike, use_degrees: bool = False) -> Array:
     """Convert eccentric anomaly to true anomaly.
 
     Args:
@@ -441,7 +443,7 @@ def anomaly_eccentric_to_true(anm_ecc, e, use_degrees=False):
     return from_radians(nu, use_degrees)
 
 
-def anomaly_true_to_mean(anm_true, e, use_degrees=False):
+def anomaly_true_to_mean(anm_true: ArrayLike, e: ArrayLike, use_degrees: bool = False) -> Array:
     """Convert true anomaly to mean anomaly.
 
     Composite conversion: true -> eccentric -> mean.
@@ -465,7 +467,7 @@ def anomaly_true_to_mean(anm_true, e, use_degrees=False):
     )
 
 
-def anomaly_mean_to_true(anm_mean, e, use_degrees=False):
+def anomaly_mean_to_true(anm_mean: ArrayLike, e: ArrayLike, use_degrees: bool = False) -> Array:
     """Convert mean anomaly to true anomaly.
 
     Composite conversion: mean -> eccentric -> true.

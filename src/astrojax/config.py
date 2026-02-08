@@ -19,13 +19,14 @@ from __future__ import annotations
 
 import jax
 import jax.numpy as jnp
+from jax.typing import DTypeLike
 
 _VALID_DTYPES = (jnp.float16, jnp.bfloat16, jnp.float32, jnp.float64)
 
 _dtype = jnp.float32
 
 
-def set_dtype(dtype) -> None:
+def set_dtype(dtype: DTypeLike) -> None:
     """Set the module-wide float dtype for astrojax.
 
     Must be called **before** any ``jax.jit`` compilation.  In eager mode
@@ -53,11 +54,11 @@ def set_dtype(dtype) -> None:
     _dtype = dtype
 
 
-def get_dtype():
+def get_dtype() -> DTypeLike:
     """Return the current module-wide float dtype.
 
     Returns:
-        The active float dtype (default ``jnp.float32``).
+        DTypeLike: The active float dtype (default ``jnp.float32``).
     """
     return _dtype
 
