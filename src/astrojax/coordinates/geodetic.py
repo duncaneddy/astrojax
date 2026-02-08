@@ -24,6 +24,7 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
+from astrojax.config import get_dtype
 from astrojax.constants import WGS84_a, WGS84_f
 
 # First eccentricity squared of the WGS84 ellipsoid
@@ -59,7 +60,7 @@ def position_geodetic_to_ecef(
         >>> float(x_ecef[0])  # WGS84_a on the equator
         6378137.0
     """
-    x_geod = jnp.asarray(x_geod, dtype=jnp.float32)
+    x_geod = jnp.asarray(x_geod, dtype=get_dtype())
 
     lon = x_geod[0]
     lat = x_geod[1]
@@ -89,7 +90,7 @@ def position_ecef_to_geodetic(
 
     Uses Bowring's iterative method with convergence controlled by
     ``jax.lax.while_loop`` (max 10 iterations).  The convergence
-    threshold is scaled for float32 precision.
+    threshold is scaled to the configured float dtype precision.
 
     Args:
         x_ecef: ECEF position ``[x, y, z]`` in *m*.
@@ -109,17 +110,17 @@ def position_ecef_to_geodetic(
         >>> float(geod[2])  # altitude ≈ 0
         0.0
     """
-    x_ecef = jnp.asarray(x_ecef, dtype=jnp.float32)
+    x_ecef = jnp.asarray(x_ecef, dtype=get_dtype())
 
     x = x_ecef[0]
     y = x_ecef[1]
     z = x_ecef[2]
 
-    eps = jnp.float32(1.0e-3) * WGS84_a * jnp.finfo(jnp.float32).eps
+    eps = get_dtype()(1.0e-3) * WGS84_a * jnp.finfo(get_dtype()).eps
     rho2 = x * x + y * y
 
     # State: (dz, dz_prev, iteration_count)
-    dz0 = jnp.float32(ECC2) * z
+    dz0 = get_dtype()(ECC2) * z
 
     def cond(state):
         dz, dz_prev, i = state
@@ -131,11 +132,11 @@ def position_ecef_to_geodetic(
         Nh = jnp.sqrt(rho2 + zdz * zdz)
         sinphi = zdz / Nh
         N = WGS84_a / jnp.sqrt(1.0 - ECC2 * sinphi * sinphi)
-        dz_new = N * jnp.float32(ECC2) * sinphi
+        dz_new = N * get_dtype()(ECC2) * sinphi
         return (dz_new, dz, i + 1)
 
     # Initial state: force first iteration by setting dz_prev far from dz0
-    init_state = (dz0, dz0 + jnp.float32(1e10), jnp.int32(0))
+    init_state = (dz0, dz0 + get_dtype()(1e10), jnp.int32(0))
     dz_final, _, _ = jax.lax.while_loop(cond, body, init_state)
 
     zdz = z + dz_final

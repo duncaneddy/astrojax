@@ -12,9 +12,10 @@ The Epoch class is registered as a JAX pytree, making it compatible with
 ``jax.jit``, ``jax.vmap``, and ``jax.lax.scan``. All arithmetic, comparison,
 and time-computation methods use JAX operations and are fully traceable.
 
-Internal floats use float32 for GPU/TPU compatibility. The split
-representation (int32 days + float32 seconds) provides ~8ms time precision,
-which is sufficient for most training and simulation workloads.
+Float components use the configurable dtype (default float32, see
+:func:`astrojax.config.set_dtype`). The split representation
+(int32 days + float seconds) provides ~8ms precision at float32 and
+sub-nanosecond precision at float64.
 """
 
 from __future__ import annotations
@@ -25,6 +26,7 @@ import re
 import jax
 import jax.numpy as jnp
 
+from .config import get_dtype, get_epoch_eq_tolerance
 from .time import caldate_to_jd, jd_to_caldate
 from .constants import JD_MJD_OFFSET
 from .utils import from_radians
@@ -50,8 +52,8 @@ class Epoch:
     """Represents a single instant in time with high-precision arithmetic.
 
     The internal representation uses three private components:
-        ``_jd`` (jnp.int32), ``_seconds`` (jnp.float32),
-        ``_kahan_c`` (jnp.float32).
+        ``_jd`` (jnp.int32), ``_seconds`` (configurable float dtype),
+        ``_kahan_c`` (configurable float dtype).
     Use ``jd()`` and ``mjd()`` to access the absolute time as Julian Date
     or Modified Julian Date.
 
@@ -63,10 +65,11 @@ class Epoch:
     ``jax.jit``, ``jax.vmap``, and ``jax.lax.scan``.
 
     Precision note:
-        The split (int32 + float32) representation gives ~8ms time precision.
-        The ``jd()`` and ``mjd()`` accessors return a single float32, which
-        has ~0.25 day precision near typical JD values. For high-precision
-        time differences, use epoch subtraction (``epc1 - epc2``) which
+        The split (int32 + float) representation gives ~8ms precision at
+        float32 and sub-nanosecond precision at float64.  The ``jd()``
+        and ``mjd()`` accessors return a single float, which may be lossy
+        for sub-day precision at float32.  For high-precision time
+        differences, use epoch subtraction (``epc1 - epc2``) which
         preserves the full split-representation precision.
 
     Constructors:
@@ -86,8 +89,8 @@ class Epoch:
                 a string in ISO 8601 format, or another Epoch instance.
         """
         self._jd = jnp.int32(0)
-        self._seconds = jnp.float32(0.0)
-        self._kahan_c = jnp.float32(0.0)
+        self._seconds = get_dtype()(0.0)
+        self._kahan_c = get_dtype()(0.0)
 
         if len(args) == 1:
             if isinstance(args[0], str):
@@ -112,8 +115,8 @@ class Epoch:
 
         Args:
             jd (jnp.int32): Julian Day number.
-            seconds (jnp.float32): Seconds within the day [0, 86400).
-            kahan_c (jnp.float32): Kahan summation compensator.
+            seconds: Seconds within the day [0, 86400). Configurable float dtype.
+            kahan_c: Kahan summation compensator. Configurable float dtype.
 
         Returns:
             Epoch: New Epoch instance.
@@ -146,8 +149,8 @@ class Epoch:
                    + hour * 3600.0 + minute * 60.0 + second)
 
         self._jd = jnp.int32(jd_int)
-        self._seconds = jnp.float32(seconds)
-        self._kahan_c = jnp.float32(0.0)
+        self._seconds = get_dtype()(seconds)
+        self._kahan_c = get_dtype()(0.0)
 
         self._normalize()
 
@@ -207,14 +210,14 @@ class Epoch:
         is traceable under ``jax.jit``.
         """
         day_offset = jnp.int32(jnp.floor(self._seconds / _SECONDS_PER_DAY))
-        self._seconds = self._seconds - jnp.float32(day_offset) * jnp.float32(_SECONDS_PER_DAY)
+        self._seconds = self._seconds - get_dtype()(day_offset) * get_dtype()(_SECONDS_PER_DAY)
         self._jd = self._jd + day_offset
 
     def _compensated_seconds(self):
         """Return the compensated seconds value.
 
         Returns:
-            jnp.float32: Seconds with Kahan compensation applied.
+            jax.Array: Seconds with Kahan compensation applied.
         """
         return self._seconds - self._kahan_c
 
@@ -233,7 +236,7 @@ class Epoch:
         Returns:
             Epoch: New Epoch with delta seconds added.
         """
-        delta = jnp.float32(delta)
+        delta = get_dtype()(delta)
         y = delta - self._kahan_c
         t = self._seconds + y
         new_kahan_c = (t - self._seconds) - y
@@ -241,7 +244,7 @@ class Epoch:
 
         # Normalize: single floor-division handles any magnitude of overflow
         day_offset = jnp.int32(jnp.floor(new_seconds / _SECONDS_PER_DAY))
-        new_seconds = new_seconds - jnp.float32(day_offset) * jnp.float32(_SECONDS_PER_DAY)
+        new_seconds = new_seconds - get_dtype()(day_offset) * get_dtype()(_SECONDS_PER_DAY)
         new_jd = self._jd + day_offset
 
         return Epoch._from_internal(new_jd, new_seconds, new_kahan_c)
@@ -255,7 +258,7 @@ class Epoch:
         Returns:
             Epoch: New Epoch with delta seconds subtracted.
         """
-        return self.__iadd__(-jnp.float32(delta))
+        return self.__iadd__(-get_dtype()(delta))
 
     def __add__(self, delta: float) -> Epoch:
         """Return a new Epoch with seconds added.
@@ -282,7 +285,7 @@ class Epoch:
             return ((self._jd - other._jd) * _SECONDS_PER_DAY
                     + (self._compensated_seconds()
                        - other._compensated_seconds()))
-        return self.__iadd__(-jnp.float32(other))
+        return self.__iadd__(-get_dtype()(other))
 
     # Comparison operators
 
@@ -291,7 +294,7 @@ class Epoch:
             return NotImplemented
         return (self._jd == other._jd) & (
             jnp.abs(self._compensated_seconds()
-                    - other._compensated_seconds()) < 1e-3
+                    - other._compensated_seconds()) < get_epoch_eq_tolerance()
         )
 
     def __ne__(self, other):
@@ -358,30 +361,31 @@ class Epoch:
         return year, month, day, hour, minute, second
 
     def jd(self) -> jax.Array:
-        """Return the Julian Date as a single float32.
+        """Return the Julian Date as a single float.
 
         Note:
-            A single float32 near typical JD values (~2.45M) has ~0.25 day
-            precision. For time-of-day sensitive computations, use the Epoch
-            object directly or ``caldate()``.
+            At float32, a single value near typical JD values (~2.45M) has
+            ~0.25 day precision. At float64, precision is sub-millisecond.
+            For time-of-day sensitive computations at float32, use the
+            Epoch object directly or ``caldate()``.
 
         Returns:
-            jnp.float32: Julian Date (lossy for sub-day precision).
+            jax.Array: Julian Date.
         """
-        return jnp.float32(self._jd) + self._compensated_seconds() / jnp.float32(_SECONDS_PER_DAY)
+        return get_dtype()(self._jd) + self._compensated_seconds() / get_dtype()(_SECONDS_PER_DAY)
 
     def mjd(self) -> jax.Array:
-        """Return the Modified Julian Date as a single float32.
+        """Return the Modified Julian Date as a single float.
 
         Note:
-            MJD values (~51544) are smaller than JD, giving ~0.004 day
-            (~6 min) precision in float32 — better than ``jd()`` but still
-            lossy for sub-minute precision.
+            MJD values (~51544) are smaller than JD, giving better precision
+            than ``jd()``.  At float32 this is ~0.004 day (~6 min); at
+            float64 it is sub-microsecond.
 
         Returns:
-            jnp.float32: Modified Julian Date.
+            jax.Array: Modified Julian Date.
         """
-        return self.jd() - jnp.float32(JD_MJD_OFFSET)
+        return self.jd() - get_dtype()(JD_MJD_OFFSET)
 
     # Sidereal time
 
@@ -402,7 +406,7 @@ class Epoch:
                 (radians).
 
         Returns:
-            jnp.float32: Greenwich Mean Sidereal Time. Units: rad (or deg if
+            jax.Array: Greenwich Mean Sidereal Time. Units: rad (or deg if
                 use_degrees=True)
 
         References:
@@ -413,21 +417,22 @@ class Epoch:
         # Compute T_UT1 (Julian centuries from J2000) using split
         # representation to preserve precision. The int32 day difference
         # is exact, and the float32 fractional day has ~1e-4 day precision.
-        days_from_j2000 = jnp.float32(self._jd - jnp.int32(_JD_J2000))
-        frac_day = self._compensated_seconds() / jnp.float32(_SECONDS_PER_DAY)
-        t_ut1 = (days_from_j2000 + frac_day) / jnp.float32(36525.0)
+        _float = get_dtype()
+        days_from_j2000 = _float(self._jd - jnp.int32(_JD_J2000))
+        frac_day = self._compensated_seconds() / _float(_SECONDS_PER_DAY)
+        t_ut1 = (days_from_j2000 + frac_day) / _float(36525.0)
 
         # GMST in seconds of time (polynomial in Julian centuries from J2000)
-        gmst_sec = (jnp.float32(67310.54841)
-                    + jnp.float32(876600.0 * 3600.0 + 8640184.812866) * t_ut1
-                    + jnp.float32(0.093104) * t_ut1 * t_ut1
-                    - jnp.float32(6.2e-6) * t_ut1 * t_ut1 * t_ut1)
+        gmst_sec = (_float(67310.54841)
+                    + _float(876600.0 * 3600.0 + 8640184.812866) * t_ut1
+                    + _float(0.093104) * t_ut1 * t_ut1
+                    - _float(6.2e-6) * t_ut1 * t_ut1 * t_ut1)
 
         # Convert seconds of time to radians (1 second = 1/240 degree)
         # and normalize to [0, 2*pi)
-        gmst_rad = (gmst_sec / jnp.float32(240.0) * jnp.pi / jnp.float32(180.0)) % (jnp.float32(2.0) * jnp.pi)
+        gmst_rad = (gmst_sec / _float(240.0) * jnp.pi / _float(180.0)) % (_float(2.0) * jnp.pi)
 
-        gmst_rad = jnp.where(gmst_rad < 0, gmst_rad + jnp.float32(2.0) * jnp.pi, gmst_rad)
+        gmst_rad = jnp.where(gmst_rad < 0, gmst_rad + _float(2.0) * jnp.pi, gmst_rad)
 
         return from_radians(gmst_rad, use_degrees)
 

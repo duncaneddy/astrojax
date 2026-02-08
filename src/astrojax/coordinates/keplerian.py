@@ -30,6 +30,7 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
+from astrojax.config import get_dtype
 from astrojax.constants import GM_EARTH
 from astrojax.orbits import anomaly_eccentric_to_mean, anomaly_mean_to_eccentric
 
@@ -65,7 +66,7 @@ def state_koe_to_eci(
     References:
         O. Montenbruck and E. Gill, *Satellite Orbits*, 2012, Eq. 2.43–2.44.
     """
-    x_oe = jnp.asarray(x_oe, dtype=jnp.float32)
+    x_oe = jnp.asarray(x_oe, dtype=get_dtype())
 
     a = x_oe[0]
     e = x_oe[1]
@@ -149,7 +150,7 @@ def state_eci_to_koe(
     References:
         O. Montenbruck and E. Gill, *Satellite Orbits*, 2012, Eq. 2.56–2.68.
     """
-    x_cart = jnp.asarray(x_cart, dtype=jnp.float32)
+    x_cart = jnp.asarray(x_cart, dtype=get_dtype())
 
     r = x_cart[:3]
     v = x_cart[3:6]

@@ -2,6 +2,7 @@ import jax
 import jax.numpy as jnp
 import pytest
 
+from astrojax.config import get_dtype, set_dtype
 from astrojax.time import (
     caldate_to_jd,
     caldate_to_mjd,
@@ -131,12 +132,13 @@ def test_mjd_to_caldate_jit():
 
 def test_caldate_to_mjd_vmap():
     """Verify caldate_to_mjd works with vmap over batched inputs."""
-    years = jnp.array([2000, 2024, 1999])
-    months = jnp.array([1, 3, 12])
-    days = jnp.array([1, 15, 31])
-    hours = jnp.array([12, 6, 0])
-    minutes = jnp.array([0, 30, 0])
-    seconds = jnp.array([0.0, 45.0, 0.0])
+    set_dtype(jnp.float32)
+    years = jnp.array([2000, 2024, 1999], dtype=jnp.int32)
+    months = jnp.array([1, 3, 12], dtype=jnp.int32)
+    days = jnp.array([1, 15, 31], dtype=jnp.int32)
+    hours = jnp.array([12, 6, 0], dtype=jnp.int32)
+    minutes = jnp.array([0, 30, 0], dtype=jnp.int32)
+    seconds = jnp.array([0.0, 45.0, 0.0], dtype=get_dtype())
 
     vmapped = jax.vmap(caldate_to_mjd)(years, months, days, hours, minutes, seconds)
 

@@ -33,6 +33,8 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
+from astrojax.config import get_dtype
+
 
 def hcw_derivative(state: ArrayLike, n: ArrayLike) -> Array:
     """Compute the HCW state derivative for unforced relative motion.
@@ -61,8 +63,8 @@ def hcw_derivative(state: ArrayLike, n: ArrayLike) -> Array:
         >>> float(deriv[3])  # x_ddot = 3 n^2 x
         0.0...
     """
-    state = jnp.asarray(state, dtype=jnp.float32)
-    n = jnp.asarray(n, dtype=jnp.float32)
+    state = jnp.asarray(state, dtype=get_dtype())
+    n = jnp.asarray(n, dtype=get_dtype())
 
     x = state[0]
     z = state[2]

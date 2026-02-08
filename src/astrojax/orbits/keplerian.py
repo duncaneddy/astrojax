@@ -6,8 +6,8 @@ velocities at apsides, distances, altitudes, anomaly conversions, and
 special orbits (sun-synchronous, geostationary).
 
 All functions use JAX operations and are compatible with ``jax.jit``,
-``jax.vmap``, and ``jax.grad``. Inputs are coerced to float32 for
-GPU/TPU compatibility.
+``jax.vmap``, and ``jax.grad``. Inputs are coerced to the configured
+float dtype (see :func:`astrojax.config.set_dtype`).
 
 The anomaly conversion functions include a Newton-Raphson Kepler equation
 solver implemented with ``jax.lax.fori_loop`` for JAX traceability.
@@ -23,6 +23,7 @@ from __future__ import annotations
 import jax
 import jax.numpy as jnp
 
+from astrojax.config import get_dtype
 from astrojax.constants import GM_EARTH, J2_EARTH, OMEGA_EARTH, R_EARTH
 from astrojax.utils import from_radians, to_radians
 
@@ -46,7 +47,7 @@ def orbital_period(a):
         >>> from astrojax.orbits import orbital_period
         >>> T = orbital_period(R_EARTH + 500e3)
     """
-    a = jnp.asarray(a, dtype=jnp.float32)
+    a = jnp.asarray(a, dtype=get_dtype())
     return 2.0 * jnp.pi * jnp.sqrt(a**3 / GM_EARTH)
 
 
@@ -72,7 +73,7 @@ def orbital_period_from_state(state_eci):
         >>> state = jnp.array([r, 0.0, 0.0, 0.0, v, 0.0])
         >>> T = orbital_period_from_state(state)
     """
-    state_eci = jnp.asarray(state_eci, dtype=jnp.float32)
+    state_eci = jnp.asarray(state_eci, dtype=get_dtype())
     r = jnp.linalg.norm(state_eci[:3])
     v_sq = jnp.sum(state_eci[3:6] ** 2)
     a = 1.0 / (2.0 / r - v_sq / GM_EARTH)
@@ -92,7 +93,7 @@ def semimajor_axis_from_orbital_period(period):
         >>> from astrojax.orbits import semimajor_axis_from_orbital_period
         >>> a = semimajor_axis_from_orbital_period(5676.977)
     """
-    period = jnp.asarray(period, dtype=jnp.float32)
+    period = jnp.asarray(period, dtype=get_dtype())
     return (period**2 * GM_EARTH / (4.0 * jnp.pi**2)) ** (1.0 / 3.0)
 
 
@@ -110,7 +111,7 @@ def semimajor_axis(n, use_degrees=False):
         >>> from astrojax.orbits import semimajor_axis
         >>> a = semimajor_axis(0.001106784)
     """
-    n = jnp.asarray(n, dtype=jnp.float32)
+    n = jnp.asarray(n, dtype=get_dtype())
     n_rad = to_radians(n, use_degrees)
     return (GM_EARTH / n_rad**2) ** (1.0 / 3.0)
 
@@ -135,7 +136,7 @@ def mean_motion(a, use_degrees=False):
         >>> from astrojax.orbits import mean_motion
         >>> n = mean_motion(R_EARTH + 500e3)
     """
-    a = jnp.asarray(a, dtype=jnp.float32)
+    a = jnp.asarray(a, dtype=get_dtype())
     n = jnp.sqrt(GM_EARTH / a**3)
     return from_radians(n, use_degrees)
 
@@ -160,8 +161,8 @@ def perigee_velocity(a, e):
         >>> from astrojax.orbits import perigee_velocity
         >>> vp = perigee_velocity(R_EARTH + 500e3, 0.001)
     """
-    a = jnp.asarray(a, dtype=jnp.float32)
-    e = jnp.asarray(e, dtype=jnp.float32)
+    a = jnp.asarray(a, dtype=get_dtype())
+    e = jnp.asarray(e, dtype=get_dtype())
     return jnp.sqrt(GM_EARTH / a) * jnp.sqrt((1.0 + e) / (1.0 - e))
 
 
@@ -180,8 +181,8 @@ def apogee_velocity(a, e):
         >>> from astrojax.orbits import apogee_velocity
         >>> va = apogee_velocity(R_EARTH + 500e3, 0.001)
     """
-    a = jnp.asarray(a, dtype=jnp.float32)
-    e = jnp.asarray(e, dtype=jnp.float32)
+    a = jnp.asarray(a, dtype=get_dtype())
+    e = jnp.asarray(e, dtype=get_dtype())
     return jnp.sqrt(GM_EARTH / a) * jnp.sqrt((1.0 - e) / (1.0 + e))
 
 
@@ -204,8 +205,8 @@ def periapsis_distance(a, e):
         >>> from astrojax.orbits import periapsis_distance
         >>> rp = periapsis_distance(500e3, 0.1)
     """
-    a = jnp.asarray(a, dtype=jnp.float32)
-    e = jnp.asarray(e, dtype=jnp.float32)
+    a = jnp.asarray(a, dtype=get_dtype())
+    e = jnp.asarray(e, dtype=get_dtype())
     return a * (1.0 - e)
 
 
@@ -223,8 +224,8 @@ def apoapsis_distance(a, e):
         >>> from astrojax.orbits import apoapsis_distance
         >>> ra = apoapsis_distance(500e3, 0.1)
     """
-    a = jnp.asarray(a, dtype=jnp.float32)
-    e = jnp.asarray(e, dtype=jnp.float32)
+    a = jnp.asarray(a, dtype=get_dtype())
+    e = jnp.asarray(e, dtype=get_dtype())
     return a * (1.0 + e)
 
 
@@ -289,8 +290,8 @@ def sun_synchronous_inclination(a, e, use_degrees=False):
         >>> from astrojax.orbits import sun_synchronous_inclination
         >>> inc = sun_synchronous_inclination(R_EARTH + 500e3, 0.001, use_degrees=True)
     """
-    a = jnp.asarray(a, dtype=jnp.float32)
-    e = jnp.asarray(e, dtype=jnp.float32)
+    a = jnp.asarray(a, dtype=get_dtype())
+    e = jnp.asarray(e, dtype=get_dtype())
 
     # Required RAAN precession rate for sun-synchronous orbit
     omega_dot_ss = 2.0 * jnp.pi / 365.2421897 / 86400.0
@@ -341,8 +342,8 @@ def anomaly_eccentric_to_mean(anm_ecc, e, use_degrees=False):
         >>> from astrojax.orbits import anomaly_eccentric_to_mean
         >>> M = anomaly_eccentric_to_mean(90.0, 0.1, use_degrees=True)
     """
-    anm_ecc = jnp.asarray(anm_ecc, dtype=jnp.float32)
-    e = jnp.asarray(e, dtype=jnp.float32)
+    anm_ecc = jnp.asarray(anm_ecc, dtype=get_dtype())
+    e = jnp.asarray(e, dtype=get_dtype())
 
     E = to_radians(anm_ecc, use_degrees)
     M = E - e * jnp.sin(E)
@@ -368,8 +369,8 @@ def anomaly_mean_to_eccentric(anm_mean, e, use_degrees=False):
         >>> from astrojax.orbits import anomaly_mean_to_eccentric
         >>> E = anomaly_mean_to_eccentric(84.27, 0.1, use_degrees=True)
     """
-    anm_mean = jnp.asarray(anm_mean, dtype=jnp.float32)
-    e = jnp.asarray(e, dtype=jnp.float32)
+    anm_mean = jnp.asarray(anm_mean, dtype=get_dtype())
+    e = jnp.asarray(e, dtype=get_dtype())
 
     M = to_radians(anm_mean, use_degrees)
     M = M % (2.0 * jnp.pi)
@@ -405,8 +406,8 @@ def anomaly_true_to_eccentric(anm_true, e, use_degrees=False):
         >>> from astrojax.orbits import anomaly_true_to_eccentric
         >>> E = anomaly_true_to_eccentric(90.0, 0.1, use_degrees=True)
     """
-    anm_true = jnp.asarray(anm_true, dtype=jnp.float32)
-    e = jnp.asarray(e, dtype=jnp.float32)
+    anm_true = jnp.asarray(anm_true, dtype=get_dtype())
+    e = jnp.asarray(e, dtype=get_dtype())
 
     nu = to_radians(anm_true, use_degrees)
     E = jnp.arctan2(jnp.sin(nu) * jnp.sqrt(1.0 - e**2), jnp.cos(nu) + e)
@@ -432,8 +433,8 @@ def anomaly_eccentric_to_true(anm_ecc, e, use_degrees=False):
         >>> from astrojax.orbits import anomaly_eccentric_to_true
         >>> nu = anomaly_eccentric_to_true(90.0, 0.1, use_degrees=True)
     """
-    anm_ecc = jnp.asarray(anm_ecc, dtype=jnp.float32)
-    e = jnp.asarray(e, dtype=jnp.float32)
+    anm_ecc = jnp.asarray(anm_ecc, dtype=get_dtype())
+    e = jnp.asarray(e, dtype=get_dtype())
 
     E = to_radians(anm_ecc, use_degrees)
     nu = jnp.arctan2(jnp.sin(E) * jnp.sqrt(1.0 - e**2), jnp.cos(E) - e)

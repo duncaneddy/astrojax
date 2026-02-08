@@ -20,6 +20,7 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
+from astrojax.config import get_dtype
 from astrojax.constants import WGS84_a
 
 
@@ -46,7 +47,7 @@ def position_geocentric_to_ecef(
         >>> float(x_ecef[0])  # WGS84_a on the equator
         6378137.0
     """
-    x_geoc = jnp.asarray(x_geoc, dtype=jnp.float32)
+    x_geoc = jnp.asarray(x_geoc, dtype=get_dtype())
 
     lon = x_geoc[0]
     lat = x_geoc[1]
@@ -87,7 +88,7 @@ def position_ecef_to_geocentric(
         >>> float(geoc[2])  # altitude ≈ 0
         0.0
     """
-    x_ecef = jnp.asarray(x_ecef, dtype=jnp.float32)
+    x_ecef = jnp.asarray(x_ecef, dtype=get_dtype())
 
     x = x_ecef[0]
     y = x_ecef[1]

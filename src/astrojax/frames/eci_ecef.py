@@ -8,7 +8,7 @@ This module implements a simplified transformation model using only the
 Earth rotation component — a single :math:`R_z(\\theta_{\\text{GMST}})`
 rotation.  The full IAU 2006/2000A model adds bias-precession-nutation
 (Q) and polar motion (W) corrections, which contribute arcsecond-level
-terms that are below the float32 precision floor used by astrojax.
+terms that are below the default float32 precision floor used by astrojax.
 
 All inputs and outputs use SI base units (metres, metres/second).
 
@@ -26,6 +26,7 @@ from jax import Array
 from jax.typing import ArrayLike
 
 from astrojax.attitude_representations import Rz
+from astrojax.config import get_dtype
 from astrojax.constants import OMEGA_EARTH
 from astrojax.epoch import Epoch
 
@@ -136,10 +137,10 @@ def state_eci_to_ecef(epc: Epoch, x_eci: ArrayLike) -> Array:
         >>> x_ecef.shape
         (6,)
     """
-    x_eci = jnp.asarray(x_eci, dtype=jnp.float32)
+    x_eci = jnp.asarray(x_eci, dtype=get_dtype())
 
     R = earth_rotation(epc)
-    omega = jnp.array([0.0, 0.0, OMEGA_EARTH], dtype=jnp.float32)
+    omega = jnp.array([0.0, 0.0, OMEGA_EARTH], dtype=get_dtype())
 
     r_ecef = R @ x_eci[:3]
     v_ecef = R @ x_eci[3:6] - jnp.cross(omega, r_ecef)
@@ -183,10 +184,10 @@ def state_ecef_to_eci(epc: Epoch, x_ecef: ArrayLike) -> Array:
         >>> x_eci.shape
         (6,)
     """
-    x_ecef = jnp.asarray(x_ecef, dtype=jnp.float32)
+    x_ecef = jnp.asarray(x_ecef, dtype=get_dtype())
 
     R = earth_rotation(epc)
-    omega = jnp.array([0.0, 0.0, OMEGA_EARTH], dtype=jnp.float32)
+    omega = jnp.array([0.0, 0.0, OMEGA_EARTH], dtype=get_dtype())
 
     r_ecef = x_ecef[:3]
     v_ecef = x_ecef[3:6]

@@ -4,6 +4,7 @@ Complete reference for all public modules in astrojax.
 
 | Module | Description |
 |--------|-------------|
+| [Config](config.md) | Module-wide float precision configuration |
 | [Constants](constants.md) | Physical and mathematical constants used throughout the library |
 | [Time](time.md) | Calendar date, Julian Date, and Modified Julian Date conversions |
 | [Epoch](epoch.md) | High-precision time representation with JAX pytree support |

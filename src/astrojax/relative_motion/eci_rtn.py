@@ -27,6 +27,8 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
+from astrojax.config import get_dtype
+
 
 def rotation_rtn_to_eci(x_eci: ArrayLike) -> Array:
     """Compute the 3x3 rotation matrix from the RTN frame to the ECI frame.
@@ -52,7 +54,7 @@ def rotation_rtn_to_eci(x_eci: ArrayLike) -> Array:
         >>> R.shape
         (3, 3)
     """
-    x_eci = jnp.asarray(x_eci, dtype=jnp.float32)
+    x_eci = jnp.asarray(x_eci, dtype=get_dtype())
 
     r = x_eci[:3]
     v = x_eci[3:6]
@@ -124,8 +126,8 @@ def state_eci_to_rtn(x_chief: ArrayLike, x_deputy: ArrayLike) -> Array:
         >>> float(rel[0])  # ~100 m radial offset
         100.0
     """
-    x_chief = jnp.asarray(x_chief, dtype=jnp.float32)
-    x_deputy = jnp.asarray(x_deputy, dtype=jnp.float32)
+    x_chief = jnp.asarray(x_chief, dtype=get_dtype())
+    x_deputy = jnp.asarray(x_deputy, dtype=get_dtype())
 
     rc = x_chief[:3]
     vc = x_chief[3:6]
@@ -176,8 +178,8 @@ def state_rtn_to_eci(x_chief: ArrayLike, x_rel_rtn: ArrayLike) -> Array:
         >>> float(deputy[0] - chief[0])  # ~100 m radial offset
         100.0
     """
-    x_chief = jnp.asarray(x_chief, dtype=jnp.float32)
-    x_rel_rtn = jnp.asarray(x_rel_rtn, dtype=jnp.float32)
+    x_chief = jnp.asarray(x_chief, dtype=get_dtype())
+    x_rel_rtn = jnp.asarray(x_rel_rtn, dtype=get_dtype())
 
     rc = x_chief[:3]
     vc = x_chief[3:6]

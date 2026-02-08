@@ -31,6 +31,7 @@ nav = [
     { "Home" = "index.md" },
     { "User Guide" = [
         { "User Guide" = "user_guide/index.md" },
+        { "Configuration" = "user_guide/configuration.md" },
         { "Time" = "user_guide/time.md" },
         { "Epoch" = "user_guide/epoch.md" },
         { "Frames" = "user_guide/frames.md" },
@@ -39,6 +40,7 @@ nav = [
     ]},
     { "API Reference" = [
         { "API Reference" = "api_reference/index.md" },
+        { "Config" = "api_reference/config.md" },
         { "Constants" = "api_reference/constants.md" },
         { "Time" = "api_reference/time.md" },
         { "Epoch" = "api_reference/epoch.md" },

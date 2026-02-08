@@ -4,6 +4,7 @@ import jax
 import jax.numpy as jnp
 from jax.typing import ArrayLike
 
+from .config import get_dtype
 from .constants import JD_MJD_OFFSET
 
 def caldate_to_mjd(year: ArrayLike, month: ArrayLike, day: ArrayLike, hour: ArrayLike = 0, minute: ArrayLike = 0, second: ArrayLike = 0.0) -> jax.Array:
@@ -18,7 +19,7 @@ def caldate_to_mjd(year: ArrayLike, month: ArrayLike, day: ArrayLike, hour: Arra
         second (ArrayLike): Second of the calendar date. Default: ``0.0``
 
     Returns:
-        jax.Array: Modified Julian Date (float32).
+        jax.Array: Modified Julian Date.
 
     References:
 
@@ -35,7 +36,7 @@ def caldate_to_mjd(year: ArrayLike, month: ArrayLike, day: ArrayLike, hour: Arra
 
     frac_day = (hour + (minute + second / 60.0) / 60.0) / 24.0
 
-    return jnp.float32(jnp.floor(mjd).astype(jnp.int32)) + frac_day
+    return get_dtype()(jnp.floor(mjd).astype(jnp.int32)) + frac_day
 
 def caldate_to_jd(year: ArrayLike, month: ArrayLike, day: ArrayLike, hour: ArrayLike = 0, minute: ArrayLike = 0, second: ArrayLike = 0.0) -> jax.Array:
     """Convert a calendar date to Julian Date.
@@ -49,7 +50,7 @@ def caldate_to_jd(year: ArrayLike, month: ArrayLike, day: ArrayLike, hour: Array
         second (ArrayLike): Second of the calendar date. Default: ``0.0``
 
     Returns:
-        jax.Array: Julian Date (float32).
+        jax.Array: Julian Date.
 
     References:
 
@@ -103,7 +104,7 @@ def jd_to_caldate(jd: ArrayLike) -> tuple[jax.Array, jax.Array, jax.Array, jax.A
 
     Returns:
         tuple[jax.Array, ...]: (year, month, day, hour, minute, second) where
-            year/month/day/hour/minute are int32 and second is float32.
+            year/month/day/hour/minute are int32 and second is configurable float dtype.
 
     References:
 
@@ -144,7 +145,7 @@ def jd_to_caldate(jd: ArrayLike) -> tuple[jax.Array, jax.Array, jax.Array, jax.A
     total_ms = total_ms - hour * 3600000
     minute = total_ms // 60000
     total_ms = total_ms - minute * 60000
-    second = jnp.float32(total_ms) / 1000.0
+    second = get_dtype()(total_ms) / 1000.0
 
     return year, month, day, hour, minute, second
 
@@ -157,7 +158,7 @@ def mjd_to_caldate(mjd: ArrayLike) -> tuple[jax.Array, jax.Array, jax.Array, jax
 
     Returns:
         tuple[jax.Array, ...]: (year, month, day, hour, minute, second) where
-            year/month/day/hour/minute are int32 and second is float32.
+            year/month/day/hour/minute are int32 and second is configurable float dtype.
 
     References:
 

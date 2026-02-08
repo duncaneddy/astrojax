@@ -29,6 +29,7 @@ from .attitude_representations import (
     Rz
 )
 
+from .config import set_dtype, get_dtype
 from .epoch import Epoch
 
 from .frames import (
@@ -102,6 +103,9 @@ __all__ = [
     "Rx",
     "Ry",
     "Rz",
+    # Config
+    "set_dtype",
+    "get_dtype",
     # Epoch
     "Epoch",
     # Frames
