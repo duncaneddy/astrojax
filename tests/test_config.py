@@ -14,10 +14,13 @@ from astrojax.constants import R_EARTH
 from astrojax.epoch import Epoch
 from astrojax.orbits import orbital_period
 
+pytestmark = pytest.mark.order("first")
+
 
 @pytest.fixture(autouse=True)
 def reset_dtype():
-    """Reset dtype to float32 after each test."""
+    """Reset dtype to float32 before and after each test."""
+    set_dtype(jnp.float32)
     yield
     set_dtype(jnp.float32)
 

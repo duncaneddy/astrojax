@@ -39,6 +39,7 @@ nav = [
         { "Orbit Dynamics" = "user_guide/orbit_dynamics.md" },
         { "Relative Motion" = "user_guide/relative_motion.md" },
         { "Attitude Representations" = "user_guide/attitude_representations.md" },
+        { "Attitude Dynamics" = "user_guide/attitude_dynamics.md" },
         { "Integrators" = "user_guide/integrators.md" }
     ]},
     { "API Reference" = [
@@ -52,6 +53,7 @@ nav = [
         { "Orbit Dynamics" = "api_reference/orbit_dynamics.md" },
         { "Relative Motion" = "api_reference/relative_motion.md" },
         { "Attitude Representations" = "api_reference/attitude_representations.md" },
+        { "Attitude Dynamics" = "api_reference/attitude_dynamics.md" },
         { "Integrators" = "api_reference/integrators.md" }
     ]}
 ]

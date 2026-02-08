@@ -51,9 +51,9 @@ def create_attitude_dynamics(
 
         - *t*: time (scalar), typically seconds since a reference epoch.
         - *state*: ``[q_w, q_x, q_y, q_z, omega_x, omega_y, omega_z]``,
-          shape ``(7,)``.
+            shape ``(7,)``.
         - *derivative*: ``[dq_w, dq_x, dq_y, dq_z, domega_x, domega_y,
-          domega_z]``, shape ``(7,)``.
+            domega_z]``, shape ``(7,)``.
 
     Example:
         >>> import jax.numpy as jnp

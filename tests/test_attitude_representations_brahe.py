@@ -28,6 +28,14 @@ from astrojax import (  # noqa: E402
 
 ATOL = 1e-12
 
+
+@pytest.fixture(autouse=True)
+def _ensure_float64():
+    """Ensure float64 is active for brahe comparison tests."""
+    set_dtype(jnp.float64)
+    yield
+    set_dtype(jnp.float64)
+
 # Map astrojax EulerAngleOrder to brahe EulerAngleOrder
 _ORDER_MAP = {
     EulerAngleOrder.XYX: bh.EulerAngleOrder.XYX,

@@ -30,6 +30,14 @@ PI = math.pi
 ATOL = 1e-12
 
 
+@pytest.fixture(autouse=True)
+def _ensure_float64():
+    """Ensure float64 is active for precision parity with Rust reference."""
+    set_dtype(jnp.float64)
+    yield
+    set_dtype(jnp.float64)
+
+
 # ===========================================================================
 # EulerAngleOrder
 # ===========================================================================
