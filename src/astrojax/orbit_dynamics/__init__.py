@@ -12,7 +12,12 @@ orbit propagation:
 """
 
 from .ephemerides import sun_position, moon_position
-from .gravity import accel_point_mass, accel_gravity
+from .gravity import (
+    accel_point_mass,
+    accel_gravity,
+    GravityModel,
+    accel_gravity_spherical_harmonics,
+)
 from .third_body import accel_third_body_sun, accel_third_body_moon
 from .density import density_harris_priester
 from .drag import accel_drag
@@ -25,6 +30,8 @@ __all__ = [
     # Gravity
     "accel_point_mass",
     "accel_gravity",
+    "GravityModel",
+    "accel_gravity_spherical_harmonics",
     # Third body
     "accel_third_body_sun",
     "accel_third_body_moon",

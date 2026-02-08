@@ -15,6 +15,9 @@ dependencies = [
 requires = ["uv_build>=0.9.26,<0.10.0"]
 build-backend = "uv_build"
 
+[tool.uv-build]
+data-includes = ["src/astrojax/data/gravity_models/*.gfc"]
+
 [dependency-groups]
 dev = [
     "brahe>=1.0.1",

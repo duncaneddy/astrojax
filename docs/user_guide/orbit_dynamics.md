@@ -11,6 +11,7 @@ JAX-traceable and compatible with `jax.jit`, `jax.vmap`, and
 |-----------|-----------|-------------|
 | **Ephemerides** | `sun_position`, `moon_position` | Low-precision analytical Sun/Moon positions |
 | **Gravity** | `accel_point_mass`, `accel_gravity` | Point-mass gravitational acceleration |
+| **Spherical Harmonics** | `GravityModel`, `accel_gravity_spherical_harmonics` | Spherical harmonic gravity field |
 | **Third body** | `accel_third_body_sun`, `accel_third_body_moon` | Sun/Moon gravitational perturbations |
 | **Density** | `density_harris_priester` | Harris-Priester atmospheric density model |
 | **Drag** | `accel_drag` | Atmospheric drag acceleration |
@@ -59,6 +60,56 @@ $$
 $$
 
 where $\mathbf{d} = \mathbf{r} - \mathbf{r}_{\text{body}}$.
+
+## Spherical Harmonic Gravity
+
+For accurate orbit propagation in LEO, point-mass gravity is
+insufficient.  The `GravityModel` class loads spherical harmonic
+gravity field models (Stokes coefficients $C_{nm}$, $S_{nm}$) from
+standard ICGEM GFC format files:
+
+```python
+from astrojax.orbit_dynamics import GravityModel, accel_gravity_spherical_harmonics
+
+# Load a packaged model
+model = GravityModel.from_type("JGM3")  # 70x70, also: "EGM2008_360", "GGM05S"
+```
+
+The acceleration function uses the V/W matrix recursion from
+Montenbruck & Gill (2012, p. 56-68) to evaluate the gravity field at a
+given position.  The position must be provided in the ECI frame along
+with the ECI-to-ECEF rotation matrix:
+
+```python
+import jax.numpy as jnp
+from astrojax.frames import rotation_eci_to_ecef
+from astrojax import Epoch
+
+epc = Epoch(2024, 6, 15, 12, 0, 0)
+r_eci = jnp.array([6878e3, 0.0, 0.0])
+R = rotation_eci_to_ecef(epc)
+
+# Evaluate to degree and order 20
+a = accel_gravity_spherical_harmonics(r_eci, R, model, n_max=20, m_max=20)
+```
+
+Three packaged gravity models are available:
+
+| Model | Degree/Order | Description |
+|-------|-------------|-------------|
+| `"EGM2008_360"` | 360 x 360 | Truncated EGM2008, high-resolution |
+| `"GGM05S"` | 180 x 180 | GRACE satellite-only model |
+| `"JGM3"` | 70 x 70 | Joint Gravity Model 3 |
+
+Models can also be loaded from custom GFC files using
+`GravityModel.from_file("path/to/model.gfc")`.
+
+To reduce computation time, truncate a model to a lower degree/order:
+
+```python
+model = GravityModel.from_type("EGM2008_360")
+model.set_max_degree_order(20, 20)  # Truncate to 20x20
+```
 
 ## Third-Body Perturbations
 

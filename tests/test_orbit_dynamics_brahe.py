@@ -29,6 +29,8 @@ from astrojax.orbit_dynamics import (
     sun_position,
     moon_position,
     accel_point_mass,
+    accel_gravity_spherical_harmonics,
+    GravityModel,
     accel_third_body_sun,
     accel_third_body_moon,
     density_harris_priester,
@@ -414,3 +416,55 @@ class TestEndToEndVsBrahe:
         actual = float(jnp.linalg.norm(accel_third_body_moon(epc_aj, jnp.array(r))))
 
         np.testing.assert_allclose(actual, expected, rtol=_ACCEL_MOON_RTOL)
+
+
+# ──────────────────────────────────────────────
+# Spherical Harmonic Gravity
+# ──────────────────────────────────────────────
+
+_SH_POSITIONS = [
+    [6878e3, 0.0, 0.0],
+    [0.0, 6878e3, 0.0],
+    [0.0, 0.0, 6878e3],
+    [6525.919e3, 1710.416e3, 2508.886e3],
+    [4884992.3, 4553508.5, 1330313.6],
+]
+
+_SH_DEGREE_ORDERS = [
+    (4, 4),
+    (10, 10),
+    (20, 20),
+    (40, 40),
+]
+
+
+class TestSphericalHarmonicsVsBrahe:
+    """Validate accel_gravity_spherical_harmonics against brahe.
+
+    Uses identity rotation for both libraries to isolate the algorithm
+    from frame transformation differences.
+    """
+
+    @pytest.mark.parametrize("r_eci", _SH_POSITIONS)
+    @pytest.mark.parametrize("n_max,m_max", _SH_DEGREE_ORDERS)
+    def test_accel_spherical_harmonics(self, r_eci, n_max, m_max):
+        """Spherical harmonic acceleration should agree with brahe."""
+        r = np.array(r_eci)
+        R_identity = np.eye(3)
+
+        # brahe uses GravityModelType enum for loading
+        bh_model = bh.GravityModel.from_model_type(bh.GravityModelType.JGM3)
+        expected = bh.accel_gravity_spherical_harmonics(
+            r, R_identity, bh_model, n_max, m_max,
+        )
+
+        aj_model = GravityModel.from_type("JGM3")
+        actual = np.array(accel_gravity_spherical_harmonics(
+            jnp.array(r), jnp.eye(3), aj_model, n_max, m_max,
+        ))
+
+        np.testing.assert_allclose(
+            actual, expected,
+            rtol=1e-9, atol=1e-12,
+            err_msg=f"SH mismatch for r={r_eci}, n={n_max}, m={m_max}",
+        )

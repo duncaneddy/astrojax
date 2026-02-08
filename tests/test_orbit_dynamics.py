@@ -18,6 +18,8 @@ from astrojax.orbit_dynamics import (
     moon_position,
     accel_point_mass,
     accel_gravity,
+    GravityModel,
+    accel_gravity_spherical_harmonics,
     accel_third_body_sun,
     accel_third_body_moon,
     density_harris_priester,
@@ -162,6 +164,234 @@ class TestAccelGravity:
         a1 = accel_gravity(r)
         a2 = accel_point_mass(r, jnp.zeros(3), GM_EARTH)
         assert jnp.allclose(a1, a2, atol=1e-10)
+
+
+# ===========================================================================
+# Gravity Model
+# ===========================================================================
+class TestGravityModel:
+    """Tests for GravityModel class."""
+
+    def test_load_egm2008_360(self):
+        """EGM2008_360 model metadata should match expected values."""
+        model = GravityModel.from_type("EGM2008_360")
+        assert model.model_name == "EGM2008"
+        assert model.gm == GM_EARTH
+        assert model.radius == R_EARTH
+        assert model.n_max == 360
+        assert model.m_max == 360
+        assert model.tide_system == "tide_free"
+        assert model.normalization == "fully_normalized"
+
+    def test_load_ggm05s(self):
+        """GGM05S model metadata should match expected values."""
+        model = GravityModel.from_type("GGM05S")
+        assert model.model_name == "GGM05S"
+        assert model.gm == GM_EARTH
+        assert model.radius == R_EARTH
+        assert model.n_max == 180
+        assert model.m_max == 180
+        assert model.tide_system == "zero_tide"
+        assert model.normalization == "fully_normalized"
+
+    def test_load_jgm3(self):
+        """JGM3 model metadata should match expected values."""
+        model = GravityModel.from_type("JGM3")
+        assert model.model_name == "JGM3"
+        assert model.gm == GM_EARTH
+        assert model.radius == R_EARTH
+        assert model.n_max == 70
+        assert model.m_max == 70
+        assert model.normalization == "fully_normalized"
+
+    def test_get_coefficients(self):
+        """Coefficient retrieval should match known values."""
+        model = GravityModel.from_type("EGM2008_360")
+
+        c, s = model.get(2, 0)
+        assert c == pytest.approx(-0.484165143790815e-03, abs=1e-12)
+        assert s == pytest.approx(0.0, abs=1e-12)
+
+        c, s = model.get(3, 3)
+        assert c == pytest.approx(0.721321757121568e-06, abs=1e-12)
+        assert s == pytest.approx(0.141434926192941e-05, abs=1e-12)
+
+        c, s = model.get(360, 360)
+        assert c == pytest.approx(0.200046056782130e-10, abs=1e-12)
+        assert s == pytest.approx(-0.958653755280305e-10, abs=1e-12)
+
+    def test_get_out_of_bounds(self):
+        """Requesting coefficients beyond model bounds should raise."""
+        model = GravityModel.from_type("EGM2008_360")
+        with pytest.raises(ValueError):
+            model.get(361, 0)
+
+    def test_set_max_degree_order(self):
+        """Truncation should reduce bounds and preserve coefficients."""
+        original = GravityModel.from_type("JGM3")
+        truncated = GravityModel.from_type("JGM3")
+
+        c_orig, s_orig = original.get(2, 0)
+        c_10_5_orig, s_10_5_orig = original.get(10, 5)
+        c_20_20_orig, s_20_20_orig = original.get(20, 20)
+
+        truncated.set_max_degree_order(20, 20)
+
+        assert truncated.n_max == 20
+        assert truncated.m_max == 20
+
+        c, s = truncated.get(2, 0)
+        assert c == pytest.approx(c_orig, abs=1e-15)
+        assert s == pytest.approx(s_orig, abs=1e-15)
+
+        c, s = truncated.get(10, 5)
+        assert c == pytest.approx(c_10_5_orig, abs=1e-15)
+        assert s == pytest.approx(s_10_5_orig, abs=1e-15)
+
+        c, s = truncated.get(20, 20)
+        assert c == pytest.approx(c_20_20_orig, abs=1e-15)
+        assert s == pytest.approx(s_20_20_orig, abs=1e-15)
+
+        with pytest.raises(ValueError):
+            truncated.get(21, 0)
+
+    def test_set_max_degree_order_computation_parity(self):
+        """Truncated model should match full model at same degree."""
+        from astrojax.config import set_dtype
+        set_dtype(jnp.float64)
+
+        truncated = GravityModel.from_type("JGM3")
+        truncated.set_max_degree_order(20, 20)
+        full = GravityModel.from_type("JGM3")
+
+        r = jnp.array([6525.919e3, 1710.416e3, 2508.886e3])
+        R = jnp.eye(3)
+
+        a_trunc = accel_gravity_spherical_harmonics(r, R, truncated, 20, 20)
+        a_full = accel_gravity_spherical_harmonics(r, R, full, 20, 20)
+
+        assert float(jnp.max(jnp.abs(a_trunc - a_full))) < 1e-15
+
+        set_dtype(jnp.float32)
+
+    def test_unknown_model_type(self):
+        """Unknown model type should raise ValueError."""
+        with pytest.raises(ValueError, match="Unknown gravity model type"):
+            GravityModel.from_type("NONEXISTENT")
+
+    def test_nonexistent_file(self):
+        """Loading from a nonexistent file should raise FileNotFoundError."""
+        with pytest.raises(FileNotFoundError):
+            GravityModel.from_file("/nonexistent/path.gfc")
+
+
+# ===========================================================================
+# Spherical Harmonic Gravity
+# ===========================================================================
+class TestAccelSphericalHarmonics:
+    """Tests for accel_gravity_spherical_harmonics()."""
+
+    def test_degree_0_matches_point_mass(self):
+        """Degree-0 spherical harmonics should equal point-mass gravity."""
+        from astrojax.config import set_dtype
+        set_dtype(jnp.float64)
+
+        model = GravityModel.from_type("EGM2008_360")
+        r = jnp.array([R_EARTH, 0.0, 0.0])
+        R = jnp.eye(3)
+
+        a = accel_gravity_spherical_harmonics(r, R, model, 0, 0)
+        assert float(a[0]) == pytest.approx(-GM_EARTH / R_EARTH**2, abs=1e-12)
+        assert float(a[1]) == pytest.approx(0.0, abs=1e-12)
+        assert float(a[2]) == pytest.approx(0.0, abs=1e-12)
+
+        set_dtype(jnp.float32)
+
+    def test_degree_60_egm2008(self):
+        """Degree-60 EGM2008 at R_EARTH on x-axis should match reference."""
+        from astrojax.config import set_dtype
+        set_dtype(jnp.float64)
+
+        model = GravityModel.from_type("EGM2008_360")
+        r = jnp.array([R_EARTH, 0.0, 0.0])
+        R = jnp.eye(3)
+
+        a = accel_gravity_spherical_harmonics(r, R, model, 60, 60)
+        assert float(a[0]) == pytest.approx(-9.81433239, abs=1e-8)
+        assert float(a[1]) == pytest.approx(1.813976e-6, abs=1e-12)
+        assert float(a[2]) == pytest.approx(-7.29925652190e-5, abs=1e-12)
+
+        set_dtype(jnp.float32)
+
+    @pytest.mark.parametrize("n,m,ax,ay,az", [
+        (2, 2, -6.97922756436, -1.8292810538, -2.69001658552),
+        (3, 3, -6.97926211185, -1.82929165145, -2.68998602761),
+        (4, 4, -6.97931189287, -1.82931487069, -2.6899914012),
+        (5, 5, -6.9792700471, -1.82929795164, -2.68997917147),
+        (6, 6, -6.979220667, -1.8292787808, -2.68997263887),
+        (7, 7, -6.97925478463, -1.82926946742, -2.68999296889),
+        (8, 8, -6.97927699747, -1.82928186346, -2.68998582282),
+        (9, 9, -6.97925893036, -1.82928170212, -2.68997442046),
+        (10, 10, -6.97924447943, -1.82928331386, -2.68997524437),
+        (11, 11, -6.9792517591, -1.82928094754, -2.68998382906),
+        (12, 12, -6.97924725688, -1.82928130662, -2.68998625958),
+        (13, 13, -6.97924858679, -1.82928591192, -2.6899891726),
+        (14, 14, -6.97924919386, -1.82928546814, -2.68999164569),
+        (15, 15, -6.97925490319, -1.82928469874, -2.68999376747),
+        (16, 16, -6.97926211023, -1.82928438361, -2.68999719587),
+        (17, 17, -6.97926308133, -1.82928484644, -2.68999716187),
+        (18, 18, -6.97926208121, -1.829284918, -2.6899952379),
+        (19, 19, -6.97926229494, -1.82928369323, -2.68999256236),
+        (20, 20, -6.979261862, -1.82928315091, -2.68999053339),
+    ])
+    def test_jgm3_validation(self, n, m, ax, ay, az):
+        """JGM3 validation against Satellite Orbits reference values."""
+        from astrojax.config import set_dtype
+        set_dtype(jnp.float64)
+
+        model = GravityModel.from_type("JGM3")
+        r = jnp.array([6525.919e3, 1710.416e3, 2508.886e3])
+        R = jnp.eye(3)
+
+        a = accel_gravity_spherical_harmonics(r, R, model, n, m)
+        tol = 1e-7
+        assert float(a[0]) == pytest.approx(ax, abs=tol)
+        assert float(a[1]) == pytest.approx(ay, abs=tol)
+        assert float(a[2]) == pytest.approx(az, abs=tol)
+
+        set_dtype(jnp.float32)
+
+    def test_shape(self):
+        """Output should be a (3,) array."""
+        model = GravityModel.from_type("JGM3")
+        r = jnp.array([R_EARTH + 500e3, 0.0, 0.0])
+        R = jnp.eye(3)
+        a = accel_gravity_spherical_harmonics(r, R, model, 4, 4)
+        assert a.shape == (3,)
+
+    def test_accepts_6d_state(self):
+        """Should accept a 6D state, using only the first 3 elements."""
+        model = GravityModel.from_type("JGM3")
+        r3 = jnp.array([R_EARTH + 500e3, 0.0, 0.0])
+        r6 = jnp.array([R_EARTH + 500e3, 0.0, 0.0, 0.0, 7500.0, 0.0])
+        R = jnp.eye(3)
+        a3 = accel_gravity_spherical_harmonics(r3, R, model, 4, 4)
+        a6 = accel_gravity_spherical_harmonics(r6, R, model, 4, 4)
+        assert jnp.allclose(a3, a6, atol=1e-10)
+
+    def test_jit_compatible(self):
+        """accel_gravity_spherical_harmonics should be JIT-compilable."""
+        model = GravityModel.from_type("JGM3")
+        r = jnp.array([R_EARTH + 500e3, 0.0, 0.0])
+        R = jnp.eye(3)
+
+        @jax.jit
+        def f(r, R):
+            return accel_gravity_spherical_harmonics(r, R, model, 4, 4)
+
+        a_eager = accel_gravity_spherical_harmonics(r, R, model, 4, 4)
+        a_jit = f(r, R)
+        assert jnp.allclose(a_eager, a_jit, atol=1e-10)
 
 
 # ===========================================================================
