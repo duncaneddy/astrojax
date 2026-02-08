@@ -85,6 +85,16 @@ from .orbits import (
     anomaly_mean_to_true,
 )
 
+from .attitude_dynamics import (
+    AttitudeDynamicsConfig,
+    SpacecraftInertia,
+    quaternion_derivative,
+    euler_equation,
+    torque_gravity_gradient,
+    create_attitude_dynamics,
+    normalize_attitude_state,
+)
+
 from .orbit_dynamics import (
     sun_position,
     moon_position,
@@ -187,6 +197,14 @@ __all__ = [
     "anomaly_eccentric_to_true",
     "anomaly_true_to_mean",
     "anomaly_mean_to_true",
+    # Attitude Dynamics
+    "AttitudeDynamicsConfig",
+    "SpacecraftInertia",
+    "quaternion_derivative",
+    "euler_equation",
+    "torque_gravity_gradient",
+    "create_attitude_dynamics",
+    "normalize_attitude_state",
     # Orbit Dynamics
     "sun_position",
     "moon_position",
