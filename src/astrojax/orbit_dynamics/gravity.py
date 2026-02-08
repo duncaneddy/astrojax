@@ -49,14 +49,16 @@ def accel_point_mass(
         gm: Gravitational parameter of the attracting body [m^3/s^2].
 
     Returns:
-        jax.Array: Acceleration vector [m/s^2], shape ``(3,)``.
+        Acceleration vector [m/s^2], shape ``(3,)``.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.constants import R_EARTH, GM_EARTH
-        >>> from astrojax.orbit_dynamics import accel_point_mass
-        >>> r = jnp.array([R_EARTH, 0.0, 0.0])
-        >>> a = accel_point_mass(r, jnp.zeros(3), GM_EARTH)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.constants import R_EARTH, GM_EARTH
+        from astrojax.orbit_dynamics import accel_point_mass
+        r = jnp.array([R_EARTH, 0.0, 0.0])
+        a = accel_point_mass(r, jnp.zeros(3), GM_EARTH)
+        ```
     """
     _float = get_dtype()
     r_obj = jnp.asarray(r_object, dtype=_float)[:3]
@@ -85,14 +87,16 @@ def accel_gravity(r_object: ArrayLike) -> Array:
             ``(6,)`` (only first 3 elements used).
 
     Returns:
-        jax.Array: Acceleration vector [m/s^2], shape ``(3,)``.
+        Acceleration vector [m/s^2], shape ``(3,)``.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.constants import R_EARTH
-        >>> from astrojax.orbit_dynamics import accel_gravity
-        >>> r = jnp.array([R_EARTH, 0.0, 0.0])
-        >>> a = accel_gravity(r)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.constants import R_EARTH
+        from astrojax.orbit_dynamics import accel_gravity
+        r = jnp.array([R_EARTH, 0.0, 0.0])
+        a = accel_gravity(r)
+        ```
     """
     return accel_point_mass(r_object, jnp.zeros(3, dtype=get_dtype()), GM_EARTH)
 
@@ -131,10 +135,12 @@ class GravityModel:
         tide_system: Tide system convention (e.g. ``"tide_free"``).
         normalization: Normalization convention (e.g. ``"fully_normalized"``).
 
-    Example:
-        >>> from astrojax.orbit_dynamics.gravity import GravityModel
-        >>> model = GravityModel.from_type("JGM3")
-        >>> c20, s20 = model.get(2, 0)
+    Examples:
+        ```python
+        from astrojax.orbit_dynamics.gravity import GravityModel
+        model = GravityModel.from_type("JGM3")
+        c20, s20 = model.get(2, 0)
+        ```
     """
 
     def __init__(
@@ -429,17 +435,19 @@ def accel_gravity_spherical_harmonics(
             <= model's m_max).
 
     Returns:
-        jax.Array: Acceleration in ECI frame [m/s^2], shape ``(3,)``.
+        Acceleration in ECI frame [m/s^2], shape ``(3,)``.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.orbit_dynamics.gravity import (
-        ...     GravityModel, accel_gravity_spherical_harmonics,
-        ... )
-        >>> model = GravityModel.from_type("JGM3")
-        >>> r = jnp.array([6878e3, 0.0, 0.0])
-        >>> R = jnp.eye(3)
-        >>> a = accel_gravity_spherical_harmonics(r, R, model, 20, 20)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.orbit_dynamics.gravity import (
+            GravityModel, accel_gravity_spherical_harmonics,
+        )
+        model = GravityModel.from_type("JGM3")
+        r = jnp.array([6878e3, 0.0, 0.0])
+        R = jnp.eye(3)
+        a = accel_gravity_spherical_harmonics(r, R, model, 20, 20)
+        ```
     """
     _float = get_dtype()
     r = jnp.asarray(r_eci, dtype=_float)[:3]
@@ -488,7 +496,7 @@ def _compute_spherical_harmonics(
         is_normalized: Whether coefficients are fully normalized.
 
     Returns:
-        jax.Array: Acceleration in body-fixed frame [m/s^2], shape ``(3,)``.
+        Acceleration in body-fixed frame [m/s^2], shape ``(3,)``.
     """
     # Auxiliary quantities
     r_sqr = jnp.dot(r_bf, r_bf)

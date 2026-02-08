@@ -26,14 +26,15 @@ def normalize_attitude_state(state: ArrayLike) -> Array:
             of shape ``(7,)``.
 
     Returns:
-        jax.Array: State with normalized quaternion, shape ``(7,)``.
+        State with normalized quaternion, shape ``(7,)``.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> state = jnp.array([1.001, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0])
-        >>> normed = normalize_attitude_state(state)
-        >>> float(jnp.linalg.norm(normed[:4]))
-        1.0
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        state = jnp.array([1.001, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0])
+        normed = normalize_attitude_state(state)
+        float(jnp.linalg.norm(normed[:4]))
+        ```
     """
     _float = get_dtype()
     state = jnp.asarray(state, dtype=_float)

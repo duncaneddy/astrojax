@@ -55,19 +55,21 @@ def create_attitude_dynamics(
         - *derivative*: ``[dq_w, dq_x, dq_y, dq_z, domega_x, domega_y,
             domega_z]``, shape ``(7,)``.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.attitude_dynamics.config import (
-        ...     AttitudeDynamicsConfig, SpacecraftInertia,
-        ... )
-        >>> from astrojax.attitude_dynamics.factory import create_attitude_dynamics
-        >>> from astrojax.integrators import rk4_step
-        >>> inertia = SpacecraftInertia.from_principal(10.0, 20.0, 30.0)
-        >>> config = AttitudeDynamicsConfig.torque_free(inertia)
-        >>> pos_fn = lambda t: jnp.array([7000e3, 0.0, 0.0])
-        >>> dynamics = create_attitude_dynamics(config, pos_fn)
-        >>> x0 = jnp.array([1.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0])
-        >>> result = rk4_step(dynamics, 0.0, x0, 1.0)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.attitude_dynamics.config import (
+            AttitudeDynamicsConfig, SpacecraftInertia,
+        )
+        from astrojax.attitude_dynamics.factory import create_attitude_dynamics
+        from astrojax.integrators import rk4_step
+        inertia = SpacecraftInertia.from_principal(10.0, 20.0, 30.0)
+        config = AttitudeDynamicsConfig.torque_free(inertia)
+        pos_fn = lambda t: jnp.array([7000e3, 0.0, 0.0])
+        dynamics = create_attitude_dynamics(config, pos_fn)
+        x0 = jnp.array([1.0, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0])
+        result = rk4_step(dynamics, 0.0, x0, 1.0)
+        ```
     """
     # Capture static configuration into local variables for the closure.
     _I = config.inertia.I

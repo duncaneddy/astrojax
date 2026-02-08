@@ -70,16 +70,18 @@ def create_orbit_dynamics(
         ValueError: If *gravity_type* is ``"spherical_harmonics"`` but no
             *gravity_model* is provided.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax import Epoch
-        >>> from astrojax.orbit_dynamics.factory import create_orbit_dynamics
-        >>> from astrojax.orbit_dynamics.config import ForceModelConfig
-        >>> from astrojax.integrators import rk4_step
-        >>> epoch_0 = Epoch(2024, 6, 15, 12, 0, 0)
-        >>> dynamics = create_orbit_dynamics(epoch_0)
-        >>> x0 = jnp.array([6878e3, 0.0, 0.0, 0.0, 7612.0, 0.0])
-        >>> result = rk4_step(dynamics, 0.0, x0, 60.0)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax import Epoch
+        from astrojax.orbit_dynamics.factory import create_orbit_dynamics
+        from astrojax.orbit_dynamics.config import ForceModelConfig
+        from astrojax.integrators import rk4_step
+        epoch_0 = Epoch(2024, 6, 15, 12, 0, 0)
+        dynamics = create_orbit_dynamics(epoch_0)
+        x0 = jnp.array([6878e3, 0.0, 0.0, 0.0, 7612.0, 0.0])
+        result = rk4_step(dynamics, 0.0, x0, 60.0)
+        ```
     """
     if config is None:
         config = ForceModelConfig.two_body()

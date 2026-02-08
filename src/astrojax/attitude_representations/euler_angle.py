@@ -74,11 +74,11 @@ class EulerAngle:
     leaves; the ``order`` (an ``EulerAngleOrder``) is auxiliary data.
 
     Args:
-        order: Rotation sequence (e.g. ``EulerAngleOrder.XYZ``).
-        phi: First rotation angle.
-        theta: Second rotation angle.
-        psi: Third rotation angle.
-        use_degrees: If ``True``, interpret angles as degrees. Default: ``False``.
+        order (EulerAngleOrder): Rotation sequence (e.g. ``EulerAngleOrder.XYZ``).
+        phi (float): First rotation angle.
+        theta (float): Second rotation angle.
+        psi (float): Third rotation angle.
+        use_degrees (bool): If ``True``, interpret angles as degrees. Default: ``False``.
     """
 
     __slots__ = ('_order', '_phi', '_theta', '_psi')
@@ -104,10 +104,10 @@ class EulerAngle:
         Used by pytree unflatten and conversion outputs.
 
         Args:
-            order: Rotation sequence.
-            phi: First angle in radians.
-            theta: Second angle in radians.
-            psi: Third angle in radians.
+            order (EulerAngleOrder): Rotation sequence.
+            phi (jax.Array): First angle in radians.
+            theta (jax.Array): Second angle in radians.
+            psi (jax.Array): Third angle in radians.
 
         Returns:
             EulerAngle: New instance.
@@ -148,9 +148,9 @@ class EulerAngle:
         """Create from a 3-element vector [phi, theta, psi].
 
         Args:
-            vec: Array-like of shape (3,).
-            order: Rotation sequence.
-            use_degrees: If ``True``, interpret as degrees.
+            vec (jax.Array): Array-like of shape (3,).
+            order (EulerAngleOrder): Rotation sequence.
+            use_degrees (bool): If ``True``, interpret as degrees.
 
         Returns:
             EulerAngle: New instance.
@@ -193,7 +193,7 @@ class EulerAngle:
         """Convert to ``EulerAngle`` with a (possibly different) order.
 
         Args:
-            order: Target rotation sequence.
+            order (EulerAngleOrder): Target rotation sequence.
 
         Returns:
             EulerAngle: Equivalent euler angle in the target order.
@@ -205,8 +205,8 @@ class EulerAngle:
         """Create from a ``Quaternion``.
 
         Args:
-            q: Source quaternion.
-            order: Target rotation sequence.
+            q (Quaternion): Source quaternion.
+            order (EulerAngleOrder): Target rotation sequence.
 
         Returns:
             EulerAngle: Equivalent euler angle.
@@ -218,8 +218,8 @@ class EulerAngle:
         """Create from a ``RotationMatrix``.
 
         Args:
-            r: Source rotation matrix.
-            order: Target rotation sequence.
+            r (RotationMatrix): Source rotation matrix.
+            order (EulerAngleOrder): Target rotation sequence.
 
         Returns:
             EulerAngle: Equivalent euler angle.
@@ -231,8 +231,8 @@ class EulerAngle:
         """Create from an ``EulerAxis``.
 
         Args:
-            ea: Source euler axis.
-            order: Target rotation sequence.
+            ea (EulerAxis): Source euler axis.
+            order (EulerAngleOrder): Target rotation sequence.
 
         Returns:
             EulerAngle: Equivalent euler angle.
@@ -244,8 +244,8 @@ class EulerAngle:
         """Create from another ``EulerAngle`` with a different order.
 
         Args:
-            e: Source euler angle.
-            order: Target rotation sequence.
+            e (EulerAngle): Source euler angle.
+            order (EulerAngleOrder): Target rotation sequence.
 
         Returns:
             EulerAngle: Equivalent euler angle in the target order.

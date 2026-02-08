@@ -29,11 +29,12 @@ class SpacecraftInertia:
     Args:
         I: 3x3 inertia tensor [kg m^2].
 
-    Example:
-        >>> from astrojax.attitude_dynamics.config import SpacecraftInertia
-        >>> inertia = SpacecraftInertia.from_principal(100.0, 200.0, 300.0)
-        >>> inertia.I.shape
-        (3, 3)
+    Examples:
+        ```python
+        from astrojax.attitude_dynamics.config import SpacecraftInertia
+        inertia = SpacecraftInertia.from_principal(100.0, 200.0, 300.0)
+        inertia.I.shape
+        ```
     """
 
     I: Array = field(default_factory=lambda: jnp.eye(3, dtype=get_dtype()))  # noqa: E741
@@ -50,10 +51,11 @@ class SpacecraftInertia:
         Returns:
             SpacecraftInertia: Diagonal inertia tensor.
 
-        Example:
-            >>> inertia = SpacecraftInertia.from_principal(10.0, 20.0, 30.0)
-            >>> float(inertia.I[0, 0])
-            10.0
+        Examples:
+            ```python
+            inertia = SpacecraftInertia.from_principal(10.0, 20.0, 30.0)
+            float(inertia.I[0, 0])
+            ```
         """
         _float = get_dtype()
         I = jnp.diag(jnp.array([Ixx, Iyy, Izz], dtype=_float))  # noqa: E741
@@ -73,13 +75,14 @@ class AttitudeDynamicsConfig:
         gravity_gradient: Enable gravity gradient torque.
         mu: Gravitational parameter [m^3/s^2] for gravity gradient.
 
-    Example:
-        >>> from astrojax.attitude_dynamics.config import AttitudeDynamicsConfig
-        >>> config = AttitudeDynamicsConfig.torque_free(
-        ...     SpacecraftInertia.from_principal(10.0, 20.0, 30.0)
-        ... )
-        >>> config.gravity_gradient
-        False
+    Examples:
+        ```python
+        from astrojax.attitude_dynamics.config import AttitudeDynamicsConfig
+        config = AttitudeDynamicsConfig.torque_free(
+            SpacecraftInertia.from_principal(10.0, 20.0, 30.0)
+        )
+        config.gravity_gradient
+        ```
     """
 
     inertia: SpacecraftInertia = field(default_factory=SpacecraftInertia)
@@ -96,12 +99,13 @@ class AttitudeDynamicsConfig:
         Returns:
             AttitudeDynamicsConfig: Configuration with no external torques.
 
-        Example:
-            >>> config = AttitudeDynamicsConfig.torque_free(
-            ...     SpacecraftInertia.from_principal(10.0, 20.0, 30.0)
-            ... )
-            >>> config.gravity_gradient
-            False
+        Examples:
+            ```python
+            config = AttitudeDynamicsConfig.torque_free(
+                SpacecraftInertia.from_principal(10.0, 20.0, 30.0)
+            )
+            config.gravity_gradient
+            ```
         """
         return AttitudeDynamicsConfig(inertia=inertia)
 
@@ -119,12 +123,13 @@ class AttitudeDynamicsConfig:
         Returns:
             AttitudeDynamicsConfig: Configuration with gravity gradient enabled.
 
-        Example:
-            >>> config = AttitudeDynamicsConfig.with_gravity_gradient(
-            ...     SpacecraftInertia.from_principal(10.0, 20.0, 30.0)
-            ... )
-            >>> config.gravity_gradient
-            True
+        Examples:
+            ```python
+            config = AttitudeDynamicsConfig.with_gravity_gradient(
+                SpacecraftInertia.from_principal(10.0, 20.0, 30.0)
+            )
+            config.gravity_gradient
+            ```
         """
         return AttitudeDynamicsConfig(
             inertia=inertia,

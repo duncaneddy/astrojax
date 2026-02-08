@@ -16,6 +16,11 @@ from astrojax.coordinates import (
     position_geodetic_to_ecef,
     state_eci_to_koe,
     state_koe_to_eci,
+    rotation_ellipsoid_to_enz,
+    rotation_enz_to_ellipsoid,
+    relative_position_ecef_to_enz,
+    relative_position_enz_to_ecef,
+    position_enz_to_azel,
 )
 
 # ──────────────────────────────────────────────
@@ -508,3 +513,356 @@ class TestJAXCompatibility:
         oes_back = jax.vmap(state_eci_to_koe)(states)
         assert oes_back.shape == (2, 6)
         assert jnp.allclose(oes_back[:, 0], oes[:, 0], atol=_SMA_TOL)
+
+
+# ──────────────────────────────────────────────
+# ENZ Topocentric transformations
+# ──────────────────────────────────────────────
+
+_ROT_TOL = 1e-5  # rotation matrix element tolerance (float32)
+_ENZ_POS_TOL = 1.0  # metres
+_AZEL_DEG_TOL = 1e-3  # degrees
+
+
+class TestRotationEllipsoidToENZ:
+    def test_origin_equator(self):
+        """At (lon=0, lat=0): ECEF X→Z, Y→E, Z→N."""
+        x = jnp.array([0.0, 0.0, 0.0])
+        rot = rotation_ellipsoid_to_enz(x)
+
+        # ECEF X [1,0,0] → ENZ Zenith [0,0,1]
+        enz = rot @ jnp.array([1.0, 0.0, 0.0])
+        assert jnp.abs(enz[0]) < _ROT_TOL
+        assert jnp.abs(enz[1]) < _ROT_TOL
+        assert jnp.abs(enz[2] - 1.0) < _ROT_TOL
+
+        # ECEF Y [0,1,0] → ENZ East [1,0,0]
+        enz = rot @ jnp.array([0.0, 1.0, 0.0])
+        assert jnp.abs(enz[0] - 1.0) < _ROT_TOL
+        assert jnp.abs(enz[1]) < _ROT_TOL
+        assert jnp.abs(enz[2]) < _ROT_TOL
+
+        # ECEF Z [0,0,1] → ENZ North [0,1,0]
+        enz = rot @ jnp.array([0.0, 0.0, 1.0])
+        assert jnp.abs(enz[0]) < _ROT_TOL
+        assert jnp.abs(enz[1] - 1.0) < _ROT_TOL
+        assert jnp.abs(enz[2]) < _ROT_TOL
+
+    def test_lon_90(self):
+        """At (lon=90, lat=0): ECEF X→-E, Y→Z, Z→N."""
+        x = jnp.array([90.0, 0.0, 0.0])
+        rot = rotation_ellipsoid_to_enz(x, use_degrees=True)
+
+        # ECEF X → -East
+        enz = rot @ jnp.array([1.0, 0.0, 0.0])
+        assert jnp.abs(enz[0] - (-1.0)) < _ROT_TOL
+        assert jnp.abs(enz[1]) < _ROT_TOL
+        assert jnp.abs(enz[2]) < _ROT_TOL
+
+        # ECEF Y → Zenith
+        enz = rot @ jnp.array([0.0, 1.0, 0.0])
+        assert jnp.abs(enz[0]) < _ROT_TOL
+        assert jnp.abs(enz[1]) < _ROT_TOL
+        assert jnp.abs(enz[2] - 1.0) < _ROT_TOL
+
+    def test_lat_90(self):
+        """At (lon=0, lat=90): ECEF X→-N, Y→E, Z→Z."""
+        x = jnp.array([0.0, 90.0, 0.0])
+        rot = rotation_ellipsoid_to_enz(x, use_degrees=True)
+
+        # ECEF X → -North
+        enz = rot @ jnp.array([1.0, 0.0, 0.0])
+        assert jnp.abs(enz[0]) < _ROT_TOL
+        assert jnp.abs(enz[1] - (-1.0)) < _ROT_TOL
+        assert jnp.abs(enz[2]) < _ROT_TOL
+
+        # ECEF Z → Zenith
+        enz = rot @ jnp.array([0.0, 0.0, 1.0])
+        assert jnp.abs(enz[0]) < _ROT_TOL
+        assert jnp.abs(enz[1]) < _ROT_TOL
+        assert jnp.abs(enz[2] - 1.0) < _ROT_TOL
+
+    def test_determinant_is_one(self):
+        """Rotation matrix has determinant 1.0."""
+        x = jnp.array([42.1, 53.9, 100.0])
+        rot = rotation_ellipsoid_to_enz(x, use_degrees=True)
+        assert jnp.abs(jnp.linalg.det(rot) - 1.0) < _ROT_TOL
+
+    def test_degrees_radians_consistent(self):
+        """Degrees and radians inputs give the same rotation matrix."""
+        lon_deg, lat_deg = 30.0, 60.0
+        rot_deg = rotation_ellipsoid_to_enz(
+            jnp.array([lon_deg, lat_deg, 0.0]), use_degrees=True
+        )
+        rot_rad = rotation_ellipsoid_to_enz(
+            jnp.array([lon_deg * DEG2RAD, lat_deg * DEG2RAD, 0.0]),
+            use_degrees=False,
+        )
+        assert jnp.allclose(rot_deg, rot_rad, atol=_ROT_TOL)
+
+
+class TestRotationENZToEllipsoid:
+    def test_inverse_is_transpose(self):
+        """R * R^T = I for an arbitrary location."""
+        x = jnp.array([42.1, 53.9, 100.0])
+        rot = rotation_ellipsoid_to_enz(x, use_degrees=True)
+        rot_t = rotation_enz_to_ellipsoid(x, use_degrees=True)
+
+        identity = rot @ rot_t
+        assert jnp.allclose(identity, jnp.eye(3), atol=_ROT_TOL)
+
+    def test_inverse_at_origin(self):
+        """R * R^T = I at (0,0,0)."""
+        x = jnp.array([0.0, 0.0, 0.0])
+        identity = rotation_ellipsoid_to_enz(x) @ rotation_enz_to_ellipsoid(x)
+        assert jnp.allclose(identity, jnp.eye(3), atol=_ROT_TOL)
+
+
+class TestRelativePositionECEFToENZ:
+    def test_overhead_geocentric(self):
+        """100m overhead at equator → [0, 0, 100] in ENZ (geocentric)."""
+        x_sta = jnp.array([R_EARTH, 0.0, 0.0])
+        r_ecef = jnp.array([R_EARTH + 100.0, 0.0, 0.0])
+        r_enz = relative_position_ecef_to_enz(x_sta, r_ecef, use_geodetic=False)
+
+        assert jnp.abs(r_enz[0]) < _ENZ_POS_TOL
+        assert jnp.abs(r_enz[1]) < _ENZ_POS_TOL
+        assert jnp.abs(r_enz[2] - 100.0) < _ENZ_POS_TOL
+
+    def test_north_geocentric(self):
+        """100m north at equator → [0, 100, 0] in ENZ (geocentric)."""
+        x_sta = jnp.array([R_EARTH, 0.0, 0.0])
+        r_ecef = jnp.array([R_EARTH, 0.0, 100.0])
+        r_enz = relative_position_ecef_to_enz(x_sta, r_ecef, use_geodetic=False)
+
+        assert jnp.abs(r_enz[0]) < _ENZ_POS_TOL
+        assert jnp.abs(r_enz[1] - 100.0) < _ENZ_POS_TOL
+        assert jnp.abs(r_enz[2]) < _ENZ_POS_TOL
+
+    def test_east_geocentric(self):
+        """100m east at equator → [100, 0, 0] in ENZ (geocentric)."""
+        x_sta = jnp.array([R_EARTH, 0.0, 0.0])
+        r_ecef = jnp.array([R_EARTH, 100.0, 0.0])
+        r_enz = relative_position_ecef_to_enz(x_sta, r_ecef, use_geodetic=False)
+
+        assert jnp.abs(r_enz[0] - 100.0) < _ENZ_POS_TOL
+        assert jnp.abs(r_enz[1]) < _ENZ_POS_TOL
+        assert jnp.abs(r_enz[2]) < _ENZ_POS_TOL
+
+    def test_geodetic_differs_from_geocentric(self):
+        """Geodetic and geocentric give different results at mid-latitude."""
+        # Station at ~45 deg latitude where geodetic/geocentric differ most
+        x_sta = position_geocentric_to_ecef(
+            jnp.array([0.0, 45.0, 0.0]), use_degrees=True
+        )
+        r_ecef = x_sta + jnp.array([1000.0, 500.0, 500.0])
+
+        r_geod = relative_position_ecef_to_enz(x_sta, r_ecef, use_geodetic=True)
+        r_geoc = relative_position_ecef_to_enz(x_sta, r_ecef, use_geodetic=False)
+
+        # Geodetic and geocentric latitudes differ at mid-latitudes
+        assert not jnp.allclose(r_geod, r_geoc, atol=0.01)
+
+    def test_overhead_geodetic(self):
+        """100m overhead at equator → [0, 0, 100] in ENZ (geodetic)."""
+        x_sta = jnp.array([R_EARTH, 0.0, 0.0])
+        r_ecef = jnp.array([R_EARTH + 100.0, 0.0, 0.0])
+        r_enz = relative_position_ecef_to_enz(x_sta, r_ecef, use_geodetic=True)
+
+        assert jnp.abs(r_enz[0]) < _ENZ_POS_TOL
+        assert jnp.abs(r_enz[1]) < _ENZ_POS_TOL
+        assert jnp.abs(r_enz[2] - 100.0) < _ENZ_POS_TOL
+
+
+class TestRelativePositionENZToECEF:
+    def test_inverse_overhead_geodetic(self):
+        """[0, 0, 100] ENZ → R_EARTH+100 along ECEF X (geodetic at equator)."""
+        x_sta = jnp.array([R_EARTH, 0.0, 0.0])
+        r_enz = jnp.array([0.0, 0.0, 100.0])
+        r_ecef = relative_position_enz_to_ecef(x_sta, r_enz, use_geodetic=True)
+
+        assert jnp.abs(r_ecef[0] - (R_EARTH + 100.0)) < _ENZ_POS_TOL
+        assert jnp.abs(r_ecef[1]) < _ENZ_POS_TOL
+        assert jnp.abs(r_ecef[2]) < _ENZ_POS_TOL
+
+    def test_inverse_overhead_geocentric(self):
+        """[0, 0, 100] ENZ → R_EARTH+100 along ECEF X (geocentric at equator)."""
+        x_sta = jnp.array([R_EARTH, 0.0, 0.0])
+        r_enz = jnp.array([0.0, 0.0, 100.0])
+        r_ecef = relative_position_enz_to_ecef(x_sta, r_enz, use_geodetic=False)
+
+        assert jnp.abs(r_ecef[0] - (R_EARTH + 100.0)) < _ENZ_POS_TOL
+        assert jnp.abs(r_ecef[1]) < _ENZ_POS_TOL
+        assert jnp.abs(r_ecef[2]) < _ENZ_POS_TOL
+
+
+class TestPositionENZToAzEl:
+    def test_directly_above(self):
+        """[0, 0, 100] → az=0, el=90, range=100."""
+        azel = position_enz_to_azel(jnp.array([0.0, 0.0, 100.0]), use_degrees=True)
+
+        assert jnp.abs(azel[0]) < _AZEL_DEG_TOL  # az=0
+        assert jnp.abs(azel[1] - 90.0) < _AZEL_DEG_TOL  # el=90
+        assert jnp.abs(azel[2] - 100.0) < _ENZ_POS_TOL  # range=100
+
+    def test_due_north(self):
+        """[0, 100, 0] → az=0, el=0, range=100."""
+        azel = position_enz_to_azel(jnp.array([0.0, 100.0, 0.0]), use_degrees=True)
+
+        assert jnp.abs(azel[0]) < _AZEL_DEG_TOL
+        assert jnp.abs(azel[1]) < _AZEL_DEG_TOL
+        assert jnp.abs(azel[2] - 100.0) < _ENZ_POS_TOL
+
+    def test_due_east(self):
+        """[100, 0, 0] → az=90, el=0, range=100."""
+        azel = position_enz_to_azel(jnp.array([100.0, 0.0, 0.0]), use_degrees=True)
+
+        assert jnp.abs(azel[0] - 90.0) < _AZEL_DEG_TOL
+        assert jnp.abs(azel[1]) < _AZEL_DEG_TOL
+        assert jnp.abs(azel[2] - 100.0) < _ENZ_POS_TOL
+
+    def test_northwest(self):
+        """[-100, 100, 0] → az=315, el=0, range=100*sqrt(2)."""
+        azel = position_enz_to_azel(
+            jnp.array([-100.0, 100.0, 0.0]), use_degrees=True
+        )
+        expected_range = 100.0 * jnp.sqrt(2.0)
+
+        assert jnp.abs(azel[0] - 315.0) < _AZEL_DEG_TOL
+        assert jnp.abs(azel[1]) < _AZEL_DEG_TOL
+        assert jnp.abs(azel[2] - expected_range) < _ENZ_POS_TOL
+
+    def test_degrees_radians_consistent(self):
+        """Degrees and radians outputs are consistent."""
+        x_enz = jnp.array([100.0, 50.0, 30.0])
+        azel_deg = position_enz_to_azel(x_enz, use_degrees=True)
+        azel_rad = position_enz_to_azel(x_enz, use_degrees=False)
+
+        assert jnp.allclose(
+            azel_deg[:2], jnp.rad2deg(azel_rad[:2]), atol=_AZEL_DEG_TOL
+        )
+        assert jnp.abs(azel_deg[2] - azel_rad[2]) < _ENZ_POS_TOL
+
+
+class TestENZRoundTrip:
+    def test_ecef_enz_ecef_geocentric(self):
+        """ECEF → ENZ → ECEF round-trip with geocentric."""
+        x_sta = jnp.array([R_EARTH, 0.0, 0.0])
+        r_ecef_orig = jnp.array([R_EARTH + 500.0, 300.0, 200.0])
+
+        r_enz = relative_position_ecef_to_enz(
+            x_sta, r_ecef_orig, use_geodetic=False
+        )
+        r_ecef_back = relative_position_enz_to_ecef(
+            x_sta, r_enz, use_geodetic=False
+        )
+        assert jnp.allclose(r_ecef_back, r_ecef_orig, atol=_ENZ_POS_TOL)
+
+    def test_ecef_enz_ecef_geodetic(self):
+        """ECEF → ENZ → ECEF round-trip with geodetic."""
+        x_sta = jnp.array([R_EARTH, 0.0, 0.0])
+        r_ecef_orig = jnp.array([R_EARTH + 500.0, 300.0, 200.0])
+
+        r_enz = relative_position_ecef_to_enz(
+            x_sta, r_ecef_orig, use_geodetic=True
+        )
+        r_ecef_back = relative_position_enz_to_ecef(
+            x_sta, r_enz, use_geodetic=True
+        )
+        assert jnp.allclose(r_ecef_back, r_ecef_orig, atol=_ENZ_POS_TOL)
+
+    def test_roundtrip_off_equator(self):
+        """Round-trip at a non-trivial station location."""
+        # Station at approximately Boulder, CO in geocentric ECEF
+        x_sta = position_geocentric_to_ecef(
+            jnp.array([-105.0, 40.0, 1655.0]), use_degrees=True
+        )
+        r_ecef_orig = x_sta + jnp.array([1000.0, 2000.0, 3000.0])
+
+        for use_geodetic in [True, False]:
+            r_enz = relative_position_ecef_to_enz(
+                x_sta, r_ecef_orig, use_geodetic=use_geodetic
+            )
+            r_ecef_back = relative_position_enz_to_ecef(
+                x_sta, r_enz, use_geodetic=use_geodetic
+            )
+            assert jnp.allclose(r_ecef_back, r_ecef_orig, atol=_ENZ_POS_TOL), (
+                f"Round-trip failed for use_geodetic={use_geodetic}"
+            )
+
+
+class TestENZJAXCompatibility:
+    def test_jit_rotation_ellipsoid_to_enz(self):
+        """rotation_ellipsoid_to_enz is JIT-compilable."""
+        x = jnp.array([0.5, 0.3, 0.0])
+        eager = rotation_ellipsoid_to_enz(x)
+        jitted = jax.jit(rotation_ellipsoid_to_enz)(x)
+        assert jnp.allclose(eager, jitted, atol=1e-6)
+
+    def test_jit_rotation_enz_to_ellipsoid(self):
+        """rotation_enz_to_ellipsoid is JIT-compilable."""
+        x = jnp.array([0.5, 0.3, 0.0])
+        eager = rotation_enz_to_ellipsoid(x)
+        jitted = jax.jit(rotation_enz_to_ellipsoid)(x)
+        assert jnp.allclose(eager, jitted, atol=1e-6)
+
+    def test_jit_relative_position_ecef_to_enz(self):
+        """relative_position_ecef_to_enz is JIT-compilable."""
+        x_sta = jnp.array([R_EARTH, 0.0, 0.0])
+        r_ecef = jnp.array([R_EARTH + 100.0, 50.0, 50.0])
+        eager = relative_position_ecef_to_enz(x_sta, r_ecef, use_geodetic=False)
+        jitted = jax.jit(
+            lambda s, r: relative_position_ecef_to_enz(s, r, use_geodetic=False)
+        )(x_sta, r_ecef)
+        assert jnp.allclose(eager, jitted, atol=1e-5)
+
+    def test_jit_relative_position_enz_to_ecef(self):
+        """relative_position_enz_to_ecef is JIT-compilable."""
+        x_sta = jnp.array([R_EARTH, 0.0, 0.0])
+        r_enz = jnp.array([100.0, 50.0, 200.0])
+        eager = relative_position_enz_to_ecef(x_sta, r_enz, use_geodetic=False)
+        jitted = jax.jit(
+            lambda s, r: relative_position_enz_to_ecef(s, r, use_geodetic=False)
+        )(x_sta, r_enz)
+        assert jnp.allclose(eager, jitted, atol=1e-5)
+
+    def test_jit_position_enz_to_azel(self):
+        """position_enz_to_azel is JIT-compilable."""
+        x = jnp.array([100.0, 50.0, 30.0])
+        eager = position_enz_to_azel(x)
+        jitted = jax.jit(position_enz_to_azel)(x)
+        assert jnp.allclose(eager, jitted, atol=1e-6)
+
+    def test_vmap_rotation_ellipsoid_to_enz(self):
+        """vmap over batch of ellipsoidal coordinates."""
+        coords = jnp.array([
+            [0.0, 0.0, 0.0],
+            [0.5, 0.3, 0.0],
+            [-1.0, 0.8, 100e3],
+        ])
+        rots = jax.vmap(rotation_ellipsoid_to_enz)(coords)
+        assert rots.shape == (3, 3, 3)
+
+    def test_vmap_position_enz_to_azel(self):
+        """vmap over batch of ENZ positions."""
+        enz_batch = jnp.array([
+            [0.0, 0.0, 100.0],
+            [100.0, 0.0, 0.0],
+            [0.0, 100.0, 0.0],
+        ])
+        azels = jax.vmap(position_enz_to_azel)(enz_batch)
+        assert azels.shape == (3, 3)
+
+    def test_vmap_relative_position_ecef_to_enz(self):
+        """vmap over batch of target positions with same station."""
+        x_sta = jnp.array([R_EARTH, 0.0, 0.0])
+        targets = jnp.array([
+            [R_EARTH + 100.0, 0.0, 0.0],
+            [R_EARTH, 100.0, 0.0],
+            [R_EARTH, 0.0, 100.0],
+        ])
+        # vmap over second argument only
+        enz_batch = jax.vmap(
+            lambda r: relative_position_ecef_to_enz(x_sta, r, use_geodetic=False)
+        )(targets)
+        assert enz_batch.shape == (3, 3)

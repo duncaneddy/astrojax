@@ -42,17 +42,18 @@ def torque_gravity_gradient(
         mu: Gravitational parameter [m^3/s^2].
 
     Returns:
-        jax.Array: Gravity gradient torque in the body frame
+        Gravity gradient torque in the body frame
             of shape ``(3,)`` [N m].
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> q = jnp.array([1.0, 0.0, 0.0, 0.0])
-        >>> r_eci = jnp.array([7000e3, 0.0, 0.0])
-        >>> I = jnp.diag(jnp.array([10.0, 20.0, 30.0]))
-        >>> tau = torque_gravity_gradient(q, r_eci, I)
-        >>> tau.shape
-        (3,)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        q = jnp.array([1.0, 0.0, 0.0, 0.0])
+        r_eci = jnp.array([7000e3, 0.0, 0.0])
+        I = jnp.diag(jnp.array([10.0, 20.0, 30.0]))
+        tau = torque_gravity_gradient(q, r_eci, I)
+        tau.shape
+        ```
     """
     _float = get_dtype()
     q = jnp.asarray(q, dtype=_float)

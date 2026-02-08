@@ -11,11 +11,6 @@ float dtype (see :func:`astrojax.config.set_dtype`).
 
 The anomaly conversion functions include a Newton-Raphson Kepler equation
 solver implemented with ``jax.lax.fori_loop`` for JAX traceability.
-
-References:
-    1. D. Vallado, *Fundamentals of Astrodynamics and Applications (4th Ed.)*, 2010.
-    2. O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and
-       Applications*, 2012.
 """
 
 from __future__ import annotations
@@ -42,12 +37,14 @@ def orbital_period(a: ArrayLike) -> Array:
         a: Semi-major axis. Units: *m*
 
     Returns:
-        float: Orbital period. Units: *s*
+        Orbital period. Units: *s*
 
     Examples:
-        >>> from astrojax.constants import R_EARTH
-        >>> from astrojax.orbits import orbital_period
-        >>> T = orbital_period(R_EARTH + 500e3)
+        ```python
+        from astrojax.constants import R_EARTH
+        from astrojax.orbits import orbital_period
+        T = orbital_period(R_EARTH + 500e3)
+        ```
     """
     a = jnp.asarray(a, dtype=get_dtype())
     return 2.0 * jnp.pi * jnp.sqrt(a**3 / GM_EARTH)
@@ -64,16 +61,18 @@ def orbital_period_from_state(state_eci: ArrayLike) -> Array:
             Units: *m* and *m/s*
 
     Returns:
-        float: Orbital period. Units: *s*
+        Orbital period. Units: *s*
 
     Examples:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.constants import R_EARTH, GM_EARTH
-        >>> from astrojax.orbits import orbital_period_from_state
-        >>> r = R_EARTH + 500e3
-        >>> v = jnp.sqrt(GM_EARTH / r)
-        >>> state = jnp.array([r, 0.0, 0.0, 0.0, v, 0.0])
-        >>> T = orbital_period_from_state(state)
+        ```python
+        import jax.numpy as jnp
+        from astrojax.constants import R_EARTH, GM_EARTH
+        from astrojax.orbits import orbital_period_from_state
+        r = R_EARTH + 500e3
+        v = jnp.sqrt(GM_EARTH / r)
+        state = jnp.array([r, 0.0, 0.0, 0.0, v, 0.0])
+        T = orbital_period_from_state(state)
+        ```
     """
     state_eci = jnp.asarray(state_eci, dtype=get_dtype())
     r = jnp.linalg.norm(state_eci[:3])
@@ -89,11 +88,13 @@ def semimajor_axis_from_orbital_period(period: ArrayLike) -> Array:
         period: Orbital period. Units: *s*
 
     Returns:
-        float: Semi-major axis. Units: *m*
+        Semi-major axis. Units: *m*
 
     Examples:
-        >>> from astrojax.orbits import semimajor_axis_from_orbital_period
-        >>> a = semimajor_axis_from_orbital_period(5676.977)
+        ```python
+        from astrojax.orbits import semimajor_axis_from_orbital_period
+        a = semimajor_axis_from_orbital_period(5676.977)
+        ```
     """
     period = jnp.asarray(period, dtype=get_dtype())
     return (period**2 * GM_EARTH / (4.0 * jnp.pi**2)) ** (1.0 / 3.0)
@@ -107,11 +108,13 @@ def semimajor_axis(n: ArrayLike, use_degrees: bool = False) -> Array:
         use_degrees: If ``True``, interpret ``n`` as degrees per second.
 
     Returns:
-        float: Semi-major axis. Units: *m*
+        Semi-major axis. Units: *m*
 
     Examples:
-        >>> from astrojax.orbits import semimajor_axis
-        >>> a = semimajor_axis(0.001106784)
+        ```python
+        from astrojax.orbits import semimajor_axis
+        a = semimajor_axis(0.001106784)
+        ```
     """
     n = jnp.asarray(n, dtype=get_dtype())
     n_rad = to_radians(n, use_degrees)
@@ -131,12 +134,14 @@ def mean_motion(a: ArrayLike, use_degrees: bool = False) -> Array:
         use_degrees: If ``True``, return mean motion in degrees per second.
 
     Returns:
-        float: Mean motion. Units: *rad/s* or *deg/s*
+        Mean motion. Units: *rad/s* or *deg/s*
 
     Examples:
-        >>> from astrojax.constants import R_EARTH
-        >>> from astrojax.orbits import mean_motion
-        >>> n = mean_motion(R_EARTH + 500e3)
+        ```python
+        from astrojax.constants import R_EARTH
+        from astrojax.orbits import mean_motion
+        n = mean_motion(R_EARTH + 500e3)
+        ```
     """
     a = jnp.asarray(a, dtype=get_dtype())
     n = jnp.sqrt(GM_EARTH / a**3)
@@ -156,12 +161,14 @@ def perigee_velocity(a: ArrayLike, e: ArrayLike) -> Array:
         e: Eccentricity. Dimensionless.
 
     Returns:
-        float: Perigee velocity magnitude. Units: *m/s*
+        Perigee velocity magnitude. Units: *m/s*
 
     Examples:
-        >>> from astrojax.constants import R_EARTH
-        >>> from astrojax.orbits import perigee_velocity
-        >>> vp = perigee_velocity(R_EARTH + 500e3, 0.001)
+        ```python
+        from astrojax.constants import R_EARTH
+        from astrojax.orbits import perigee_velocity
+        vp = perigee_velocity(R_EARTH + 500e3, 0.001)
+        ```
     """
     a = jnp.asarray(a, dtype=get_dtype())
     e = jnp.asarray(e, dtype=get_dtype())
@@ -176,12 +183,14 @@ def apogee_velocity(a: ArrayLike, e: ArrayLike) -> Array:
         e: Eccentricity. Dimensionless.
 
     Returns:
-        float: Apogee velocity magnitude. Units: *m/s*
+        Apogee velocity magnitude. Units: *m/s*
 
     Examples:
-        >>> from astrojax.constants import R_EARTH
-        >>> from astrojax.orbits import apogee_velocity
-        >>> va = apogee_velocity(R_EARTH + 500e3, 0.001)
+        ```python
+        from astrojax.constants import R_EARTH
+        from astrojax.orbits import apogee_velocity
+        va = apogee_velocity(R_EARTH + 500e3, 0.001)
+        ```
     """
     a = jnp.asarray(a, dtype=get_dtype())
     e = jnp.asarray(e, dtype=get_dtype())
@@ -201,11 +210,13 @@ def periapsis_distance(a: ArrayLike, e: ArrayLike) -> Array:
         e: Eccentricity. Dimensionless.
 
     Returns:
-        float: Periapsis distance. Units: *m*
+        Periapsis distance. Units: *m*
 
     Examples:
-        >>> from astrojax.orbits import periapsis_distance
-        >>> rp = periapsis_distance(500e3, 0.1)
+        ```python
+        from astrojax.orbits import periapsis_distance
+        rp = periapsis_distance(500e3, 0.1)
+        ```
     """
     a = jnp.asarray(a, dtype=get_dtype())
     e = jnp.asarray(e, dtype=get_dtype())
@@ -220,11 +231,13 @@ def apoapsis_distance(a: ArrayLike, e: ArrayLike) -> Array:
         e: Eccentricity. Dimensionless.
 
     Returns:
-        float: Apoapsis distance. Units: *m*
+        Apoapsis distance. Units: *m*
 
     Examples:
-        >>> from astrojax.orbits import apoapsis_distance
-        >>> ra = apoapsis_distance(500e3, 0.1)
+        ```python
+        from astrojax.orbits import apoapsis_distance
+        ra = apoapsis_distance(500e3, 0.1)
+        ```
     """
     a = jnp.asarray(a, dtype=get_dtype())
     e = jnp.asarray(e, dtype=get_dtype())
@@ -239,12 +252,14 @@ def perigee_altitude(a: ArrayLike, e: ArrayLike) -> Array:
         e: Eccentricity. Dimensionless.
 
     Returns:
-        float: Perigee altitude. Units: *m*
+        Perigee altitude. Units: *m*
 
     Examples:
-        >>> from astrojax.constants import R_EARTH
-        >>> from astrojax.orbits import perigee_altitude
-        >>> alt = perigee_altitude(R_EARTH + 500e3, 0.01)
+        ```python
+        from astrojax.constants import R_EARTH
+        from astrojax.orbits import perigee_altitude
+        alt = perigee_altitude(R_EARTH + 500e3, 0.01)
+        ```
     """
     return periapsis_distance(a, e) - R_EARTH
 
@@ -257,12 +272,14 @@ def apogee_altitude(a: ArrayLike, e: ArrayLike) -> Array:
         e: Eccentricity. Dimensionless.
 
     Returns:
-        float: Apogee altitude. Units: *m*
+        Apogee altitude. Units: *m*
 
     Examples:
-        >>> from astrojax.constants import R_EARTH
-        >>> from astrojax.orbits import apogee_altitude
-        >>> alt = apogee_altitude(R_EARTH + 500e3, 0.01)
+        ```python
+        from astrojax.constants import R_EARTH
+        from astrojax.orbits import apogee_altitude
+        alt = apogee_altitude(R_EARTH + 500e3, 0.01)
+        ```
     """
     return apoapsis_distance(a, e) - R_EARTH
 
@@ -285,12 +302,14 @@ def sun_synchronous_inclination(a: ArrayLike, e: ArrayLike, use_degrees: bool = 
         use_degrees: If ``True``, return inclination in degrees.
 
     Returns:
-        float: Sun-synchronous inclination. Units: *rad* or *deg*
+        Sun-synchronous inclination. Units: *rad* or *deg*
 
     Examples:
-        >>> from astrojax.constants import R_EARTH
-        >>> from astrojax.orbits import sun_synchronous_inclination
-        >>> inc = sun_synchronous_inclination(R_EARTH + 500e3, 0.001, use_degrees=True)
+        ```python
+        from astrojax.constants import R_EARTH
+        from astrojax.orbits import sun_synchronous_inclination
+        inc = sun_synchronous_inclination(R_EARTH + 500e3, 0.001, use_degrees=True)
+        ```
     """
     a = jnp.asarray(a, dtype=get_dtype())
     e = jnp.asarray(e, dtype=get_dtype())
@@ -309,11 +328,13 @@ def geo_sma() -> Array:
     """Compute the semi-major axis for a geostationary orbit around Earth.
 
     Returns:
-        float: Geostationary semi-major axis. Units: *m*
+        Geostationary semi-major axis. Units: *m*
 
     Examples:
-        >>> from astrojax.orbits import geo_sma
-        >>> a_geo = geo_sma()
+        ```python
+        from astrojax.orbits import geo_sma
+        a_geo = geo_sma()
+        ```
     """
     return semimajor_axis_from_orbital_period(2.0 * jnp.pi / OMEGA_EARTH)
 
@@ -334,15 +355,17 @@ def anomaly_eccentric_to_mean(anm_ecc: ArrayLike, e: ArrayLike, use_degrees: boo
         use_degrees: If ``True``, input and output are in degrees.
 
     Returns:
-        float: Mean anomaly. Units: *rad* or *deg*
+        Mean anomaly. Units: *rad* or *deg*
 
     References:
         O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and
         Applications*, 2012. Eq. 2.65.
 
     Examples:
-        >>> from astrojax.orbits import anomaly_eccentric_to_mean
-        >>> M = anomaly_eccentric_to_mean(90.0, 0.1, use_degrees=True)
+        ```python
+        from astrojax.orbits import anomaly_eccentric_to_mean
+        M = anomaly_eccentric_to_mean(90.0, 0.1, use_degrees=True)
+        ```
     """
     anm_ecc = jnp.asarray(anm_ecc, dtype=get_dtype())
     e = jnp.asarray(e, dtype=get_dtype())
@@ -365,11 +388,13 @@ def anomaly_mean_to_eccentric(anm_mean: ArrayLike, e: ArrayLike, use_degrees: bo
         use_degrees: If ``True``, input and output are in degrees.
 
     Returns:
-        float: Eccentric anomaly. Units: *rad* or *deg*
+        Eccentric anomaly. Units: *rad* or *deg*
 
     Examples:
-        >>> from astrojax.orbits import anomaly_mean_to_eccentric
-        >>> E = anomaly_mean_to_eccentric(84.27, 0.1, use_degrees=True)
+        ```python
+        from astrojax.orbits import anomaly_mean_to_eccentric
+        E = anomaly_mean_to_eccentric(84.27, 0.1, use_degrees=True)
+        ```
     """
     anm_mean = jnp.asarray(anm_mean, dtype=get_dtype())
     e = jnp.asarray(e, dtype=get_dtype())
@@ -398,15 +423,17 @@ def anomaly_true_to_eccentric(anm_true: ArrayLike, e: ArrayLike, use_degrees: bo
         use_degrees: If ``True``, input and output are in degrees.
 
     Returns:
-        float: Eccentric anomaly. Units: *rad* or *deg*
+        Eccentric anomaly. Units: *rad* or *deg*
 
     References:
         D. Vallado, *Fundamentals of Astrodynamics and Applications
         (4th Ed.)*, pp. 47, eq. 2-9, 2010.
 
     Examples:
-        >>> from astrojax.orbits import anomaly_true_to_eccentric
-        >>> E = anomaly_true_to_eccentric(90.0, 0.1, use_degrees=True)
+        ```python
+        from astrojax.orbits import anomaly_true_to_eccentric
+        E = anomaly_true_to_eccentric(90.0, 0.1, use_degrees=True)
+        ```
     """
     anm_true = jnp.asarray(anm_true, dtype=get_dtype())
     e = jnp.asarray(e, dtype=get_dtype())
@@ -425,15 +452,17 @@ def anomaly_eccentric_to_true(anm_ecc: ArrayLike, e: ArrayLike, use_degrees: boo
         use_degrees: If ``True``, input and output are in degrees.
 
     Returns:
-        float: True anomaly. Units: *rad* or *deg*
+        True anomaly. Units: *rad* or *deg*
 
     References:
         D. Vallado, *Fundamentals of Astrodynamics and Applications
         (4th Ed.)*, pp. 47, eq. 2-9, 2010.
 
     Examples:
-        >>> from astrojax.orbits import anomaly_eccentric_to_true
-        >>> nu = anomaly_eccentric_to_true(90.0, 0.1, use_degrees=True)
+        ```python
+        from astrojax.orbits import anomaly_eccentric_to_true
+        nu = anomaly_eccentric_to_true(90.0, 0.1, use_degrees=True)
+        ```
     """
     anm_ecc = jnp.asarray(anm_ecc, dtype=get_dtype())
     e = jnp.asarray(e, dtype=get_dtype())
@@ -454,11 +483,13 @@ def anomaly_true_to_mean(anm_true: ArrayLike, e: ArrayLike, use_degrees: bool = 
         use_degrees: If ``True``, input and output are in degrees.
 
     Returns:
-        float: Mean anomaly. Units: *rad* or *deg*
+        Mean anomaly. Units: *rad* or *deg*
 
     Examples:
-        >>> from astrojax.orbits import anomaly_true_to_mean
-        >>> M = anomaly_true_to_mean(90.0, 0.1, use_degrees=True)
+        ```python
+        from astrojax.orbits import anomaly_true_to_mean
+        M = anomaly_true_to_mean(90.0, 0.1, use_degrees=True)
+        ```
     """
     return anomaly_eccentric_to_mean(
         anomaly_true_to_eccentric(anm_true, e, use_degrees),
@@ -478,11 +509,13 @@ def anomaly_mean_to_true(anm_mean: ArrayLike, e: ArrayLike, use_degrees: bool = 
         use_degrees: If ``True``, input and output are in degrees.
 
     Returns:
-        float: True anomaly. Units: *rad* or *deg*
+        True anomaly. Units: *rad* or *deg*
 
     Examples:
-        >>> from astrojax.orbits import anomaly_mean_to_true
-        >>> nu = anomaly_mean_to_true(90.0, 0.1, use_degrees=True)
+        ```python
+        from astrojax.orbits import anomaly_mean_to_true
+        nu = anomaly_mean_to_true(90.0, 0.1, use_degrees=True)
+        ```
     """
     return anomaly_eccentric_to_true(
         anomaly_mean_to_eccentric(anm_mean, e, use_degrees),

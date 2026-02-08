@@ -31,8 +31,8 @@ def _is_so3(matrix: jax.Array, tol: float = 1e-6) -> bool:
     Tests orthogonality (R^T R ≈ I) and positive determinant (det ≈ +1).
 
     Args:
-        matrix: Array of shape ``(3, 3)``.
-        tol: Tolerance for the checks.
+        matrix (jax.Array): Array of shape ``(3, 3)``.
+        tol (float): Tolerance for the checks.
 
     Returns:
         bool: ``True`` if the matrix is a proper rotation matrix.
@@ -55,15 +55,15 @@ class RotationMatrix:
     the sole leaf.
 
     Args:
-        r11: Element (0, 0).
-        r12: Element (0, 1).
-        r13: Element (0, 2).
-        r21: Element (1, 0).
-        r22: Element (1, 1).
-        r23: Element (1, 2).
-        r31: Element (2, 0).
-        r32: Element (2, 1).
-        r33: Element (2, 2).
+        r11 (float): Element (0, 0).
+        r12 (float): Element (0, 1).
+        r13 (float): Element (0, 2).
+        r21 (float): Element (1, 0).
+        r22 (float): Element (1, 1).
+        r23 (float): Element (1, 2).
+        r31 (float): Element (2, 0).
+        r32 (float): Element (2, 1).
+        r33 (float): Element (2, 2).
     """
 
     __slots__ = ('_data',)
@@ -94,7 +94,7 @@ class RotationMatrix:
         Used by pytree unflatten and conversion outputs.
 
         Args:
-            data: Array of shape ``(3, 3)``.
+            data (jax.Array): Array of shape ``(3, 3)``.
 
         Returns:
             RotationMatrix: New instance.
@@ -157,8 +157,8 @@ class RotationMatrix:
         """Create from a 3x3 array.
 
         Args:
-            matrix: Array-like of shape ``(3, 3)``.
-            validate: If ``True``, check SO(3) membership. Default: ``True``.
+            matrix (jax.Array): Array-like of shape ``(3, 3)``.
+            validate (bool): If ``True``, check SO(3) membership. Default: ``True``.
 
         Returns:
             RotationMatrix: New instance.
@@ -189,8 +189,8 @@ class RotationMatrix:
         Delegates to the existing ``Rx`` function.
 
         Args:
-            angle: Rotation angle.
-            use_degrees: If ``True``, interpret as degrees.
+            angle (float): Rotation angle.
+            use_degrees (bool): If ``True``, interpret as degrees.
 
         Returns:
             RotationMatrix: Rotation about x.
@@ -204,8 +204,8 @@ class RotationMatrix:
         Delegates to the existing ``Ry`` function.
 
         Args:
-            angle: Rotation angle.
-            use_degrees: If ``True``, interpret as degrees.
+            angle (float): Rotation angle.
+            use_degrees (bool): If ``True``, interpret as degrees.
 
         Returns:
             RotationMatrix: Rotation about y.
@@ -219,8 +219,8 @@ class RotationMatrix:
         Delegates to the existing ``Rz`` function.
 
         Args:
-            angle: Rotation angle.
-            use_degrees: If ``True``, interpret as degrees.
+            angle (float): Rotation angle.
+            use_degrees (bool): If ``True``, interpret as degrees.
 
         Returns:
             RotationMatrix: Rotation about z.
@@ -233,10 +233,10 @@ class RotationMatrix:
         """Matrix-matrix or matrix-vector multiplication.
 
         Args:
-            other: ``RotationMatrix`` or 3-element array.
+            other (RotationMatrix | jax.Array): ``RotationMatrix`` or 3-element array.
 
         Returns:
-            RotationMatrix or jnp.ndarray.
+            RotationMatrix | jax.Array: Result of multiplication.
         """
         if isinstance(other, RotationMatrix):
             return RotationMatrix._from_internal(self._data @ other._data)
@@ -288,7 +288,7 @@ class RotationMatrix:
         """Convert to ``EulerAngle``.
 
         Args:
-            order: ``EulerAngleOrder`` specifying the rotation sequence.
+            order (EulerAngleOrder): ``EulerAngleOrder`` specifying the rotation sequence.
 
         Returns:
             EulerAngle: Equivalent euler angle.
@@ -312,7 +312,7 @@ class RotationMatrix:
         """Create from a ``Quaternion``.
 
         Args:
-            q: Source quaternion.
+            q (Quaternion): Source quaternion.
 
         Returns:
             RotationMatrix: Equivalent rotation matrix.
@@ -324,7 +324,7 @@ class RotationMatrix:
         """Create from an ``EulerAxis``.
 
         Args:
-            ea: Source euler axis.
+            ea (EulerAxis): Source euler axis.
 
         Returns:
             RotationMatrix: Equivalent rotation matrix.
@@ -336,7 +336,7 @@ class RotationMatrix:
         """Create from an ``EulerAngle``.
 
         Args:
-            e: Source euler angle.
+            e (EulerAngle): Source euler angle.
 
         Returns:
             RotationMatrix: Equivalent rotation matrix.
@@ -348,7 +348,7 @@ class RotationMatrix:
         """Create from another ``RotationMatrix``.
 
         Args:
-            r: Source rotation matrix.
+            r (RotationMatrix): Source rotation matrix.
 
         Returns:
             RotationMatrix: Copy.

@@ -12,5 +12,6 @@ Complete reference for all public modules in astrojax.
 | [Attitude Dynamics](attitude_dynamics.md) | Rigid-body attitude dynamics (Euler equations, gravity gradient) |
 | [Frames](frames.md) | ECI-ECEF frame transformations using Earth rotation |
 | [Relative Motion](relative_motion.md) | ECI-RTN frame transformations and HCW relative dynamics |
+| [Coordinates](coordinates.md) | Geocentric, geodetic, Keplerian, and ENZ topocentric transformations |
 | [Orbits](orbits.md) | Orbital mechanics utilities and anomaly conversions |
 | [Orbit Dynamics](orbit_dynamics.md) | Perturbation force models (gravity, drag, SRP, third-body) |

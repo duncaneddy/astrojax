@@ -6,16 +6,14 @@ Converts between osculating Keplerian orbital elements
 
 Element ordering follows the Brahe convention:
 
-======  =============================  ============
-Index   Element                        Units
-======  =============================  ============
-0       *a*  — semi-major axis         m
-1       *e*  — eccentricity            dimensionless
-2       *i*  — inclination             rad
-3       *Ω*  — right ascension (RAAN)  rad
-4       *ω*  — argument of perigee     rad
-5       *M*  — mean anomaly            rad
-======  =============================  ============
+| Index | Element                       | Units         |
+|-------|-------------------------------|---------------|
+| 0     | *a* — semi-major axis         | m             |
+| 1     | *e* — eccentricity            | dimensionless |
+| 2     | *i* — inclination             | rad           |
+| 3     | *Ω* — right ascension (RAAN)  | rad           |
+| 4     | *ω* — argument of perigee     | rad           |
+| 5     | *M* — mean anomaly            | rad           |
 
 All inputs and outputs use SI base units (metres, metres/second, radians).
 
@@ -52,16 +50,17 @@ def state_koe_to_eci(
         use_degrees: If ``True``, interpret angular elements as degrees.
 
     Returns:
-        jax.Array: ECI state ``[x, y, z, vx, vy, vz]`` in *m* and *m/s*.
+        ECI state ``[x, y, z, vx, vy, vz]`` in *m* and *m/s*.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.constants import R_EARTH
-        >>> from astrojax.coordinates import state_koe_to_eci
-        >>> oe = jnp.array([R_EARTH + 500e3, 0.0, 0.0, 0.0, 0.0, 0.0])
-        >>> state = state_koe_to_eci(oe)
-        >>> state.shape
-        (6,)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.constants import R_EARTH
+        from astrojax.coordinates import state_koe_to_eci
+        oe = jnp.array([R_EARTH + 500e3, 0.0, 0.0, 0.0, 0.0, 0.0])
+        state = state_koe_to_eci(oe)
+        state.shape
+        ```
 
     References:
         O. Montenbruck and E. Gill, *Satellite Orbits*, 2012, Eq. 2.43–2.44.
@@ -133,19 +132,20 @@ def state_eci_to_koe(
         use_degrees: If ``True``, return angular elements in degrees.
 
     Returns:
-        jax.Array: Orbital elements ``[a, e, i, RAAN, omega, M]``.
+        Orbital elements ``[a, e, i, RAAN, omega, M]``.
             Semi-major axis in *m*, angles in *rad* (or *deg*).
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.constants import R_EARTH, GM_EARTH
-        >>> from astrojax.coordinates import state_eci_to_koe
-        >>> sma = R_EARTH + 500e3
-        >>> v_circ = jnp.sqrt(GM_EARTH / sma)
-        >>> state = jnp.array([sma, 0.0, 0.0, 0.0, v_circ, 0.0])
-        >>> oe = state_eci_to_koe(state)
-        >>> oe.shape
-        (6,)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.constants import R_EARTH, GM_EARTH
+        from astrojax.coordinates import state_eci_to_koe
+        sma = R_EARTH + 500e3
+        v_circ = jnp.sqrt(GM_EARTH / sma)
+        state = jnp.array([sma, 0.0, 0.0, 0.0, v_circ, 0.0])
+        oe = state_eci_to_koe(state)
+        oe.shape
+        ```
 
     References:
         O. Montenbruck and E. Gill, *Satellite Orbits*, 2012, Eq. 2.56–2.68.

@@ -35,6 +35,7 @@ nav = [
         { "Time" = "user_guide/time.md" },
         { "Epoch" = "user_guide/epoch.md" },
         { "Frames" = "user_guide/frames.md" },
+        { "Coordinates" = "user_guide/coordinates.md" },
         { "Orbits" = "user_guide/orbits.md" },
         { "Orbit Dynamics" = "user_guide/orbit_dynamics.md" },
         { "Relative Motion" = "user_guide/relative_motion.md" },
@@ -49,6 +50,7 @@ nav = [
         { "Time" = "api_reference/time.md" },
         { "Epoch" = "api_reference/epoch.md" },
         { "Frames" = "api_reference/frames.md" },
+        { "Coordinates" = "api_reference/coordinates.md" },
         { "Orbits" = "api_reference/orbits.md" },
         { "Orbit Dynamics" = "api_reference/orbit_dynamics.md" },
         { "Relative Motion" = "api_reference/relative_motion.md" },
@@ -74,7 +76,10 @@ nav = [
 # The path provided should be relative to the "docs_dir".
 #
 # Read more: https://zensical.org/docs/customization/#additional-javascript
-#extra_javascript = ["javascripts/extra.js"]
+extra_javascript = [
+    "javascripts/mathjax.js",
+    "https://unpkg.com/mathjax@3/es5/tex-mml-chtml.js",
+]
 
 # ----------------------------------------------------------------------------
 # Section for configuring theme options

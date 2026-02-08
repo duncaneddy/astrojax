@@ -38,15 +38,16 @@ def quaternion_derivative(q: ArrayLike, omega: ArrayLike) -> Array:
             of shape ``(3,)`` [rad/s].
 
     Returns:
-        jax.Array: Quaternion derivative of shape ``(4,)``.
+        Quaternion derivative of shape ``(4,)``.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> q = jnp.array([1.0, 0.0, 0.0, 0.0])  # identity
-        >>> omega = jnp.array([0.0, 0.0, 0.1])    # yaw rate
-        >>> q_dot = quaternion_derivative(q, omega)
-        >>> q_dot.shape
-        (4,)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        q = jnp.array([1.0, 0.0, 0.0, 0.0])  # identity
+        omega = jnp.array([0.0, 0.0, 0.1])    # yaw rate
+        q_dot = quaternion_derivative(q, omega)
+        q_dot.shape
+        ```
     """
     _float = get_dtype()
     q = jnp.asarray(q, dtype=_float)
@@ -87,17 +88,18 @@ def euler_equation(
             of shape ``(3,)`` [N m].
 
     Returns:
-        jax.Array: Angular acceleration ``[dwx, dwy, dwz]``
+        Angular acceleration ``[dwx, dwy, dwz]``
             of shape ``(3,)`` [rad/s^2].
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> omega = jnp.array([0.1, 0.0, 0.0])
-        >>> I = jnp.diag(jnp.array([10.0, 20.0, 30.0]))
-        >>> tau = jnp.zeros(3)
-        >>> omega_dot = euler_equation(omega, I, tau)
-        >>> omega_dot.shape
-        (3,)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        omega = jnp.array([0.1, 0.0, 0.0])
+        I = jnp.diag(jnp.array([10.0, 20.0, 30.0]))
+        tau = jnp.zeros(3)
+        omega_dot = euler_equation(omega, I, tau)
+        omega_dot.shape
+        ```
     """
     _float = get_dtype()
     omega = jnp.asarray(omega, dtype=_float)

@@ -78,14 +78,16 @@ def density_harris_priester(
             computing the right ascension and declination of the Sun.
 
     Returns:
-        jax.Array: Atmospheric density [kg/m^3] (scalar).
+        Atmospheric density [kg/m^3] (scalar).
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.orbit_dynamics import density_harris_priester
-        >>> r = jnp.array([0.0, 0.0, -6466752.314])
-        >>> r_sun = jnp.array([24622331959.58, -133060326832.922, -57688711921.833])
-        >>> rho = density_harris_priester(r, r_sun)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.orbit_dynamics import density_harris_priester
+        r = jnp.array([0.0, 0.0, -6466752.314])
+        r_sun = jnp.array([24622331959.58, -133060326832.922, -57688711921.833])
+        rho = density_harris_priester(r, r_sun)
+        ```
     """
     _float = get_dtype()
     r_ecef = jnp.asarray(r_ecef, dtype=_float)

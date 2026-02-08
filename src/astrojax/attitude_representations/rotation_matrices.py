@@ -11,10 +11,10 @@ def Rx(angle:float, use_degrees:bool=False) -> jnp.ndarray:
         use_degrees (bool): Handle input and output in degrees. Default: ``False``
 
     Returns:
-        r (jnp.ndarray): Rotation matrix
+        jnp.ndarray: Rotation matrix.
 
     References:
-    
+
         1. O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and Applications*, 2012, p.27.
     """
     angle = to_radians(angle, use_degrees)
@@ -35,10 +35,10 @@ def Ry(angle:float, use_degrees:bool=False) -> jnp.ndarray:
         use_degrees (bool): Handle input and output in degrees. Default: ``False``
 
     Returns:
-        r (jnp.ndarray): Rotation matrix
+        jnp.ndarray: Rotation matrix.
 
     References:
-    
+
         1. O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and Applications*, 2012, p.27.
     """
     angle = to_radians(angle, use_degrees)
@@ -59,10 +59,10 @@ def Rz(angle:float, use_degrees:bool=False) -> jnp.ndarray:
         use_degrees (bool): Handle input and output in degrees. Default: ``False``
 
     Returns:
-        r (jnp.ndarray): Rotation matrix
+        jnp.ndarray: Rotation matrix.
 
     References:
-    
+
         1. O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and Applications*, 2012, p.27.
     """
     angle = to_radians(angle, use_degrees)

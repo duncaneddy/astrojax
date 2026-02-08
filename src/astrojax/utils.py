@@ -5,15 +5,17 @@ astrojax, providing JAX-traceable degree/radian conversion via
 ``jnp.where``.
 """
 
+from jax import Array
 import jax.numpy as jnp
+from jax.typing import ArrayLike
 
 
-def to_radians(angle, use_degrees):
+def to_radians(angle: ArrayLike, use_degrees: bool) -> Array:
     """Convert angle to radians if ``use_degrees`` is True.
 
     Args:
-        angle: Angle value.
-        use_degrees: If ``True``, treat ``angle`` as degrees and convert.
+        angle (ArrayLike): Angle value.
+        use_degrees (bool): If ``True``, treat ``angle`` as degrees and convert.
 
     Returns:
         Angle in radians.
@@ -21,12 +23,12 @@ def to_radians(angle, use_degrees):
     return jnp.where(use_degrees, jnp.deg2rad(angle), angle)
 
 
-def from_radians(angle, use_degrees):
+def from_radians(angle: ArrayLike, use_degrees: bool) -> Array:
     """Convert angle from radians to degrees if ``use_degrees`` is True.
 
     Args:
-        angle: Angle in radians.
-        use_degrees: If ``True``, convert to degrees.
+        angle (ArrayLike): Angle in radians.
+        use_degrees (bool): If ``True``, convert to degrees.
 
     Returns:
         Angle in radians or degrees.

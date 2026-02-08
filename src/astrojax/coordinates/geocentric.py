@@ -37,15 +37,16 @@ def position_geocentric_to_ecef(
         use_degrees: If ``True``, interpret longitude and latitude as degrees.
 
     Returns:
-        jax.Array: ECEF position ``[x, y, z]`` in *m*.
+        ECEF position ``[x, y, z]`` in *m*.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.coordinates import position_geocentric_to_ecef
-        >>> x_geoc = jnp.array([0.0, 0.0, 0.0])
-        >>> x_ecef = position_geocentric_to_ecef(x_geoc)
-        >>> float(x_ecef[0])  # WGS84_a on the equator
-        6378137.0
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.coordinates import position_geocentric_to_ecef
+        x_geoc = jnp.array([0.0, 0.0, 0.0])
+        x_ecef = position_geocentric_to_ecef(x_geoc)
+        float(x_ecef[0])  # WGS84_a on the equator
+        ```
     """
     x_geoc = jnp.asarray(x_geoc, dtype=get_dtype())
 
@@ -76,17 +77,18 @@ def position_ecef_to_geocentric(
         use_degrees: If ``True``, return longitude and latitude in degrees.
 
     Returns:
-        jax.Array: Geocentric coordinates ``[lon, lat, alt]``.
+        Geocentric coordinates ``[lon, lat, alt]``.
             Longitude and latitude in *rad* (or *deg*), altitude in *m*.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.constants import WGS84_a
-        >>> from astrojax.coordinates import position_ecef_to_geocentric
-        >>> x_ecef = jnp.array([WGS84_a, 0.0, 0.0])
-        >>> geoc = position_ecef_to_geocentric(x_ecef)
-        >>> float(geoc[2])  # altitude ≈ 0
-        0.0
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.constants import WGS84_a
+        from astrojax.coordinates import position_ecef_to_geocentric
+        x_ecef = jnp.array([WGS84_a, 0.0, 0.0])
+        geoc = position_ecef_to_geocentric(x_ecef)
+        float(geoc[2])  # altitude ≈ 0
+        ```
     """
     x_ecef = jnp.asarray(x_ecef, dtype=get_dtype())
 

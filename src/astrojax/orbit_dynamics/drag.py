@@ -45,13 +45,15 @@ def accel_drag(
         T: 3x3 rotation matrix from ECI to true-of-date frame.
 
     Returns:
-        jax.Array: Drag acceleration in ECI [m/s^2], shape ``(3,)``.
+        Drag acceleration in ECI [m/s^2], shape ``(3,)``.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.orbit_dynamics import accel_drag
-        >>> x = jnp.array([6878e3, 0.0, 0.0, 0.0, 7500.0, 0.0])
-        >>> a = accel_drag(x, 1e-12, 1000.0, 1.0, 2.0, jnp.eye(3))
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.orbit_dynamics import accel_drag
+        x = jnp.array([6878e3, 0.0, 0.0, 0.0, 7500.0, 0.0])
+        a = accel_drag(x, 1e-12, 1000.0, 1.0, 2.0, jnp.eye(3))
+        ```
     """
     _float = get_dtype()
     x = jnp.asarray(x, dtype=_float)

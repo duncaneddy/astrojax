@@ -34,10 +34,10 @@ class Quaternion:
     the sole leaf and no auxiliary data.
 
     Args:
-        s: Scalar (real) component.
-        v1: First vector (imaginary) component.
-        v2: Second vector (imaginary) component.
-        v3: Third vector (imaginary) component.
+        s (float): Scalar (real) component.
+        v1 (float): First vector (imaginary) component.
+        v2 (float): Second vector (imaginary) component.
+        v3 (float): Third vector (imaginary) component.
     """
 
     __slots__ = ('_data',)
@@ -54,7 +54,7 @@ class Quaternion:
         Used by pytree unflatten and conversion outputs.
 
         Args:
-            data: Array of shape ``(4,)`` in scalar-first order.
+            data (jax.Array): Array of shape ``(4,)`` in scalar-first order.
 
         Returns:
             Quaternion: New instance.
@@ -92,8 +92,8 @@ class Quaternion:
         """Create from a 4-element vector.
 
         Args:
-            v: Array-like of shape ``(4,)``.
-            scalar_first: If ``True``, ``v = [w, x, y, z]``.
+            v (jax.Array): Array-like of shape ``(4,)``.
+            scalar_first (bool): If ``True``, ``v = [w, x, y, z]``.
                 If ``False``, ``v = [x, y, z, w]``.
 
         Returns:
@@ -108,7 +108,7 @@ class Quaternion:
         """Return the quaternion as a 4-element vector.
 
         Args:
-            scalar_first: If ``True``, return ``[w, x, y, z]``.
+            scalar_first (bool): If ``True``, return ``[w, x, y, z]``.
                 If ``False``, return ``[x, y, z, w]``.
 
         Returns:
@@ -165,8 +165,8 @@ class Quaternion:
         """Spherical linear interpolation.
 
         Args:
-            other: Target quaternion.
-            t: Interpolation parameter in ``[0, 1]``.  ``t=0`` returns
+            other (Quaternion): Target quaternion.
+            t (float): Interpolation parameter in ``[0, 1]``.  ``t=0`` returns
                 ``self``, ``t=1`` returns ``other``.
 
         Returns:
@@ -252,7 +252,7 @@ class Quaternion:
         Goes through the rotation matrix representation (matching Rust).
 
         Args:
-            order: ``EulerAngleOrder`` specifying the rotation sequence.
+            order (EulerAngleOrder): ``EulerAngleOrder`` specifying the rotation sequence.
 
         Returns:
             EulerAngle: Equivalent euler angle.
@@ -280,7 +280,7 @@ class Quaternion:
         """Create from another ``Quaternion``.
 
         Args:
-            q: Source quaternion.
+            q (Quaternion): Source quaternion.
 
         Returns:
             Quaternion: Copy.
@@ -292,7 +292,7 @@ class Quaternion:
         """Create from an ``EulerAxis``.
 
         Args:
-            ea: Source euler axis.
+            ea (EulerAxis): Source euler axis.
 
         Returns:
             Quaternion: Equivalent quaternion.
@@ -307,7 +307,7 @@ class Quaternion:
         """Create from an ``EulerAngle``.
 
         Args:
-            e: Source euler angle.
+            e (EulerAngle): Source euler angle.
 
         Returns:
             Quaternion: Equivalent quaternion.
@@ -319,7 +319,7 @@ class Quaternion:
         """Create from a ``RotationMatrix``.
 
         Args:
-            r: Source rotation matrix.
+            r (RotationMatrix): Source rotation matrix.
 
         Returns:
             Quaternion: Equivalent quaternion.

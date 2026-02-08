@@ -46,7 +46,7 @@ def compute_error_norm(
         rel_tol: Relative error tolerance.
 
     Returns:
-        jax.Array: Scalar normalized error. Step is accepted if <= 1.0.
+        Scalar normalized error. Step is accepted if <= 1.0.
     """
     error_vec = jnp.asarray(error_vec, dtype=get_dtype())
     state_new = jnp.asarray(state_new, dtype=get_dtype())
@@ -90,7 +90,7 @@ def compute_next_step_size(
         max_step: Absolute maximum step size.
 
     Returns:
-        jax.Array: Suggested next step size with same sign as ``h``.
+        Suggested next step size with same sign as ``h``.
     """
     error = jnp.asarray(error, dtype=get_dtype())
     h = jnp.asarray(h, dtype=get_dtype())

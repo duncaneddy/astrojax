@@ -41,18 +41,19 @@ def rotation_rtn_to_eci(x_eci: ArrayLike) -> Array:
             Units: m, m/s.
 
     Returns:
-        jax.Array: 3x3 rotation matrix (RTN -> ECI).
+        3x3 rotation matrix (RTN -> ECI).
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.relative_motion import rotation_rtn_to_eci
-        >>> from astrojax.constants import R_EARTH, GM_EARTH
-        >>> sma = R_EARTH + 500e3
-        >>> v_circ = jnp.sqrt(GM_EARTH / sma)
-        >>> x = jnp.array([sma, 0.0, 0.0, 0.0, v_circ, 0.0])
-        >>> R = rotation_rtn_to_eci(x)
-        >>> R.shape
-        (3, 3)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.relative_motion import rotation_rtn_to_eci
+        from astrojax.constants import R_EARTH, GM_EARTH
+        sma = R_EARTH + 500e3
+        v_circ = jnp.sqrt(GM_EARTH / sma)
+        x = jnp.array([sma, 0.0, 0.0, 0.0, v_circ, 0.0])
+        R = rotation_rtn_to_eci(x)
+        R.shape
+        ```
     """
     x_eci = jnp.asarray(x_eci, dtype=get_dtype())
 
@@ -80,18 +81,19 @@ def rotation_eci_to_rtn(x_eci: ArrayLike) -> Array:
             Units: m, m/s.
 
     Returns:
-        jax.Array: 3x3 rotation matrix (ECI -> RTN).
+        3x3 rotation matrix (ECI -> RTN).
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.relative_motion import rotation_eci_to_rtn
-        >>> from astrojax.constants import R_EARTH, GM_EARTH
-        >>> sma = R_EARTH + 500e3
-        >>> v_circ = jnp.sqrt(GM_EARTH / sma)
-        >>> x = jnp.array([sma, 0.0, 0.0, 0.0, v_circ, 0.0])
-        >>> R = rotation_eci_to_rtn(x)
-        >>> R.shape
-        (3, 3)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.relative_motion import rotation_eci_to_rtn
+        from astrojax.constants import R_EARTH, GM_EARTH
+        sma = R_EARTH + 500e3
+        v_circ = jnp.sqrt(GM_EARTH / sma)
+        x = jnp.array([sma, 0.0, 0.0, 0.0, v_circ, 0.0])
+        R = rotation_eci_to_rtn(x)
+        R.shape
+        ```
     """
     return rotation_rtn_to_eci(x_eci).T
 
@@ -110,21 +112,22 @@ def state_eci_to_rtn(x_chief: ArrayLike, x_deputy: ArrayLike) -> Array:
             ``[x, y, z, vx, vy, vz]``. Units: m, m/s.
 
     Returns:
-        jax.Array: 6-element relative state in RTN
+        6-element relative state in RTN
             ``[rho_R, rho_T, rho_N, rho_dot_R, rho_dot_T, rho_dot_N]``.
             Units: m, m/s.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.relative_motion import state_eci_to_rtn
-        >>> from astrojax.constants import R_EARTH, GM_EARTH
-        >>> sma = R_EARTH + 500e3
-        >>> v_circ = jnp.sqrt(GM_EARTH / sma)
-        >>> chief = jnp.array([sma, 0.0, 0.0, 0.0, v_circ, 0.0])
-        >>> deputy = chief + jnp.array([100.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        >>> rel = state_eci_to_rtn(chief, deputy)
-        >>> float(rel[0])  # ~100 m radial offset
-        100.0
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.relative_motion import state_eci_to_rtn
+        from astrojax.constants import R_EARTH, GM_EARTH
+        sma = R_EARTH + 500e3
+        v_circ = jnp.sqrt(GM_EARTH / sma)
+        chief = jnp.array([sma, 0.0, 0.0, 0.0, v_circ, 0.0])
+        deputy = chief + jnp.array([100.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        rel = state_eci_to_rtn(chief, deputy)
+        float(rel[0])  # ~100 m radial offset
+        ```
     """
     x_chief = jnp.asarray(x_chief, dtype=get_dtype())
     x_deputy = jnp.asarray(x_deputy, dtype=get_dtype())
@@ -163,20 +166,21 @@ def state_rtn_to_eci(x_chief: ArrayLike, x_rel_rtn: ArrayLike) -> Array:
             Units: m, m/s.
 
     Returns:
-        jax.Array: 6-element absolute ECI state of the deputy
+        6-element absolute ECI state of the deputy
             ``[x, y, z, vx, vy, vz]``. Units: m, m/s.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.relative_motion import state_rtn_to_eci
-        >>> from astrojax.constants import R_EARTH, GM_EARTH
-        >>> sma = R_EARTH + 500e3
-        >>> v_circ = jnp.sqrt(GM_EARTH / sma)
-        >>> chief = jnp.array([sma, 0.0, 0.0, 0.0, v_circ, 0.0])
-        >>> rel_rtn = jnp.array([100.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        >>> deputy = state_rtn_to_eci(chief, rel_rtn)
-        >>> float(deputy[0] - chief[0])  # ~100 m radial offset
-        100.0
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.relative_motion import state_rtn_to_eci
+        from astrojax.constants import R_EARTH, GM_EARTH
+        sma = R_EARTH + 500e3
+        v_circ = jnp.sqrt(GM_EARTH / sma)
+        chief = jnp.array([sma, 0.0, 0.0, 0.0, v_circ, 0.0])
+        rel_rtn = jnp.array([100.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        deputy = state_rtn_to_eci(chief, rel_rtn)
+        float(deputy[0] - chief[0])  # ~100 m radial offset
+        ```
     """
     x_chief = jnp.asarray(x_chief, dtype=get_dtype())
     x_rel_rtn = jnp.asarray(x_rel_rtn, dtype=get_dtype())

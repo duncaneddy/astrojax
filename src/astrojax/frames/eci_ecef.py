@@ -42,15 +42,16 @@ def earth_rotation(epc: Epoch) -> Array:
         epc: Epoch at which to evaluate the rotation.
 
     Returns:
-        jax.Array: 3x3 Earth rotation matrix.
+        3x3 Earth rotation matrix.
 
-    Example:
-        >>> from astrojax import Epoch
-        >>> from astrojax.frames import earth_rotation
-        >>> epc = Epoch(2024, 1, 1)
-        >>> R = earth_rotation(epc)
-        >>> R.shape
-        (3, 3)
+    Examples:
+        ```python
+        from astrojax import Epoch
+        from astrojax.frames import earth_rotation
+        epc = Epoch(2024, 1, 1)
+        R = earth_rotation(epc)
+        R.shape
+        ```
     """
     return Rz(epc.gmst())
 
@@ -65,15 +66,16 @@ def rotation_eci_to_ecef(epc: Epoch) -> Array:
         epc: Epoch at which to evaluate the rotation.
 
     Returns:
-        jax.Array: 3x3 rotation matrix (ECI → ECEF).
+        3x3 rotation matrix (ECI → ECEF).
 
-    Example:
-        >>> from astrojax import Epoch
-        >>> from astrojax.frames import rotation_eci_to_ecef
-        >>> epc = Epoch(2024, 1, 1)
-        >>> R = rotation_eci_to_ecef(epc)
-        >>> R.shape
-        (3, 3)
+    Examples:
+        ```python
+        from astrojax import Epoch
+        from astrojax.frames import rotation_eci_to_ecef
+        epc = Epoch(2024, 1, 1)
+        R = rotation_eci_to_ecef(epc)
+        R.shape
+        ```
     """
     return earth_rotation(epc)
 
@@ -87,15 +89,16 @@ def rotation_ecef_to_eci(epc: Epoch) -> Array:
         epc: Epoch at which to evaluate the rotation.
 
     Returns:
-        jax.Array: 3x3 rotation matrix (ECEF → ECI).
+        3x3 rotation matrix (ECEF → ECI).
 
-    Example:
-        >>> from astrojax import Epoch
-        >>> from astrojax.frames import rotation_ecef_to_eci
-        >>> epc = Epoch(2024, 1, 1)
-        >>> R = rotation_ecef_to_eci(epc)
-        >>> R.shape
-        (3, 3)
+    Examples:
+        ```python
+        from astrojax import Epoch
+        from astrojax.frames import rotation_ecef_to_eci
+        epc = Epoch(2024, 1, 1)
+        R = rotation_ecef_to_eci(epc)
+        R.shape
+        ```
     """
     return earth_rotation(epc).T
 
@@ -121,21 +124,22 @@ def state_eci_to_ecef(epc: Epoch, x_eci: ArrayLike) -> Array:
             Units: m, m/s.
 
     Returns:
-        jax.Array: 6-element ECEF state ``[x, y, z, vx, vy, vz]``.
+        6-element ECEF state ``[x, y, z, vx, vy, vz]``.
             Units: m, m/s.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax import Epoch
-        >>> from astrojax.frames import state_eci_to_ecef
-        >>> from astrojax.constants import R_EARTH, GM_EARTH
-        >>> epc = Epoch(2024, 1, 1)
-        >>> sma = R_EARTH + 500e3
-        >>> v_circ = jnp.sqrt(GM_EARTH / sma)
-        >>> x_eci = jnp.array([sma, 0.0, 0.0, 0.0, v_circ, 0.0])
-        >>> x_ecef = state_eci_to_ecef(epc, x_eci)
-        >>> x_ecef.shape
-        (6,)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax import Epoch
+        from astrojax.frames import state_eci_to_ecef
+        from astrojax.constants import R_EARTH, GM_EARTH
+        epc = Epoch(2024, 1, 1)
+        sma = R_EARTH + 500e3
+        v_circ = jnp.sqrt(GM_EARTH / sma)
+        x_eci = jnp.array([sma, 0.0, 0.0, 0.0, v_circ, 0.0])
+        x_ecef = state_eci_to_ecef(epc, x_eci)
+        x_ecef.shape
+        ```
     """
     x_eci = jnp.asarray(x_eci, dtype=get_dtype())
 
@@ -170,19 +174,20 @@ def state_ecef_to_eci(epc: Epoch, x_ecef: ArrayLike) -> Array:
             Units: m, m/s.
 
     Returns:
-        jax.Array: 6-element ECI state ``[x, y, z, vx, vy, vz]``.
+        6-element ECI state ``[x, y, z, vx, vy, vz]``.
             Units: m, m/s.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax import Epoch
-        >>> from astrojax.frames import state_ecef_to_eci
-        >>> from astrojax.constants import R_EARTH
-        >>> epc = Epoch(2024, 1, 1)
-        >>> x_ecef = jnp.array([R_EARTH, 0.0, 0.0, 0.0, 0.0, 0.0])
-        >>> x_eci = state_ecef_to_eci(epc, x_ecef)
-        >>> x_eci.shape
-        (6,)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax import Epoch
+        from astrojax.frames import state_ecef_to_eci
+        from astrojax.constants import R_EARTH
+        epc = Epoch(2024, 1, 1)
+        x_ecef = jnp.array([R_EARTH, 0.0, 0.0, 0.0, 0.0, 0.0])
+        x_eci = state_ecef_to_eci(epc, x_ecef)
+        x_eci.shape
+        ```
     """
     x_ecef = jnp.asarray(x_ecef, dtype=get_dtype())
 

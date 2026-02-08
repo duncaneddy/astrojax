@@ -33,9 +33,9 @@ class EulerAxis:
     as leaves and no auxiliary data.
 
     Args:
-        axis: Rotation axis (need not be unit length; will be stored as-is).
-        angle: Rotation angle.
-        use_degrees: If ``True``, interpret ``angle`` as degrees. Default: ``False``.
+        axis (jax.Array): Rotation axis (need not be unit length; will be stored as-is).
+        angle (float): Rotation angle.
+        use_degrees (bool): If ``True``, interpret ``angle`` as degrees. Default: ``False``.
     """
 
     __slots__ = ('_axis', '_angle')
@@ -52,8 +52,8 @@ class EulerAxis:
         Used by pytree unflatten and conversion outputs.
 
         Args:
-            axis: Unit axis array of shape ``(3,)``.
-            angle: Angle scalar in radians.
+            axis (jax.Array): Unit axis array of shape ``(3,)``.
+            angle (jax.Array): Angle scalar in radians.
 
         Returns:
             EulerAxis: New instance.
@@ -82,11 +82,11 @@ class EulerAxis:
         """Create from individual axis components and angle.
 
         Args:
-            x: Axis x-component.
-            y: Axis y-component.
-            z: Axis z-component.
-            angle: Rotation angle.
-            use_degrees: If ``True``, interpret as degrees.
+            x (float): Axis x-component.
+            y (float): Axis y-component.
+            z (float): Axis z-component.
+            angle (float): Rotation angle.
+            use_degrees (bool): If ``True``, interpret as degrees.
 
         Returns:
             EulerAxis: New instance.
@@ -98,9 +98,9 @@ class EulerAxis:
         """Create from a 4-element vector.
 
         Args:
-            v: Array-like of shape ``(4,)``.
-            use_degrees: If ``True``, the angle component is in degrees.
-            vector_first: If ``True``, ``v = [x, y, z, angle]``.
+            v (jax.Array): Array-like of shape ``(4,)``.
+            use_degrees (bool): If ``True``, the angle component is in degrees.
+            vector_first (bool): If ``True``, ``v = [x, y, z, angle]``.
                 If ``False``, ``v = [angle, x, y, z]``.
 
         Returns:
@@ -115,8 +115,8 @@ class EulerAxis:
         """Return as a 4-element vector.
 
         Args:
-            use_degrees: If ``True``, output angle in degrees.
-            vector_first: If ``True``, return ``[x, y, z, angle]``.
+            use_degrees (bool): If ``True``, output angle in degrees.
+            vector_first (bool): If ``True``, return ``[x, y, z, angle]``.
                 If ``False``, return ``[angle, x, y, z]``.
 
         Returns:
@@ -156,7 +156,7 @@ class EulerAxis:
         """Convert to ``EulerAngle``.
 
         Args:
-            order: ``EulerAngleOrder`` specifying the rotation sequence.
+            order (EulerAngleOrder): ``EulerAngleOrder`` specifying the rotation sequence.
 
         Returns:
             EulerAngle: Equivalent euler angle.
@@ -176,7 +176,7 @@ class EulerAxis:
         """Create from a ``Quaternion``.
 
         Args:
-            q: Source quaternion.
+            q (Quaternion): Source quaternion.
 
         Returns:
             EulerAxis: Equivalent euler axis.
@@ -188,7 +188,7 @@ class EulerAxis:
         """Create from a ``RotationMatrix``.
 
         Args:
-            r: Source rotation matrix.
+            r (RotationMatrix): Source rotation matrix.
 
         Returns:
             EulerAxis: Equivalent euler axis.
@@ -200,7 +200,7 @@ class EulerAxis:
         """Create from an ``EulerAngle``.
 
         Args:
-            e: Source euler angle.
+            e (EulerAngle): Source euler angle.
 
         Returns:
             EulerAxis: Equivalent euler axis.
@@ -212,7 +212,7 @@ class EulerAxis:
         """Create from another ``EulerAxis``.
 
         Args:
-            ea: Source euler axis.
+            ea (EulerAxis): Source euler axis.
 
         Returns:
             EulerAxis: Copy.

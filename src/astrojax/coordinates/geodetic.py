@@ -50,15 +50,16 @@ def position_geodetic_to_ecef(
         use_degrees: If ``True``, interpret longitude and latitude as degrees.
 
     Returns:
-        jax.Array: ECEF position ``[x, y, z]`` in *m*.
+        ECEF position ``[x, y, z]`` in *m*.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.coordinates import position_geodetic_to_ecef
-        >>> x_geod = jnp.array([0.0, 0.0, 0.0])
-        >>> x_ecef = position_geodetic_to_ecef(x_geod)
-        >>> float(x_ecef[0])  # WGS84_a on the equator
-        6378137.0
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.coordinates import position_geodetic_to_ecef
+        x_geod = jnp.array([0.0, 0.0, 0.0])
+        x_ecef = position_geodetic_to_ecef(x_geod)
+        float(x_ecef[0])  # WGS84_a on the equator
+        ```
     """
     x_geod = jnp.asarray(x_geod, dtype=get_dtype())
 
@@ -97,18 +98,19 @@ def position_ecef_to_geodetic(
         use_degrees: If ``True``, return longitude and latitude in degrees.
 
     Returns:
-        jax.Array: Geodetic coordinates ``[lon, lat, alt]``.
+        Geodetic coordinates ``[lon, lat, alt]``.
             Longitude and latitude in *rad* (or *deg*), altitude in *m*
             above the WGS84 ellipsoid.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.constants import WGS84_a
-        >>> from astrojax.coordinates import position_ecef_to_geodetic
-        >>> x_ecef = jnp.array([WGS84_a, 0.0, 0.0])
-        >>> geod = position_ecef_to_geodetic(x_ecef)
-        >>> float(geod[2])  # altitude ≈ 0
-        0.0
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.constants import WGS84_a
+        from astrojax.coordinates import position_ecef_to_geodetic
+        x_ecef = jnp.array([WGS84_a, 0.0, 0.0])
+        geod = position_ecef_to_geodetic(x_ecef)
+        float(geod[2])  # altitude ≈ 0
+        ```
     """
     x_ecef = jnp.asarray(x_ecef, dtype=get_dtype())
 

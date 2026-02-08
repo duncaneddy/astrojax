@@ -34,15 +34,17 @@ def accel_third_body_sun(epc: Epoch, r_object: ArrayLike) -> Array:
             or ``(6,)`` (only first 3 elements used).
 
     Returns:
-        jax.Array: Acceleration vector [m/s^2], shape ``(3,)``.
+        Acceleration vector [m/s^2], shape ``(3,)``.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax import Epoch
-        >>> from astrojax.orbit_dynamics import accel_third_body_sun
-        >>> epc = Epoch(2024, 2, 25)
-        >>> r = jnp.array([6878e3, 0.0, 0.0])
-        >>> a = accel_third_body_sun(epc, r)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax import Epoch
+        from astrojax.orbit_dynamics import accel_third_body_sun
+        epc = Epoch(2024, 2, 25)
+        r = jnp.array([6878e3, 0.0, 0.0])
+        a = accel_third_body_sun(epc, r)
+        ```
     """
     r_sun = sun_position(epc)
     return accel_point_mass(r_object, r_sun, GM_SUN)
@@ -60,15 +62,17 @@ def accel_third_body_moon(epc: Epoch, r_object: ArrayLike) -> Array:
             or ``(6,)`` (only first 3 elements used).
 
     Returns:
-        jax.Array: Acceleration vector [m/s^2], shape ``(3,)``.
+        Acceleration vector [m/s^2], shape ``(3,)``.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax import Epoch
-        >>> from astrojax.orbit_dynamics import accel_third_body_moon
-        >>> epc = Epoch(2024, 2, 25)
-        >>> r = jnp.array([6878e3, 0.0, 0.0])
-        >>> a = accel_third_body_moon(epc, r)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax import Epoch
+        from astrojax.orbit_dynamics import accel_third_body_moon
+        epc = Epoch(2024, 2, 25)
+        r = jnp.array([6878e3, 0.0, 0.0])
+        a = accel_third_body_moon(epc, r)
+        ```
     """
     r_moon = moon_position(epc)
     return accel_point_mass(r_object, r_moon, GM_MOON)

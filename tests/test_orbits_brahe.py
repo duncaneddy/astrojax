@@ -31,6 +31,8 @@ from astrojax.orbits import (
     periapsis_distance,
     semimajor_axis,
     semimajor_axis_from_orbital_period,
+    state_koe_mean_to_osc,
+    state_koe_osc_to_mean,
     sun_synchronous_inclination,
 )
 
@@ -305,3 +307,153 @@ class TestAnomalyRadiansVsBrahe:
         )
         actual = float(anomaly_mean_to_eccentric(M_rad, e, use_degrees=False))
         assert abs(actual - expected) < _ANGLE_RAD_ATOL + abs(expected) * _REL_TOL
+
+
+# ──────────────────────────────────────────────
+# Mean-Osculating element conversions
+# ──────────────────────────────────────────────
+
+# Tolerances for mean-osculating comparisons (float32 vs float64)
+_MO_SMA_ATOL = 50.0       # metres
+_MO_ECC_ATOL = 1e-5       # dimensionless
+_MO_ANGLE_RAD_ATOL = 0.01  # radians (~0.6 deg, accommodates float32 at M=pi)
+_MO_ANGLE_DEG_ATOL = 0.6   # degrees
+
+
+def _angle_diff_rad(a, b):
+    """Minimum angular distance in radians, handling 0/2pi wraparound."""
+    d = abs(a - b) % (2.0 * np.pi)
+    return min(d, 2.0 * np.pi - d)
+
+
+def _angle_diff_deg(a, b):
+    """Minimum angular distance in degrees, handling 0/360 wraparound."""
+    d = abs(a - b) % 360.0
+    return min(d, 360.0 - d)
+
+
+def _compare_koe_rad(actual_jax, expected_brahe, sma_atol=_MO_SMA_ATOL,
+                     ecc_atol=_MO_ECC_ATOL, angle_atol=_MO_ANGLE_RAD_ATOL):
+    """Compare two KOE vectors element-by-element (radians)."""
+    actual = np.array(actual_jax)
+    expected = np.array(expected_brahe)
+    assert abs(actual[0] - expected[0]) < sma_atol, (
+        f"SMA: {actual[0]:.3f} vs {expected[0]:.3f}, diff={abs(actual[0]-expected[0]):.3f}"
+    )
+    assert abs(actual[1] - expected[1]) < ecc_atol, (
+        f"ecc: {actual[1]:.8f} vs {expected[1]:.8f}, diff={abs(actual[1]-expected[1]):.8f}"
+    )
+    for idx, name in [(2, "inc"), (3, "raan"), (4, "argp"), (5, "M")]:
+        diff = _angle_diff_rad(float(actual[idx]), float(expected[idx]))
+        assert diff < angle_atol, (
+            f"{name}: {actual[idx]:.8f} vs {expected[idx]:.8f}, diff={diff:.8f}"
+        )
+
+
+def _compare_koe_deg(actual_jax, expected_brahe, sma_atol=_MO_SMA_ATOL,
+                     ecc_atol=_MO_ECC_ATOL, angle_atol=_MO_ANGLE_DEG_ATOL):
+    """Compare two KOE vectors element-by-element (degrees)."""
+    actual = np.array(actual_jax)
+    expected = np.array(expected_brahe)
+    assert abs(actual[0] - expected[0]) < sma_atol
+    assert abs(actual[1] - expected[1]) < ecc_atol
+    for idx in range(2, 6):
+        diff = _angle_diff_deg(float(actual[idx]), float(expected[idx]))
+        assert diff < angle_atol
+
+
+class TestMeanToOscVsBrahe:
+    def test_leo_radians(self):
+        """state_koe_mean_to_osc matches brahe for LEO (radians)."""
+        oe = np.array([
+            bh.R_EARTH + 500e3, 0.01,
+            np.radians(45.0), np.radians(30.0),
+            np.radians(60.0), np.radians(90.0),
+        ])
+        expected = bh.state_koe_mean_to_osc(oe, RADIANS)
+        actual = state_koe_mean_to_osc(jnp.array(oe))
+        _compare_koe_rad(actual, expected)
+
+    def test_leo_degrees(self):
+        """state_koe_mean_to_osc matches brahe for LEO (degrees)."""
+        oe = np.array([bh.R_EARTH + 500e3, 0.01, 45.0, 30.0, 60.0, 90.0])
+        expected = bh.state_koe_mean_to_osc(oe, DEGREES)
+        actual = state_koe_mean_to_osc(jnp.array(oe), use_degrees=True)
+        _compare_koe_deg(actual, expected)
+
+    @pytest.mark.parametrize("m_deg", [0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0])
+    def test_mean_to_osc_various_M(self, m_deg):
+        """state_koe_mean_to_osc matches brahe across mean anomaly values."""
+        oe = np.array([
+            bh.R_EARTH + 500e3, 0.01,
+            np.radians(45.0), np.radians(30.0),
+            np.radians(60.0), np.radians(m_deg),
+        ])
+        expected = bh.state_koe_mean_to_osc(oe, RADIANS)
+        actual = state_koe_mean_to_osc(jnp.array(oe))
+        _compare_koe_rad(actual, expected)
+
+    @pytest.mark.parametrize("ecc", [0.0001, 0.001, 0.01, 0.1])
+    def test_mean_to_osc_various_e(self, ecc):
+        """state_koe_mean_to_osc matches brahe across eccentricity values."""
+        oe = np.array([
+            bh.R_EARTH + 500e3, ecc,
+            np.radians(45.0), np.radians(30.0),
+            np.radians(60.0), np.radians(90.0),
+        ])
+        expected = bh.state_koe_mean_to_osc(oe, RADIANS)
+        actual = state_koe_mean_to_osc(jnp.array(oe))
+        _compare_koe_rad(actual, expected)
+
+    def test_geo(self):
+        """state_koe_mean_to_osc matches brahe for GEO orbit."""
+        oe = np.array([
+            42164e3, 0.0001,
+            np.radians(0.1), np.radians(45.0), 0.0, 0.0,
+        ])
+        expected = bh.state_koe_mean_to_osc(oe, RADIANS)
+        actual = state_koe_mean_to_osc(jnp.array(oe))
+        _compare_koe_rad(actual, expected, sma_atol=10.0)
+
+    def test_sun_synchronous(self):
+        """state_koe_mean_to_osc matches brahe for sun-sync orbit."""
+        oe = np.array([
+            bh.R_EARTH + 700e3, 0.001,
+            np.radians(98.0), np.radians(45.0),
+            np.radians(90.0), np.radians(270.0),
+        ])
+        expected = bh.state_koe_mean_to_osc(oe, RADIANS)
+        actual = state_koe_mean_to_osc(jnp.array(oe))
+        _compare_koe_rad(actual, expected)
+
+
+class TestOscToMeanVsBrahe:
+    def test_leo_radians(self):
+        """state_koe_osc_to_mean matches brahe for LEO (radians)."""
+        oe = np.array([
+            bh.R_EARTH + 500e3, 0.01,
+            np.radians(45.0), np.radians(30.0),
+            np.radians(60.0), np.radians(90.0),
+        ])
+        expected = bh.state_koe_osc_to_mean(oe, RADIANS)
+        actual = state_koe_osc_to_mean(jnp.array(oe))
+        _compare_koe_rad(actual, expected)
+
+    def test_leo_degrees(self):
+        """state_koe_osc_to_mean matches brahe for LEO (degrees)."""
+        oe = np.array([bh.R_EARTH + 500e3, 0.01, 45.0, 30.0, 60.0, 90.0])
+        expected = bh.state_koe_osc_to_mean(oe, DEGREES)
+        actual = state_koe_osc_to_mean(jnp.array(oe), use_degrees=True)
+        _compare_koe_deg(actual, expected)
+
+    @pytest.mark.parametrize("m_deg", [0.0, 45.0, 90.0, 135.0, 180.0, 225.0, 270.0, 315.0])
+    def test_osc_to_mean_various_M(self, m_deg):
+        """state_koe_osc_to_mean matches brahe across mean anomaly values."""
+        oe = np.array([
+            bh.R_EARTH + 500e3, 0.01,
+            np.radians(45.0), np.radians(30.0),
+            np.radians(60.0), np.radians(m_deg),
+        ])
+        expected = bh.state_koe_osc_to_mean(oe, RADIANS)
+        actual = state_koe_osc_to_mean(jnp.array(oe))
+        _compare_koe_rad(actual, expected)

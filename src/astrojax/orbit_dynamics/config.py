@@ -56,11 +56,12 @@ class ForceModelConfig:
             ``"cylindrical"``, or ``"none"``.
         spacecraft: Spacecraft physical properties.
 
-    Example:
-        >>> from astrojax.orbit_dynamics.config import ForceModelConfig
-        >>> config = ForceModelConfig()  # point-mass only
-        >>> config.gravity_type
-        'point_mass'
+    Examples:
+        ```python
+        from astrojax.orbit_dynamics.config import ForceModelConfig
+        config = ForceModelConfig()  # point-mass only
+        config.gravity_type
+        ```
     """
 
     # Gravity
@@ -100,10 +101,11 @@ class ForceModelConfig:
         Returns:
             ForceModelConfig: Configuration with only point-mass gravity.
 
-        Example:
-            >>> config = ForceModelConfig.two_body()
-            >>> config.gravity_type
-            'point_mass'
+        Examples:
+            ```python
+            config = ForceModelConfig.two_body()
+            config.gravity_type
+            ```
         """
         return ForceModelConfig()
 
@@ -123,10 +125,11 @@ class ForceModelConfig:
         Returns:
             ForceModelConfig: LEO-appropriate configuration.
 
-        Example:
-            >>> config = ForceModelConfig.leo_default()
-            >>> config.drag
-            True
+        Examples:
+            ```python
+            config = ForceModelConfig.leo_default()
+            config.drag
+            ```
         """
         if gravity_model is None:
             gravity_model = GravityModel.from_type("JGM3")
@@ -157,10 +160,11 @@ class ForceModelConfig:
         Returns:
             ForceModelConfig: GEO-appropriate configuration.
 
-        Example:
-            >>> config = ForceModelConfig.geo_default()
-            >>> config.drag
-            False
+        Examples:
+            ```python
+            config = ForceModelConfig.geo_default()
+            config.drag
+            ```
         """
         if gravity_model is None:
             gravity_model = GravityModel.from_type("JGM3")

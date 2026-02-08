@@ -3,12 +3,17 @@ import jax.numpy as jnp
 import pytest
 
 from astrojax.constants import GM_EARTH, R_EARTH
+from astrojax.coordinates import state_koe_to_eci
 from astrojax.relative_motion import (
     hcw_derivative,
     rotation_eci_to_rtn,
     rotation_rtn_to_eci,
     state_eci_to_rtn,
     state_rtn_to_eci,
+    state_oe_to_roe,
+    state_roe_to_oe,
+    state_eci_to_roe,
+    state_roe_to_eci,
 )
 
 # Tolerances for float32 arithmetic
@@ -239,3 +244,275 @@ class TestJAXCompatibility:
         assert grad.shape == (6,)
         # Gradient should be nonzero for the x component
         assert jnp.abs(grad[0]) > 0.0
+
+
+# ──────────────────────────────────────────────
+# OE <-> ROE transformation tests
+# ──────────────────────────────────────────────
+
+# ROE tolerances — float32 introduces rounding on the large SMA values
+_ROE_DA_TOL = 1e-5       # relative SMA (dimensionless)
+_ROE_ANGLE_TOL = 1e-3    # degrees (angular ROE components)
+_ROE_ECC_TOL = 1e-5      # eccentricity vector components (dimensionless)
+_OE_SMA_TOL = 10.0       # metres (roundtrip SMA)
+_OE_ECC_RTOL = 1e-3      # eccentricity roundtrip (relative)
+_OE_ANGLE_DEG_TOL = 1e-2 # degrees (roundtrip angles)
+
+
+class TestOEtoROE:
+    def test_output_shape(self):
+        """state_oe_to_roe returns a 6-element array."""
+        oe_c = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        oe_d = jnp.array([R_EARTH + 701e3, 0.0015, 97.85, 15.05, 30.05, 45.05])
+        roe = state_oe_to_roe(oe_c, oe_d, use_degrees=True)
+        assert roe.shape == (6,)
+
+    def test_identical_satellites(self):
+        """ROE of identical satellites should be near-zero."""
+        oe = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        roe = state_oe_to_roe(oe, oe, use_degrees=True)
+        assert jnp.abs(float(roe[0])) < _ROE_DA_TOL  # da
+        assert jnp.abs(float(roe[2])) < _ROE_ECC_TOL  # dex
+        assert jnp.abs(float(roe[3])) < _ROE_ECC_TOL  # dey
+
+    def test_da_positive_when_deputy_higher(self):
+        """da should be positive when deputy has larger SMA."""
+        oe_c = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        oe_d = jnp.array([R_EARTH + 701e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        roe = state_oe_to_roe(oe_c, oe_d, use_degrees=True)
+        assert float(roe[0]) > 0.0
+
+    def test_da_value(self):
+        """da = (ad - ac) / ac should be computed correctly."""
+        ac = R_EARTH + 700e3
+        ad = R_EARTH + 701e3
+        oe_c = jnp.array([ac, 0.001, 97.8, 15.0, 30.0, 45.0])
+        oe_d = jnp.array([ad, 0.001, 97.8, 15.0, 30.0, 45.0])
+        roe = state_oe_to_roe(oe_c, oe_d, use_degrees=True)
+        expected_da = (ad - ac) / ac
+        assert jnp.abs(float(roe[0]) - float(expected_da)) < _ROE_DA_TOL
+
+    def test_radians_vs_degrees(self):
+        """Radians and degrees modes should give consistent results."""
+        oe_c_deg = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        oe_d_deg = jnp.array([R_EARTH + 701e3, 0.0015, 97.85, 15.05, 30.05, 45.05])
+
+        deg2rad = jnp.pi / 180.0
+        oe_c_rad = jnp.array([
+            R_EARTH + 700e3, 0.001,
+            97.8 * deg2rad, 15.0 * deg2rad, 30.0 * deg2rad, 45.0 * deg2rad,
+        ])
+        oe_d_rad = jnp.array([
+            R_EARTH + 701e3, 0.0015,
+            97.85 * deg2rad, 15.05 * deg2rad, 30.05 * deg2rad, 45.05 * deg2rad,
+        ])
+
+        roe_deg = state_oe_to_roe(oe_c_deg, oe_d_deg, use_degrees=True)
+        roe_rad = state_oe_to_roe(oe_c_rad, oe_d_rad, use_degrees=False)
+
+        # da, dex, dey should match exactly (no angle conversion)
+        assert jnp.allclose(roe_deg[0], roe_rad[0], atol=_ROE_DA_TOL)
+        assert jnp.allclose(roe_deg[2], roe_rad[2], atol=_ROE_ECC_TOL)
+        assert jnp.allclose(roe_deg[3], roe_rad[3], atol=_ROE_ECC_TOL)
+
+        # Angular components: convert deg result to radians and compare
+        assert jnp.allclose(
+            jnp.deg2rad(roe_deg[1]), roe_rad[1], atol=1e-4,
+        )
+
+
+class TestROEtoOE:
+    def test_output_shape(self):
+        """state_roe_to_oe returns a 6-element array."""
+        oe_c = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        roe = jnp.array([1.41e-4, 0.093, 4.32e-4, 2.51e-4, 0.05, 0.0495])
+        oe_d = state_roe_to_oe(oe_c, roe, use_degrees=True)
+        assert oe_d.shape == (6,)
+
+    def test_roundtrip_degrees(self):
+        """OE -> ROE -> OE roundtrip recovers the original deputy OE (degrees)."""
+        oe_c = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        oe_d_orig = jnp.array([R_EARTH + 701e3, 0.0015, 97.85, 15.05, 30.05, 45.05])
+
+        roe = state_oe_to_roe(oe_c, oe_d_orig, use_degrees=True)
+        oe_d_recovered = state_roe_to_oe(oe_c, roe, use_degrees=True)
+
+        assert jnp.abs(float(oe_d_recovered[0]) - float(oe_d_orig[0])) < _OE_SMA_TOL
+        assert jnp.abs(float(oe_d_recovered[1]) - float(oe_d_orig[1])) < _ROE_ECC_TOL
+        assert jnp.abs(float(oe_d_recovered[2]) - float(oe_d_orig[2])) < _OE_ANGLE_DEG_TOL
+        assert jnp.abs(float(oe_d_recovered[3]) - float(oe_d_orig[3])) < _OE_ANGLE_DEG_TOL
+        assert jnp.abs(float(oe_d_recovered[4]) - float(oe_d_orig[4])) < _OE_ANGLE_DEG_TOL
+        assert jnp.abs(float(oe_d_recovered[5]) - float(oe_d_orig[5])) < _OE_ANGLE_DEG_TOL
+
+    def test_roundtrip_radians(self):
+        """OE -> ROE -> OE roundtrip recovers the original deputy OE (radians)."""
+        deg2rad = jnp.pi / 180.0
+        oe_c = jnp.array([
+            R_EARTH + 700e3, 0.001,
+            97.8 * deg2rad, 15.0 * deg2rad, 30.0 * deg2rad, 45.0 * deg2rad,
+        ])
+        oe_d_orig = jnp.array([
+            R_EARTH + 701e3, 0.0015,
+            97.85 * deg2rad, 15.05 * deg2rad, 30.05 * deg2rad, 45.05 * deg2rad,
+        ])
+
+        roe = state_oe_to_roe(oe_c, oe_d_orig, use_degrees=False)
+        oe_d_recovered = state_roe_to_oe(oe_c, roe, use_degrees=False)
+
+        assert jnp.abs(float(oe_d_recovered[0]) - float(oe_d_orig[0])) < _OE_SMA_TOL
+        assert jnp.abs(float(oe_d_recovered[1]) - float(oe_d_orig[1])) < _ROE_ECC_TOL
+        angle_rad_tol = _OE_ANGLE_DEG_TOL * deg2rad
+        for idx in range(2, 6):
+            assert jnp.abs(float(oe_d_recovered[idx]) - float(oe_d_orig[idx])) < angle_rad_tol
+
+
+# ──────────────────────────────────────────────
+# ECI <-> ROE transformation tests
+# ──────────────────────────────────────────────
+
+class TestECItoROE:
+    def test_output_shape(self):
+        """state_eci_to_roe returns a 6-element array."""
+        oe_c = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        oe_d = jnp.array([R_EARTH + 701e3, 0.0015, 97.85, 15.05, 30.05, 45.05])
+        x_c = state_koe_to_eci(oe_c, use_degrees=True)
+        x_d = state_koe_to_eci(oe_d, use_degrees=True)
+        roe = state_eci_to_roe(x_c, x_d, use_degrees=True)
+        assert roe.shape == (6,)
+
+    def test_matches_oe_path(self):
+        """ECI->ROE should approximately match OE->ROE (float32 KOE conversion adds error)."""
+        oe_c = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        oe_d = jnp.array([R_EARTH + 701e3, 0.0015, 97.85, 15.05, 30.05, 45.05])
+
+        roe_from_oe = state_oe_to_roe(oe_c, oe_d, use_degrees=True)
+
+        x_c = state_koe_to_eci(oe_c, use_degrees=True)
+        x_d = state_koe_to_eci(oe_d, use_degrees=True)
+        roe_from_eci = state_eci_to_roe(x_c, x_d, use_degrees=True)
+
+        # Wider tolerance for ECI path due to float32 KOE conversion roundoff
+        assert jnp.allclose(roe_from_eci[0], roe_from_oe[0], atol=1e-4)
+        assert jnp.allclose(roe_from_eci[2], roe_from_oe[2], atol=5e-4)
+        assert jnp.allclose(roe_from_eci[3], roe_from_oe[3], atol=5e-4)
+
+
+class TestROEtoECI:
+    def test_output_shape(self):
+        """state_roe_to_eci returns a 6-element array."""
+        oe_c = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        x_c = state_koe_to_eci(oe_c, use_degrees=True)
+        roe = jnp.array([0.000142857, 0.05, 0.0005, -0.0003, 0.01, -0.02])
+        x_d = state_roe_to_eci(x_c, roe, use_degrees=True)
+        assert x_d.shape == (6,)
+
+    def test_valid_orbit(self):
+        """Deputy state from ROE should represent a valid orbit."""
+        oe_c = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        x_c = state_koe_to_eci(oe_c, use_degrees=True)
+        roe = jnp.array([0.000142857, 0.05, 0.0005, -0.0003, 0.01, -0.02])
+        x_d = state_roe_to_eci(x_c, roe, use_degrees=True)
+
+        pos_mag = float(jnp.linalg.norm(x_d[:3]))
+        vel_mag = float(jnp.linalg.norm(x_d[3:6]))
+        assert pos_mag > R_EARTH
+        assert pos_mag < R_EARTH + 2000e3
+        assert vel_mag > 6000.0
+        assert vel_mag < 9000.0
+
+    def test_eci_roe_roundtrip(self):
+        """ECI -> ROE -> ECI roundtrip recovers deputy state."""
+        oe_c = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        oe_d = jnp.array([R_EARTH + 701e3, 0.0015, 97.85, 15.05, 30.05, 45.05])
+
+        x_c = state_koe_to_eci(oe_c, use_degrees=True)
+        x_d_orig = state_koe_to_eci(oe_d, use_degrees=True)
+
+        roe = state_eci_to_roe(x_c, x_d_orig, use_degrees=True)
+        x_d_recovered = state_roe_to_eci(x_c, roe, use_degrees=True)
+
+        # ECI path has two KOE conversions (ECI→KOE→ROE→KOE→ECI), so
+        # float32 roundoff on ~7e6 m positions accumulates to ~500 m
+        assert jnp.allclose(x_d_recovered[:3], x_d_orig[:3], atol=500.0)
+        assert jnp.allclose(x_d_recovered[3:], x_d_orig[3:], atol=0.5)
+
+
+# ──────────────────────────────────────────────
+# JAX compatibility for ROE functions
+# ──────────────────────────────────────────────
+
+class TestROEJAXCompatibility:
+    def test_jit_state_oe_to_roe(self):
+        """state_oe_to_roe is JIT-compilable."""
+        oe_c = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        oe_d = jnp.array([R_EARTH + 701e3, 0.0015, 97.85, 15.05, 30.05, 45.05])
+
+        roe_eager = state_oe_to_roe(oe_c, oe_d, use_degrees=True)
+
+        @jax.jit
+        def f(c, d):
+            return state_oe_to_roe(c, d, use_degrees=True)
+
+        roe_jit = f(oe_c, oe_d)
+        assert jnp.allclose(roe_eager, roe_jit, atol=_SINGLE_TOL)
+
+    def test_jit_state_roe_to_oe(self):
+        """state_roe_to_oe is JIT-compilable."""
+        oe_c = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        roe = jnp.array([1.41e-4, 0.093, 4.32e-4, 2.51e-4, 0.05, 0.0495])
+
+        oe_eager = state_roe_to_oe(oe_c, roe, use_degrees=True)
+
+        @jax.jit
+        def f(c, r):
+            return state_roe_to_oe(c, r, use_degrees=True)
+
+        oe_jit = f(oe_c, roe)
+        assert jnp.allclose(oe_eager, oe_jit, atol=_SINGLE_TOL)
+
+    def test_jit_state_eci_to_roe(self):
+        """state_eci_to_roe is JIT-compilable."""
+        oe_c = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        oe_d = jnp.array([R_EARTH + 701e3, 0.0015, 97.85, 15.05, 30.05, 45.05])
+        x_c = state_koe_to_eci(oe_c, use_degrees=True)
+        x_d = state_koe_to_eci(oe_d, use_degrees=True)
+
+        @jax.jit
+        def f(c, d):
+            return state_eci_to_roe(c, d, use_degrees=True)
+
+        roe_jit = f(x_c, x_d)
+        # Verify JIT compilation succeeds and output is valid
+        assert roe_jit.shape == (6,)
+        assert jnp.all(jnp.isfinite(roe_jit))
+
+    def test_jit_state_roe_to_eci(self):
+        """state_roe_to_eci is JIT-compilable."""
+        oe_c = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        x_c = state_koe_to_eci(oe_c, use_degrees=True)
+        roe = jnp.array([0.000142857, 0.05, 0.0005, -0.0003, 0.01, -0.02])
+
+        @jax.jit
+        def f(c, r):
+            return state_roe_to_eci(c, r, use_degrees=True)
+
+        x_jit = f(x_c, roe)
+        # Verify JIT compilation succeeds and output is valid
+        assert x_jit.shape == (6,)
+        assert jnp.all(jnp.isfinite(x_jit))
+        pos_mag = float(jnp.linalg.norm(x_jit[:3]))
+        assert pos_mag > R_EARTH
+
+    def test_vmap_state_oe_to_roe(self):
+        """state_oe_to_roe works with vmap over batched deputies."""
+        oe_c = jnp.array([R_EARTH + 700e3, 0.001, 97.8, 15.0, 30.0, 45.0])
+        oe_deputies = jnp.array([
+            [R_EARTH + 701e3, 0.0015, 97.85, 15.05, 30.05, 45.05],
+            [R_EARTH + 702e3, 0.002, 97.9, 15.1, 30.1, 45.1],
+        ])
+
+        def f(oe_d):
+            return state_oe_to_roe(oe_c, oe_d, use_degrees=True)
+
+        roes = jax.vmap(f)(oe_deputies)
+        assert roes.shape == (2, 6)

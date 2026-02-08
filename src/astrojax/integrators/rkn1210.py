@@ -277,13 +277,15 @@ def rkn1210_step(
             - ``error_estimate``: Normalized error of the accepted step.
             - ``dt_next``: Suggested timestep for the next step.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.integrators import rkn1210_step
-        >>> def harmonic(t, x):
-        ...     return jnp.array([x[1], -x[0]])
-        >>> result = rkn1210_step(harmonic, 0.0, jnp.array([1.0, 0.0]), 0.1)
-        >>> result.state  # ~[cos(0.1), -sin(0.1)]
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.integrators import rkn1210_step
+        def harmonic(t, x):
+            return jnp.array([x[1], -x[0]])
+        result = rkn1210_step(harmonic, 0.0, jnp.array([1.0, 0.0]), 0.1)
+        result.state  # ~[cos(0.1), -sin(0.1)]
+        ```
     """
     if config is None:
         config = AdaptiveConfig()

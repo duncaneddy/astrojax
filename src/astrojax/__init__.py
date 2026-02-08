@@ -51,6 +51,10 @@ from .relative_motion import (
     rotation_eci_to_rtn,
     state_eci_to_rtn,
     state_rtn_to_eci,
+    state_oe_to_roe,
+    state_roe_to_oe,
+    state_eci_to_roe,
+    state_roe_to_eci,
     hcw_derivative,
 )
 
@@ -61,6 +65,11 @@ from .coordinates import (
     position_ecef_to_geodetic,
     state_koe_to_eci,
     state_eci_to_koe,
+    rotation_ellipsoid_to_enz,
+    rotation_enz_to_ellipsoid,
+    relative_position_ecef_to_enz,
+    relative_position_enz_to_ecef,
+    position_enz_to_azel,
 )
 
 from .orbits import (
@@ -83,6 +92,8 @@ from .orbits import (
     anomaly_eccentric_to_true,
     anomaly_true_to_mean,
     anomaly_mean_to_true,
+    state_koe_osc_to_mean,
+    state_koe_mean_to_osc,
 )
 
 from .attitude_dynamics import (
@@ -169,6 +180,10 @@ __all__ = [
     "rotation_eci_to_rtn",
     "state_eci_to_rtn",
     "state_rtn_to_eci",
+    "state_oe_to_roe",
+    "state_roe_to_oe",
+    "state_eci_to_roe",
+    "state_roe_to_eci",
     "hcw_derivative",
     # Coordinates
     "position_geocentric_to_ecef",
@@ -177,6 +192,11 @@ __all__ = [
     "position_ecef_to_geodetic",
     "state_koe_to_eci",
     "state_eci_to_koe",
+    "rotation_ellipsoid_to_enz",
+    "rotation_enz_to_ellipsoid",
+    "relative_position_ecef_to_enz",
+    "relative_position_enz_to_ecef",
+    "position_enz_to_azel",
     # Orbits
     "orbital_period",
     "orbital_period_from_state",
@@ -197,6 +217,8 @@ __all__ = [
     "anomaly_eccentric_to_true",
     "anomaly_true_to_mean",
     "anomaly_mean_to_true",
+    "state_koe_osc_to_mean",
+    "state_koe_mean_to_osc",
     # Attitude Dynamics
     "AttitudeDynamicsConfig",
     "SpacecraftInertia",

@@ -11,6 +11,8 @@ This sub-module provides functions for:
   anomalies, including a JAX-traceable Kepler equation solver.
 - **Special orbits**: sun-synchronous inclination and geostationary
   semi-major axis.
+- **Mean-osculating conversions**: first-order J2 mapping between mean
+  and osculating Keplerian elements (Brouwer-Lyddane theory).
 """
 
 from .keplerian import (
@@ -34,6 +36,10 @@ from .keplerian import (
     semimajor_axis_from_orbital_period,
     sun_synchronous_inclination,
 )
+from .mean_elements import (
+    state_koe_mean_to_osc,
+    state_koe_osc_to_mean,
+)
 
 __all__ = [
     "orbital_period",
@@ -55,4 +61,6 @@ __all__ = [
     "anomaly_eccentric_to_true",
     "anomaly_true_to_mean",
     "anomaly_mean_to_true",
+    "state_koe_osc_to_mean",
+    "state_koe_mean_to_osc",
 ]

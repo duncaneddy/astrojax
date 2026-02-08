@@ -46,7 +46,7 @@ def _julian_centuries_from_j2000(epc: Epoch) -> jax.Array:
         epc: Epoch at which to evaluate.
 
     Returns:
-        jax.Array: Julian centuries (T) from J2000.0.
+        Julian centuries (T) from J2000.0.
     """
     _float = get_dtype()
     days_from_j2000 = _float(epc._jd - jnp.int32(_JD_J2000))
@@ -68,15 +68,16 @@ def sun_position(epc: Epoch) -> Array:
         epc: Epoch at which to compute the Sun's position.
 
     Returns:
-        jax.Array: 3-element Sun position vector in metres.
+        3-element Sun position vector in metres.
 
-    Example:
-        >>> from astrojax import Epoch
-        >>> from astrojax.orbit_dynamics import sun_position
-        >>> epc = Epoch(2024, 2, 25)
-        >>> r_sun = sun_position(epc)
-        >>> float(jnp.linalg.norm(r_sun))  # ~1 AU
-        1...e+11
+    Examples:
+        ```python
+        from astrojax import Epoch
+        from astrojax.orbit_dynamics import sun_position
+        epc = Epoch(2024, 2, 25)
+        r_sun = sun_position(epc)
+        float(jnp.linalg.norm(r_sun))  # ~1 AU
+        ```
     """
     _float = get_dtype()
     pi2 = _float(2.0) * jnp.pi
@@ -118,15 +119,16 @@ def moon_position(epc: Epoch) -> Array:
         epc: Epoch at which to compute the Moon's position.
 
     Returns:
-        jax.Array: 3-element Moon position vector in metres.
+        3-element Moon position vector in metres.
 
-    Example:
-        >>> from astrojax import Epoch
-        >>> from astrojax.orbit_dynamics import moon_position
-        >>> epc = Epoch(2024, 2, 25)
-        >>> r_moon = moon_position(epc)
-        >>> float(jnp.linalg.norm(r_moon))  # ~384,000 km
-        3...e+08
+    Examples:
+        ```python
+        from astrojax import Epoch
+        from astrojax.orbit_dynamics import moon_position
+        epc = Epoch(2024, 2, 25)
+        r_moon = moon_position(epc)
+        float(jnp.linalg.norm(r_moon))  # ~384,000 km
+        ```
     """
     _float = get_dtype()
     pi2 = _float(2.0) * jnp.pi

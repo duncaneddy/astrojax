@@ -19,7 +19,7 @@ def caldate_to_mjd(year: ArrayLike, month: ArrayLike, day: ArrayLike, hour: Arra
         second (ArrayLike): Second of the calendar date. Default: ``0.0``
 
     Returns:
-        jax.Array: Modified Julian Date.
+        Modified Julian Date.
 
     References:
 
@@ -50,7 +50,7 @@ def caldate_to_jd(year: ArrayLike, month: ArrayLike, day: ArrayLike, hour: Array
         second (ArrayLike): Second of the calendar date. Default: ``0.0``
 
     Returns:
-        jax.Array: Julian Date.
+        Julian Date.
 
     References:
 
@@ -68,7 +68,7 @@ def jd_to_mjd(jd: ArrayLike) -> jax.Array:
         jd (ArrayLike): Julian Date.
 
     Returns:
-        jax.Array: Modified Julian Date.
+        Modified Julian Date.
 
     References:
 
@@ -84,7 +84,7 @@ def mjd_to_jd(mjd: ArrayLike) -> jax.Array:
         mjd (ArrayLike): Modified Julian Date.
 
     Returns:
-        jax.Array: Julian Date.
+        Julian Date.
 
     References:
 

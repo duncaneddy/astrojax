@@ -42,15 +42,17 @@ def accel_srp(
         p0: Solar radiation pressure at 1 AU [N/m^2].
 
     Returns:
-        jax.Array: SRP acceleration [m/s^2], shape ``(3,)``.
+        SRP acceleration [m/s^2], shape ``(3,)``.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.constants import AU
-        >>> from astrojax.orbit_dynamics import accel_srp
-        >>> r = jnp.array([AU, 0.0, 0.0])
-        >>> r_sun = jnp.zeros(3)
-        >>> a = accel_srp(r, r_sun, 1.0, 1.0, 1.0, 4.5e-6)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.constants import AU
+        from astrojax.orbit_dynamics import accel_srp
+        r = jnp.array([AU, 0.0, 0.0])
+        r_sun = jnp.zeros(3)
+        a = accel_srp(r, r_sun, 1.0, 1.0, 1.0, 4.5e-6)
+        ```
     """
     _float = get_dtype()
     r = jnp.asarray(r_object, dtype=_float)[:3]
@@ -74,16 +76,18 @@ def eclipse_conical(r_object: ArrayLike, r_sun: ArrayLike) -> Array:
         r_sun: Position of the Sun in ECI [m].  Shape ``(3,)``.
 
     Returns:
-        jax.Array: Illumination fraction (scalar).
+        Illumination fraction (scalar).
             0.0 = full shadow, 1.0 = full illumination.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.constants import R_EARTH, AU
-        >>> from astrojax.orbit_dynamics import eclipse_conical
-        >>> r_sun = jnp.array([AU, 0.0, 0.0])
-        >>> r_shadow = jnp.array([-R_EARTH - 100e3, 0.0, 0.0])
-        >>> nu = eclipse_conical(r_shadow, r_sun)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.constants import R_EARTH, AU
+        from astrojax.orbit_dynamics import eclipse_conical
+        r_sun = jnp.array([AU, 0.0, 0.0])
+        r_shadow = jnp.array([-R_EARTH - 100e3, 0.0, 0.0])
+        nu = eclipse_conical(r_shadow, r_sun)
+        ```
     """
     _float = get_dtype()
     r = jnp.asarray(r_object, dtype=_float)[:3]
@@ -130,15 +134,17 @@ def eclipse_cylindrical(r_object: ArrayLike, r_sun: ArrayLike) -> Array:
         r_sun: Position of the Sun in ECI [m].  Shape ``(3,)``.
 
     Returns:
-        jax.Array: Illumination fraction (scalar), 0.0 or 1.0.
+        Illumination fraction (scalar), 0.0 or 1.0.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.constants import R_EARTH, AU
-        >>> from astrojax.orbit_dynamics import eclipse_cylindrical
-        >>> r_sun = jnp.array([AU, 0.0, 0.0])
-        >>> r_shadow = jnp.array([-R_EARTH - 100e3, 0.0, 0.0])
-        >>> nu = eclipse_cylindrical(r_shadow, r_sun)
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.constants import R_EARTH, AU
+        from astrojax.orbit_dynamics import eclipse_cylindrical
+        r_sun = jnp.array([AU, 0.0, 0.0])
+        r_shadow = jnp.array([-R_EARTH - 100e3, 0.0, 0.0])
+        nu = eclipse_cylindrical(r_shadow, r_sun)
+        ```
     """
     _float = get_dtype()
     r = jnp.asarray(r_object, dtype=_float)[:3]

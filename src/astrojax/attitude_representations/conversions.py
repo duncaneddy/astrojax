@@ -27,7 +27,7 @@ def quaternion_to_rotation_matrix(q: jax.Array) -> jax.Array:
     Uses the bilinear product form (Diebel eq. 125).
 
     Args:
-        q: Quaternion array of shape ``(4,)`` in scalar-first order ``[w, x, y, z]``.
+        q (jax.Array): Quaternion array of shape ``(4,)`` in scalar-first order ``[w, x, y, z]``.
 
     Returns:
         jnp.ndarray: Rotation matrix of shape ``(3, 3)``.
@@ -48,7 +48,7 @@ def rotation_matrix_to_quaternion(R: jax.Array) -> jax.Array:
     numerical stability and JIT compatibility.
 
     Args:
-        R: Rotation matrix of shape ``(3, 3)``.
+        R (jax.Array): Rotation matrix of shape ``(3, 3)``.
 
     Returns:
         jnp.ndarray: Quaternion array of shape ``(4,)`` in scalar-first order ``[w, x, y, z]``.
@@ -116,8 +116,8 @@ def euler_axis_to_quaternion(axis: jax.Array, angle: jax.Array) -> jax.Array:
     ``Quaternion::new`` normalizes after construction.
 
     Args:
-        axis: Rotation axis vector of shape ``(3,)``.
-        angle: Rotation angle in radians (scalar).
+        axis (jax.Array): Rotation axis vector of shape ``(3,)``.
+        angle (jax.Array): Rotation angle in radians (scalar).
 
     Returns:
         jnp.ndarray: Unit quaternion of shape ``(4,)`` in scalar-first order.
@@ -135,7 +135,7 @@ def quaternion_to_euler_axis(q: jax.Array) -> tuple[jax.Array, jax.Array]:
     axis ``[1, 0, 0]`` is returned.
 
     Args:
-        q: Quaternion of shape ``(4,)`` in scalar-first order.
+        q (jax.Array): Quaternion of shape ``(4,)`` in scalar-first order.
 
     Returns:
         tuple: ``(axis, angle)`` where ``axis`` has shape ``(3,)`` and
@@ -273,10 +273,10 @@ def euler_angle_to_quaternion(order_idx: jax.Array, phi: jax.Array, theta: jax.A
     """Convert Euler angles to a quaternion via ``jax.lax.switch``.
 
     Args:
-        order_idx: Integer index 0--11 matching ``EulerAngleOrder``.
-        phi: First rotation angle in radians.
-        theta: Second rotation angle in radians.
-        psi: Third rotation angle in radians.
+        order_idx (jax.Array): Integer index 0--11 matching ``EulerAngleOrder``.
+        phi (jax.Array): First rotation angle in radians.
+        theta (jax.Array): Second rotation angle in radians.
+        psi (jax.Array): Third rotation angle in radians.
 
     Returns:
         jnp.ndarray: Quaternion of shape ``(4,)`` in scalar-first order.
@@ -357,8 +357,8 @@ def rotation_matrix_to_euler_angle(order_idx: jax.Array, R: jax.Array) -> jax.Ar
     """Extract Euler angles from a rotation matrix.
 
     Args:
-        order_idx: Integer index 0--11 matching ``EulerAngleOrder``.
-        R: Rotation matrix of shape ``(3, 3)``.
+        order_idx (jax.Array): Integer index 0--11 matching ``EulerAngleOrder``.
+        R (jax.Array): Rotation matrix of shape ``(3, 3)``.
 
     Returns:
         jnp.ndarray: Array ``[phi, theta, psi]`` in radians.
@@ -375,8 +375,8 @@ def quaternion_multiply(q1: jax.Array, q2: jax.Array) -> jax.Array:
     """Hamilton product of two quaternions.
 
     Args:
-        q1: First quaternion of shape ``(4,)`` in scalar-first order.
-        q2: Second quaternion of shape ``(4,)`` in scalar-first order.
+        q1 (jax.Array): First quaternion of shape ``(4,)`` in scalar-first order.
+        q2 (jax.Array): Second quaternion of shape ``(4,)`` in scalar-first order.
 
     Returns:
         jnp.ndarray: Product quaternion of shape ``(4,)``.
@@ -398,9 +398,9 @@ def quaternion_slerp(q1: jax.Array, q2: jax.Array, t: float | jax.Array) -> jax.
     parallel (dot product > 0.9995).
 
     Args:
-        q1: Start quaternion of shape ``(4,)``.
-        q2: End quaternion of shape ``(4,)``.
-        t: Interpolation parameter in ``[0, 1]``.
+        q1 (jax.Array): Start quaternion of shape ``(4,)``.
+        q2 (jax.Array): End quaternion of shape ``(4,)``.
+        t (float | jax.Array): Interpolation parameter in ``[0, 1]``.
 
     Returns:
         jnp.ndarray: Interpolated quaternion of shape ``(4,)``.

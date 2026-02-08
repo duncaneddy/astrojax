@@ -48,20 +48,21 @@ def hcw_derivative(state: ArrayLike, n: ArrayLike) -> Array:
         n: Mean motion of the chief orbit. Units: rad/s.
 
     Returns:
-        jax.Array: 6-element state derivative
+        6-element state derivative
             ``[x_dot, y_dot, z_dot, x_ddot, y_ddot, z_ddot]``.
             Units: m/s, m/s^2.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.relative_motion import hcw_derivative
-        >>> from astrojax.constants import GM_EARTH, R_EARTH
-        >>> sma = R_EARTH + 500e3
-        >>> n = jnp.sqrt(GM_EARTH / sma**3)
-        >>> state = jnp.array([100.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        >>> deriv = hcw_derivative(state, n)
-        >>> float(deriv[3])  # x_ddot = 3 n^2 x
-        0.0...
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.relative_motion import hcw_derivative
+        from astrojax.constants import GM_EARTH, R_EARTH
+        sma = R_EARTH + 500e3
+        n = jnp.sqrt(GM_EARTH / sma**3)
+        state = jnp.array([100.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        deriv = hcw_derivative(state, n)
+        float(deriv[3])  # x_ddot = 3 n^2 x
+        ```
     """
     state = jnp.asarray(state, dtype=get_dtype())
     n = jnp.asarray(n, dtype=get_dtype())

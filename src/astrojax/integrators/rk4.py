@@ -63,13 +63,15 @@ def rk4_step(
               fixed-step methods).
             - ``dt_next``: Always equals ``dt``.
 
-    Example:
-        >>> import jax.numpy as jnp
-        >>> from astrojax.integrators import rk4_step
-        >>> def harmonic(t, x):
-        ...     return jnp.array([x[1], -x[0]])
-        >>> result = rk4_step(harmonic, 0.0, jnp.array([1.0, 0.0]), 0.01)
-        >>> result.state  # ~[cos(0.01), -sin(0.01)]
+    Examples:
+        ```python
+        import jax.numpy as jnp
+        from astrojax.integrators import rk4_step
+        def harmonic(t, x):
+            return jnp.array([x[1], -x[0]])
+        result = rk4_step(harmonic, 0.0, jnp.array([1.0, 0.0]), 0.01)
+        result.state  # ~[cos(0.01), -sin(0.01)]
+        ```
     """
     dtype = get_dtype()
     t = jnp.asarray(t, dtype=dtype)
