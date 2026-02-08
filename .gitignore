@@ -4,6 +4,9 @@
 .python-version
 uv.lock
 
+# Miscellaneous Development
+refs/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]

@@ -29,6 +29,8 @@ from .attitude_representations import (
     Rz
 )
 
+from .epoch import Epoch
+
 __all__ = [
     # Constants
     "DEG2RAD",
@@ -52,5 +54,7 @@ __all__ = [
     # Attitude Representations
     "Rx",
     "Ry",
-    "Rz"
+    "Rz",
+    # Epoch
+    "Epoch",
 ]
