@@ -198,14 +198,14 @@ class TestEulerEquation:
     def test_output_shape(self):
         """Output is shape (3,)."""
         omega = jnp.array([0.1, 0.0, 0.0], dtype=get_dtype())
-        I = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
+        J = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
         tau = jnp.zeros(3, dtype=get_dtype())
-        omega_dot = euler_equation(omega, I, tau)
+        omega_dot = euler_equation(omega, J, tau)
         assert omega_dot.shape == (3,)
 
     def test_principal_axis_spin_torque_free(self):
         """Spin about a principal axis with no torque gives zero acceleration."""
-        I = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
+        J = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
         tau = jnp.zeros(3, dtype=get_dtype())
 
         for axis in [
@@ -214,17 +214,17 @@ class TestEulerEquation:
             jnp.array([0.0, 0.0, 1.0]),
         ]:
             omega = 0.5 * axis
-            omega_dot = euler_equation(omega, I, tau)
+            omega_dot = euler_equation(omega, J, tau)
             assert jnp.allclose(omega_dot, jnp.zeros(3), atol=1e-6), (
                 f"Principal axis spin {axis} should give zero omega_dot"
             )
 
     def test_off_axis_spin_nonzero(self):
         """Off-axis spin with asymmetric inertia produces nonzero acceleration."""
-        I = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
+        J = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
         omega = jnp.array([0.1, 0.2, 0.3], dtype=get_dtype())
         tau = jnp.zeros(3, dtype=get_dtype())
-        omega_dot = euler_equation(omega, I, tau)
+        omega_dot = euler_equation(omega, J, tau)
         assert float(jnp.linalg.norm(omega_dot)) > 1e-6
 
     def test_known_euler_result(self):
@@ -235,10 +235,10 @@ class TestEulerEquation:
         omega x (I @ omega) = [1,0,0] x [10,0,0] = [0, 0, 0]
         omega_dot = I^{-1} @ [0, 0, 0] = [0, 0, 0]
         """
-        I = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
+        J = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
         omega = jnp.array([1.0, 0.0, 0.0], dtype=get_dtype())
         tau = jnp.zeros(3, dtype=get_dtype())
-        omega_dot = euler_equation(omega, I, tau)
+        omega_dot = euler_equation(omega, J, tau)
         assert jnp.allclose(omega_dot, jnp.zeros(3), atol=1e-6)
 
     def test_known_euler_result_off_axis(self):
@@ -251,10 +251,10 @@ class TestEulerEquation:
         rhs = -[0, 0, 10] = [0, 0, -10]
         omega_dot = I^{-1} @ [0, 0, -10] = [0, 0, -10/30] = [0, 0, -1/3]
         """
-        I = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
+        J = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
         omega = jnp.array([1.0, 1.0, 0.0], dtype=get_dtype())
         tau = jnp.zeros(3, dtype=get_dtype())
-        omega_dot = euler_equation(omega, I, tau)
+        omega_dot = euler_equation(omega, J, tau)
         expected = jnp.array([0.0, 0.0, -1.0 / 3.0], dtype=get_dtype())
         assert jnp.allclose(omega_dot, expected, atol=1e-5)
 
@@ -266,10 +266,10 @@ class TestEulerEquation:
         rhs = [10, 0, 0]
         omega_dot = I^{-1} @ [10, 0, 0] = [1, 0, 0]
         """
-        I = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
+        J = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
         omega = jnp.zeros(3, dtype=get_dtype())
         tau = jnp.array([10.0, 0.0, 0.0], dtype=get_dtype())
-        omega_dot = euler_equation(omega, I, tau)
+        omega_dot = euler_equation(omega, J, tau)
         expected = jnp.array([1.0, 0.0, 0.0], dtype=get_dtype())
         assert jnp.allclose(omega_dot, expected, atol=1e-6)
 
@@ -286,8 +286,8 @@ class TestGravityGradient:
         """Output is shape (3,)."""
         q = _identity_q()
         r_eci = jnp.array([7000e3, 0.0, 0.0], dtype=get_dtype())
-        I = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
-        tau = torque_gravity_gradient(q, r_eci, I)
+        J = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
+        tau = torque_gravity_gradient(q, r_eci, J)
         assert tau.shape == (3,)
 
     def test_zero_torque_principal_axis_aligned(self):
@@ -299,8 +299,8 @@ class TestGravityGradient:
         """
         q = _identity_q()
         r_eci = jnp.array([7000e3, 0.0, 0.0], dtype=get_dtype())
-        I = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
-        tau = torque_gravity_gradient(q, r_eci, I)
+        J = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
+        tau = torque_gravity_gradient(q, r_eci, J)
         assert jnp.allclose(tau, jnp.zeros(3), atol=1e-10)
 
     def test_nonzero_torque_misaligned(self):
@@ -316,14 +316,14 @@ class TestGravityGradient:
             [r_mag / jnp.sqrt(2.0), r_mag / jnp.sqrt(2.0), 0.0],
             dtype=get_dtype(),
         )
-        I = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
-        tau = torque_gravity_gradient(q, r_eci, I)
+        J = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
+        tau = torque_gravity_gradient(q, r_eci, J)
         assert float(jnp.linalg.norm(tau)) > 1e-10
 
     def test_inverse_cube_scaling(self):
         """Gravity gradient scales as 1/r^3."""
         q = _identity_q()
-        I = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
+        J = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
 
         r1 = 7000e3
         r2 = 14000e3  # double the distance
@@ -335,8 +335,8 @@ class TestGravityGradient:
             [r2 / jnp.sqrt(2.0), r2 / jnp.sqrt(2.0), 0.0], dtype=get_dtype()
         )
 
-        tau_1 = torque_gravity_gradient(q, r_eci_1, I)
-        tau_2 = torque_gravity_gradient(q, r_eci_2, I)
+        tau_1 = torque_gravity_gradient(q, r_eci_1, J)
+        tau_2 = torque_gravity_gradient(q, r_eci_2, J)
 
         mag_1 = float(jnp.linalg.norm(tau_1))
         mag_2 = float(jnp.linalg.norm(tau_2))
@@ -355,8 +355,8 @@ class TestGravityGradient:
         r_eci = jnp.array(
             [7000e3 / jnp.sqrt(3.0)] * 3, dtype=get_dtype()
         )
-        I = 10.0 * jnp.eye(3, dtype=get_dtype())
-        tau = torque_gravity_gradient(q, r_eci, I)
+        J = 10.0 * jnp.eye(3, dtype=get_dtype())
+        tau = torque_gravity_gradient(q, r_eci, J)
         assert jnp.allclose(tau, jnp.zeros(3), atol=1e-10)
 
 
@@ -421,7 +421,7 @@ class TestTorqueFreePropagation:
         """
         _float = get_dtype()
         inertia = _asymmetric_inertia()
-        I = inertia.I
+        J = inertia.I
         cfg = AttitudeDynamicsConfig.torque_free(inertia)
         dynamics = create_attitude_dynamics(cfg, _leo_position_fn())
 
@@ -429,7 +429,7 @@ class TestTorqueFreePropagation:
         x0 = jnp.concatenate([_identity_q(), omega_0])
 
         # Initial angular momentum
-        L0 = I @ omega_0
+        L0 = J @ omega_0
         L0_mag = float(jnp.linalg.norm(L0))
 
         # Propagate with RK4 for 1000 seconds
@@ -447,7 +447,7 @@ class TestTorqueFreePropagation:
 
         # Final angular momentum
         omega_final = x_final[4:7]
-        L_final = I @ omega_final
+        L_final = J @ omega_final
         L_final_mag = float(jnp.linalg.norm(L_final))
 
         # Angular momentum should be conserved to high precision
@@ -508,7 +508,8 @@ class TestGravityGradientPropagation:
 
         # Position along z-axis in ECI
         r_mag = R_EARTH + 500e3
-        pos_fn = lambda t: jnp.array([0.0, 0.0, r_mag], dtype=_float)
+        def pos_fn(t):
+            return jnp.array([0.0, 0.0, r_mag], dtype=_float)
 
         dynamics = create_attitude_dynamics(cfg, pos_fn)
 
@@ -539,7 +540,8 @@ class TestGravityGradientPropagation:
         cfg = AttitudeDynamicsConfig.with_gravity_gradient(inertia)
 
         r_mag = R_EARTH + 500e3
-        pos_fn = lambda t: jnp.array([r_mag, 0.0, 0.0], dtype=_float)
+        def pos_fn(t):
+            return jnp.array([r_mag, 0.0, 0.0], dtype=_float)
         dynamics = create_attitude_dynamics(cfg, pos_fn)
 
         theta = 0.05
@@ -613,22 +615,22 @@ class TestJITCompatibility:
 
     def test_jit_euler_equation(self):
         """euler_equation is JIT-compilable."""
-        I = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
+        J = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
         omega = jnp.array([0.1, 0.2, 0.3], dtype=get_dtype())
         tau = jnp.zeros(3, dtype=get_dtype())
 
         jit_euler = jax.jit(euler_equation)
-        omega_dot = jit_euler(omega, I, tau)
+        omega_dot = jit_euler(omega, J, tau)
         assert omega_dot.shape == (3,)
 
     def test_jit_gravity_gradient_torque(self):
         """torque_gravity_gradient is JIT-compilable."""
         q = _identity_q()
         r_eci = jnp.array([7000e3, 0.0, 0.0], dtype=get_dtype())
-        I = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
+        J = jnp.diag(jnp.array([10.0, 20.0, 30.0], dtype=get_dtype()))
 
         jit_gg = jax.jit(torque_gravity_gradient)
-        tau = jit_gg(q, r_eci, I)
+        tau = jit_gg(q, r_eci, J)
         assert tau.shape == (3,)
 
 

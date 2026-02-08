@@ -1,0 +1,3 @@
+# Geodetic
+
+::: astrojax.coordinates.geodetic

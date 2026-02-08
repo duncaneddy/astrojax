@@ -1,3 +1,0 @@
-# Coordinates
-
-::: astrojax.coordinates

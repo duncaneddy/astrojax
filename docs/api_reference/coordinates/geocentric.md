@@ -1,0 +1,3 @@
+# Geocentric
+
+::: astrojax.coordinates.geocentric

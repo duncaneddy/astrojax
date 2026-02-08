@@ -35,13 +35,38 @@ nav = [
         { "Time" = "user_guide/time.md" },
         { "Epoch" = "user_guide/epoch.md" },
         { "Frames" = "user_guide/frames.md" },
-        { "Coordinates" = "user_guide/coordinates.md" },
-        { "Orbits" = "user_guide/orbits.md" },
-        { "Orbit Dynamics" = "user_guide/orbit_dynamics.md" },
-        { "Relative Motion" = "user_guide/relative_motion.md" },
+        { "Coordinates" = [
+            { "Overview" = "user_guide/coordinates/index.md" },
+            { "Geocentric" = "user_guide/coordinates/geocentric.md" },
+            { "Geodetic" = "user_guide/coordinates/geodetic.md" },
+            { "Keplerian" = "user_guide/coordinates/keplerian.md" },
+            { "Topocentric (ENZ)" = "user_guide/coordinates/topocentric.md" },
+        ]},
+        { "Orbits" = [
+            { "Overview" = "user_guide/orbits/index.md" },
+            { "Keplerian Functions" = "user_guide/orbits/keplerian.md" },
+            { "Anomaly Conversions" = "user_guide/orbits/anomalies.md" },
+            { "Mean & Osculating" = "user_guide/orbits/mean_osc.md" },
+            { "Special Orbits" = "user_guide/orbits/special_orbits.md" },
+        ]},
+        { "Orbit Dynamics" = [
+            { "Overview" = "user_guide/orbit_dynamics/index.md" },
+            { "Ephemerides" = "user_guide/orbit_dynamics/ephemerides.md" },
+            { "Gravity" = "user_guide/orbit_dynamics/gravity.md" },
+            { "Third Body" = "user_guide/orbit_dynamics/third_body.md" },
+            { "Drag" = "user_guide/orbit_dynamics/drag.md" },
+            { "SRP" = "user_guide/orbit_dynamics/srp.md" },
+            { "Composing Forces" = "user_guide/orbit_dynamics/composition.md" },
+        ]},
+        { "Relative Motion" = [
+            { "Overview" = "user_guide/relative_motion/index.md" },
+            { "RTN Transforms" = "user_guide/relative_motion/rtn.md" },
+            { "Relative Orbital Elements" = "user_guide/relative_motion/roe.md" },
+            { "HCW Dynamics" = "user_guide/relative_motion/hcw.md" },
+        ]},
         { "Attitude Representations" = "user_guide/attitude_representations.md" },
         { "Attitude Dynamics" = "user_guide/attitude_dynamics.md" },
-        { "Integrators" = "user_guide/integrators.md" }
+        { "Integrators" = "user_guide/integrators.md" },
     ]},
     { "API Reference" = [
         { "API Reference" = "api_reference/index.md" },
@@ -50,14 +75,40 @@ nav = [
         { "Time" = "api_reference/time.md" },
         { "Epoch" = "api_reference/epoch.md" },
         { "Frames" = "api_reference/frames.md" },
-        { "Coordinates" = "api_reference/coordinates.md" },
-        { "Orbits" = "api_reference/orbits.md" },
-        { "Orbit Dynamics" = "api_reference/orbit_dynamics.md" },
-        { "Relative Motion" = "api_reference/relative_motion.md" },
+        { "Coordinates" = [
+            { "Overview" = "api_reference/coordinates/index.md" },
+            { "Geocentric" = "api_reference/coordinates/geocentric.md" },
+            { "Geodetic" = "api_reference/coordinates/geodetic.md" },
+            { "Keplerian" = "api_reference/coordinates/keplerian.md" },
+            { "Topocentric" = "api_reference/coordinates/topocentric.md" },
+        ]},
+        { "Orbits" = [
+            { "Overview" = "api_reference/orbits/index.md" },
+            { "Keplerian" = "api_reference/orbits/keplerian.md" },
+            { "Mean Elements" = "api_reference/orbits/mean_elements.md" },
+        ]},
+        { "Orbit Dynamics" = [
+            { "Overview" = "api_reference/orbit_dynamics/index.md" },
+            { "Ephemerides" = "api_reference/orbit_dynamics/ephemerides.md" },
+            { "Gravity" = "api_reference/orbit_dynamics/gravity.md" },
+            { "Third Body" = "api_reference/orbit_dynamics/third_body.md" },
+            { "Density" = "api_reference/orbit_dynamics/density.md" },
+            { "Drag" = "api_reference/orbit_dynamics/drag.md" },
+            { "SRP" = "api_reference/orbit_dynamics/srp.md" },
+            { "Config" = "api_reference/orbit_dynamics/config.md" },
+            { "Factory" = "api_reference/orbit_dynamics/factory.md" },
+        ]},
+        { "Relative Motion" = [
+            { "Overview" = "api_reference/relative_motion/index.md" },
+            { "ECI-RTN" = "api_reference/relative_motion/eci_rtn.md" },
+            { "OE-ROE" = "api_reference/relative_motion/oe_roe.md" },
+            { "ECI-ROE" = "api_reference/relative_motion/eci_roe.md" },
+            { "HCW Dynamics" = "api_reference/relative_motion/hcw_dynamics.md" },
+        ]},
         { "Attitude Representations" = "api_reference/attitude_representations.md" },
         { "Attitude Dynamics" = "api_reference/attitude_dynamics.md" },
-        { "Integrators" = "api_reference/integrators.md" }
-    ]}
+        { "Integrators" = "api_reference/integrators.md" },
+    ]},
 ]
 
 # With the "extra_css" option you can add your own CSS styling to customize
@@ -228,12 +279,12 @@ features = [
     # When tabs are enabled, top-level sections are rendered in a menu layer
     # below the header for viewports above 1220px, but remain as-is on mobile.
     # https://zensical.org/docs/setup/navigation/#navigation-tabs
-    #"navigation.tabs",
+    "navigation.tabs",
 
     # When sticky tabs are enabled, navigation tabs will lock below the header
     # and always remain visible when scrolling down.
     # https://zensical.org/docs/setup/navigation/#sticky-navigation-tabs
-    #"navigation.tabs.sticky",
+    "navigation.tabs.sticky",
 
     # A back-to-top button can be shown when the user, after scrolling down,
     # starts to scroll up again.

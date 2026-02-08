@@ -1,3 +1,0 @@
-# Orbits
-
-::: astrojax.orbits
