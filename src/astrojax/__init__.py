@@ -47,6 +47,28 @@ from .relative_motion import (
     hcw_derivative,
 )
 
+from .orbits import (
+    orbital_period,
+    orbital_period_from_state,
+    semimajor_axis_from_orbital_period,
+    semimajor_axis,
+    mean_motion,
+    perigee_velocity,
+    apogee_velocity,
+    periapsis_distance,
+    apoapsis_distance,
+    perigee_altitude,
+    apogee_altitude,
+    sun_synchronous_inclination,
+    geo_sma,
+    anomaly_eccentric_to_mean,
+    anomaly_mean_to_eccentric,
+    anomaly_true_to_eccentric,
+    anomaly_eccentric_to_true,
+    anomaly_true_to_mean,
+    anomaly_mean_to_true,
+)
+
 __all__ = [
     # Constants
     "DEG2RAD",
@@ -85,4 +107,24 @@ __all__ = [
     "state_eci_to_rtn",
     "state_rtn_to_eci",
     "hcw_derivative",
+    # Orbits
+    "orbital_period",
+    "orbital_period_from_state",
+    "semimajor_axis_from_orbital_period",
+    "semimajor_axis",
+    "mean_motion",
+    "perigee_velocity",
+    "apogee_velocity",
+    "periapsis_distance",
+    "apoapsis_distance",
+    "perigee_altitude",
+    "apogee_altitude",
+    "sun_synchronous_inclination",
+    "geo_sma",
+    "anomaly_eccentric_to_mean",
+    "anomaly_mean_to_eccentric",
+    "anomaly_true_to_eccentric",
+    "anomaly_eccentric_to_true",
+    "anomaly_true_to_mean",
+    "anomaly_mean_to_true",
 ]

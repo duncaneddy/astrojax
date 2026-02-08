@@ -27,6 +27,7 @@ import jax.numpy as jnp
 
 from .time import caldate_to_jd, jd_to_caldate
 from .constants import JD_MJD_OFFSET
+from .utils import from_radians
 
 # J2000.0 epoch Julian Date
 _JD_J2000 = 2451545
@@ -428,7 +429,7 @@ class Epoch:
 
         gmst_rad = jnp.where(gmst_rad < 0, gmst_rad + jnp.float32(2.0) * jnp.pi, gmst_rad)
 
-        return jnp.where(use_degrees, gmst_rad * jnp.float32(180.0) / jnp.pi, gmst_rad)
+        return from_radians(gmst_rad, use_degrees)
 
     # String representations
 

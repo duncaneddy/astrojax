@@ -1,5 +1,7 @@
 import jax.numpy as jnp
 
+from astrojax.utils import to_radians
+
 def Rx(angle:float, use_degrees:bool=False) -> jnp.ndarray:
     """Rotation matrix, for a rotation about the x-axis.
 
@@ -15,10 +17,7 @@ def Rx(angle:float, use_degrees:bool=False) -> jnp.ndarray:
     
         1. O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and Applications*, 2012, p.27.
     """
-    
-    if use_degrees:
-        angle *= jnp.pi/180.0
-
+    angle = to_radians(angle, use_degrees)
 
     c = jnp.cos(angle)
     s = jnp.sin(angle)
@@ -42,10 +41,7 @@ def Ry(angle:float, use_degrees:bool=False) -> jnp.ndarray:
     
         1. O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and Applications*, 2012, p.27.
     """
-    
-    if use_degrees:
-        angle *= jnp.pi/180.0
-
+    angle = to_radians(angle, use_degrees)
 
     c = jnp.cos(angle)
     s = jnp.sin(angle)
@@ -69,10 +65,7 @@ def Rz(angle:float, use_degrees:bool=False) -> jnp.ndarray:
     
         1. O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and Applications*, 2012, p.27.
     """
-    
-    if use_degrees:
-        angle *= jnp.pi/180.0
-
+    angle = to_radians(angle, use_degrees)
 
     c = jnp.cos(angle)
     s = jnp.sin(angle)
