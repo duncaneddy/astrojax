@@ -15,9 +15,11 @@ from typing import TYPE_CHECKING
 import jax
 import jax.numpy as jnp
 
-from astrojax.config import get_dtype
 from astrojax.attitude_representations._tolerance import get_attitude_epsilon
-from astrojax.attitude_representations.rotation_matrices import Rx as _Rx, Ry as _Ry, Rz as _Rz
+from astrojax.attitude_representations.rotation_matrices import Rx as _Rx
+from astrojax.attitude_representations.rotation_matrices import Ry as _Ry
+from astrojax.attitude_representations.rotation_matrices import Rz as _Rz
+from astrojax.config import get_dtype
 
 if TYPE_CHECKING:
     from astrojax.attitude_representations.euler_angle import EulerAngle, EulerAngleOrder

@@ -2,6 +2,7 @@ import jax.numpy as jnp
 
 from astrojax.utils import to_radians
 
+
 def Rx(angle:float, use_degrees:bool=False) -> jnp.ndarray:
     """Rotation matrix, for a rotation about the x-axis.
 

@@ -23,7 +23,6 @@ from jax.typing import ArrayLike
 from astrojax.config import get_dtype
 from astrojax.constants import GM_EARTH
 
-
 # ---------------------------------------------------------------------------
 # Point-mass gravity (existing)
 # ---------------------------------------------------------------------------

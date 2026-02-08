@@ -23,9 +23,9 @@ import jax
 import jax.numpy as jnp
 from jax import Array
 
+from astrojax.attitude_representations import Rx
 from astrojax.config import get_dtype
 from astrojax.constants import AS2RAD, DEG2RAD
-from astrojax.attitude_representations import Rx
 from astrojax.epoch import Epoch
 
 # Julian Date of J2000.0

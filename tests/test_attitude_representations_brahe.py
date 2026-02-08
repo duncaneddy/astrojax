@@ -14,16 +14,17 @@ import pytest
 jax.config.update("jax_enable_x64", True)
 
 from astrojax.config import set_dtype  # noqa: E402
+
 set_dtype(jnp.float64)
 
 import brahe as bh  # noqa: E402
 
 from astrojax import (  # noqa: E402
-    Quaternion,
-    RotationMatrix,
     EulerAngle,
     EulerAngleOrder,
     EulerAxis,
+    Quaternion,
+    RotationMatrix,
 )
 
 ATOL = 1e-12

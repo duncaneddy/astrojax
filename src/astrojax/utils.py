@@ -5,8 +5,8 @@ astrojax, providing JAX-traceable degree/radian conversion via
 ``jnp.where``.
 """
 
-from jax import Array
 import jax.numpy as jnp
+from jax import Array
 from jax.typing import ArrayLike
 
 

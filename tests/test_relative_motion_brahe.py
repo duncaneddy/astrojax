@@ -5,18 +5,17 @@ are set to accommodate the precision difference (~7 significant digits
 for float32 vs ~15 for float64).
 """
 
+import brahe as bh
+import jax.numpy as jnp
 import numpy as np
 import pytest
 
-import brahe as bh
-import jax.numpy as jnp
-
 from astrojax.constants import R_EARTH
 from astrojax.relative_motion import (
-    state_oe_to_roe,
-    state_roe_to_oe,
     state_eci_to_roe,
+    state_oe_to_roe,
     state_roe_to_eci,
+    state_roe_to_oe,
 )
 
 DEGREES = bh.AngleFormat.DEGREES

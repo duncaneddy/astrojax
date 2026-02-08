@@ -27,8 +27,8 @@ import jax
 import jax.numpy as jnp
 
 from .config import get_dtype, get_epoch_eq_tolerance
-from .time import caldate_to_jd, jd_to_caldate
 from .constants import JD_MJD_OFFSET
+from .time import caldate_to_jd, jd_to_caldate
 from .utils import from_radians
 
 # J2000.0 epoch Julian Date

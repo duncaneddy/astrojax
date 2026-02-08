@@ -16,9 +16,9 @@ from typing import TYPE_CHECKING
 import jax
 import jax.numpy as jnp
 
+from astrojax.attitude_representations._tolerance import get_attitude_epsilon
 from astrojax.config import get_dtype
 from astrojax.utils import to_radians
-from astrojax.attitude_representations._tolerance import get_attitude_epsilon
 
 if TYPE_CHECKING:
     from astrojax.attitude_representations.euler_axis import EulerAxis

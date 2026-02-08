@@ -19,7 +19,7 @@ formulation:
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
@@ -53,8 +53,8 @@ def rkf45_step(
     t: ArrayLike,
     state: ArrayLike,
     dt: ArrayLike,
-    config: Optional[AdaptiveConfig] = None,
-    control: Optional[Callable[[ArrayLike, ArrayLike], Array]] = None,
+    config: AdaptiveConfig | None = None,
+    control: Callable[[ArrayLike, ArrayLike], Array] | None = None,
 ) -> StepResult:
     """Perform a single adaptive RKF45 integration step.
 

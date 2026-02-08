@@ -11,16 +11,15 @@ Also re-exports the elementary rotation functions :func:`Rx`, :func:`Ry`,
 :func:`Rz` and the :class:`EulerAngleOrder` enum.
 """
 
+from .euler_angle import EulerAngle, EulerAngleOrder
+from .euler_axis import EulerAxis
+from .quaternion import Quaternion
 from .rotation_matrices import (
     Rx,
     Ry,
     Rz,
 )
-
-from .quaternion import Quaternion
 from .rotation_matrix import RotationMatrix
-from .euler_angle import EulerAngle, EulerAngleOrder
-from .euler_axis import EulerAxis
 
 __all__ = [
     # Elementary rotations

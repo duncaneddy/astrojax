@@ -23,7 +23,7 @@ is :math:`O(h^5)` and the global error is :math:`O(h^4)`.
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import jax.numpy as jnp
 from jax import Array
@@ -38,7 +38,7 @@ def rk4_step(
     t: ArrayLike,
     state: ArrayLike,
     dt: ArrayLike,
-    control: Optional[Callable[[ArrayLike, ArrayLike], Array]] = None,
+    control: Callable[[ArrayLike, ArrayLike], Array] | None = None,
 ) -> StepResult:
     """Perform a single RK4 integration step.
 

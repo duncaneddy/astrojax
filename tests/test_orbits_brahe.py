@@ -5,12 +5,10 @@ are set to accommodate the precision difference (~7 significant digits
 for float32 vs ~15 for float64).
 """
 
+import brahe as bh
+import jax.numpy as jnp
 import numpy as np
 import pytest
-
-import brahe as bh
-
-import jax.numpy as jnp
 
 from astrojax.orbits import (
     anomaly_eccentric_to_mean,
@@ -26,9 +24,9 @@ from astrojax.orbits import (
     mean_motion,
     orbital_period,
     orbital_period_from_state,
+    periapsis_distance,
     perigee_altitude,
     perigee_velocity,
-    periapsis_distance,
     semimajor_axis,
     semimajor_axis_from_orbital_period,
     state_koe_mean_to_osc,

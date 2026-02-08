@@ -12,7 +12,7 @@ graph with no runtime branching overhead.
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 import jax.numpy as jnp
 from jax import Array
@@ -35,8 +35,8 @@ from astrojax.orbit_dynamics.srp import (
     eclipse_cylindrical,
 )
 from astrojax.orbit_dynamics.third_body import (
-    accel_third_body_sun,
     accel_third_body_moon,
+    accel_third_body_sun,
 )
 
 

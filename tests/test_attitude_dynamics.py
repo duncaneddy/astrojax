@@ -16,10 +16,6 @@ import jax
 import jax.numpy as jnp
 import pytest
 
-from astrojax.config import get_dtype
-from astrojax.constants import GM_EARTH, R_EARTH
-from astrojax.integrators import AdaptiveConfig, dp54_step, rk4_step
-
 from astrojax.attitude_dynamics.config import (
     AttitudeDynamicsConfig,
     SpacecraftInertia,
@@ -31,7 +27,9 @@ from astrojax.attitude_dynamics.euler_dynamics import (
 from astrojax.attitude_dynamics.factory import create_attitude_dynamics
 from astrojax.attitude_dynamics.gravity_gradient import torque_gravity_gradient
 from astrojax.attitude_dynamics.utils import normalize_attitude_state
-
+from astrojax.config import get_dtype
+from astrojax.constants import GM_EARTH, R_EARTH
+from astrojax.integrators import AdaptiveConfig, dp54_step, rk4_step
 
 # ---------------------------------------------------------------------------
 # Helpers

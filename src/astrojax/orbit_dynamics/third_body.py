@@ -16,9 +16,9 @@ from __future__ import annotations
 from jax import Array
 from jax.typing import ArrayLike
 
-from astrojax.constants import GM_SUN, GM_MOON
+from astrojax.constants import GM_MOON, GM_SUN
 from astrojax.epoch import Epoch
-from astrojax.orbit_dynamics.ephemerides import sun_position, moon_position
+from astrojax.orbit_dynamics.ephemerides import moon_position, sun_position
 from astrojax.orbit_dynamics.gravity import accel_point_mass
 
 

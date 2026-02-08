@@ -22,7 +22,7 @@ Runge-Kutta-Nyström Formulae". Based on implementation by Rody Oldenhuis
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
@@ -235,8 +235,8 @@ def rkn1210_step(
     t: ArrayLike,
     state: ArrayLike,
     dt: ArrayLike,
-    config: Optional[AdaptiveConfig] = None,
-    control: Optional[Callable[[ArrayLike, ArrayLike], Array]] = None,
+    config: AdaptiveConfig | None = None,
+    control: Callable[[ArrayLike, ArrayLike], Array] | None = None,
 ) -> StepResult:
     """Perform a single adaptive RKN1210 integration step.
 

@@ -13,21 +13,21 @@ This sub-module provides functions for:
   equations for proximity operations near a circular reference orbit.
 """
 
-from .eci_rtn import (
-    rotation_rtn_to_eci,
-    rotation_eci_to_rtn,
-    state_eci_to_rtn,
-    state_rtn_to_eci,
-)
-from .oe_roe import (
-    state_oe_to_roe,
-    state_roe_to_oe,
-)
 from .eci_roe import (
     state_eci_to_roe,
     state_roe_to_eci,
 )
+from .eci_rtn import (
+    rotation_eci_to_rtn,
+    rotation_rtn_to_eci,
+    state_eci_to_rtn,
+    state_rtn_to_eci,
+)
 from .hcw_dynamics import hcw_derivative
+from .oe_roe import (
+    state_oe_to_roe,
+    state_roe_to_oe,
+)
 
 __all__ = [
     "rotation_rtn_to_eci",

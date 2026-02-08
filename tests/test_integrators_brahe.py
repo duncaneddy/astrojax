@@ -7,10 +7,9 @@ the same coefficients. Adaptive methods may differ in step-size decisions
 due to float32 vs float64 error norms.
 """
 
-import numpy as np
-
 import brahe as bh
 import jax.numpy as jnp
+import numpy as np
 
 from astrojax.constants import GM_EARTH, R_EARTH
 from astrojax.integrators import (

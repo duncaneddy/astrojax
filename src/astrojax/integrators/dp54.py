@@ -25,7 +25,7 @@ The Butcher tableau coefficients are the standard Dormand-Prince values:
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from collections.abc import Callable
 
 import jax
 import jax.numpy as jnp
@@ -68,8 +68,8 @@ def dp54_step(
     t: ArrayLike,
     state: ArrayLike,
     dt: ArrayLike,
-    config: Optional[AdaptiveConfig] = None,
-    control: Optional[Callable[[ArrayLike, ArrayLike], Array]] = None,
+    config: AdaptiveConfig | None = None,
+    control: Callable[[ArrayLike, ArrayLike], Array] | None = None,
 ) -> StepResult:
     """Perform a single adaptive DP54 integration step.
 

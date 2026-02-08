@@ -10,10 +10,10 @@ coordinate frames used in astrodynamics:
 
 from .eci_ecef import (
     earth_rotation,
-    rotation_eci_to_ecef,
     rotation_ecef_to_eci,
-    state_eci_to_ecef,
+    rotation_eci_to_ecef,
     state_ecef_to_eci,
+    state_eci_to_ecef,
 )
 
 __all__ = [

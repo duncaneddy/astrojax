@@ -12,19 +12,19 @@ computation graph with no runtime branching overhead.
 
 from __future__ import annotations
 
-from typing import Callable
+from collections.abc import Callable
 
 import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from astrojax.config import get_dtype
 from astrojax.attitude_dynamics.config import AttitudeDynamicsConfig
 from astrojax.attitude_dynamics.euler_dynamics import (
     euler_equation,
     quaternion_derivative,
 )
 from astrojax.attitude_dynamics.gravity_gradient import torque_gravity_gradient
+from astrojax.config import get_dtype
 
 
 def create_attitude_dynamics(

@@ -5,12 +5,12 @@ import jax.numpy as jnp
 import pytest
 
 from astrojax.config import get_dtype, get_epoch_eq_tolerance, set_dtype
+from astrojax.constants import R_EARTH
 from astrojax.coordinates import (
-    position_geocentric_to_ecef,
     position_ecef_to_geodetic,
+    position_geocentric_to_ecef,
     state_koe_to_eci,
 )
-from astrojax.constants import R_EARTH
 from astrojax.epoch import Epoch
 from astrojax.orbits import orbital_period
 

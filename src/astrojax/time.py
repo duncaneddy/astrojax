@@ -7,6 +7,7 @@ from jax.typing import ArrayLike
 from .config import get_dtype
 from .constants import JD_MJD_OFFSET
 
+
 def caldate_to_mjd(year: ArrayLike, month: ArrayLike, day: ArrayLike, hour: ArrayLike = 0, minute: ArrayLike = 0, second: ArrayLike = 0.0) -> jax.Array:
     """Convert a calendar date to Modified Julian Date. Algorithm is only valid from year 1583 onward.
 

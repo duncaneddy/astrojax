@@ -18,14 +18,13 @@ import pytest
 from astrojax import Epoch
 from astrojax.config import get_dtype, set_dtype
 from astrojax.constants import GM_EARTH, R_EARTH
-from astrojax.integrators import dp54_step, rk4_step, AdaptiveConfig
+from astrojax.integrators import AdaptiveConfig, dp54_step, rk4_step
 from astrojax.orbit_dynamics import (
     GravityModel,
     accel_gravity,
 )
 from astrojax.orbit_dynamics.config import ForceModelConfig, SpacecraftParams
 from astrojax.orbit_dynamics.factory import create_orbit_dynamics
-
 
 # ---------------------------------------------------------------------------
 # Helpers

@@ -24,7 +24,6 @@ from astrojax.config import get_dtype
 from astrojax.constants import GM_EARTH, J2_EARTH, OMEGA_EARTH, R_EARTH
 from astrojax.utils import from_radians, to_radians
 
-
 # ──────────────────────────────────────────────
 # Orbital period and semi-major axis
 # ──────────────────────────────────────────────
