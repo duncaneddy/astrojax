@@ -31,6 +31,14 @@ from .attitude_representations import (
 
 from .epoch import Epoch
 
+from .frames import (
+    earth_rotation,
+    rotation_eci_to_ecef,
+    rotation_ecef_to_eci,
+    state_eci_to_ecef,
+    state_ecef_to_eci,
+)
+
 from .relative_motion import (
     rotation_rtn_to_eci,
     rotation_eci_to_rtn,
@@ -65,6 +73,12 @@ __all__ = [
     "Rz",
     # Epoch
     "Epoch",
+    # Frames
+    "earth_rotation",
+    "rotation_eci_to_ecef",
+    "rotation_ecef_to_eci",
+    "state_eci_to_ecef",
+    "state_ecef_to_eci",
     # Relative Motion
     "rotation_rtn_to_eci",
     "rotation_eci_to_rtn",

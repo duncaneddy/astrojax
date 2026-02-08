@@ -33,6 +33,7 @@ nav = [
         { "User Guide" = "user_guide/index.md" },
         { "Time" = "user_guide/time.md" },
         { "Epoch" = "user_guide/epoch.md" },
+        { "Frames" = "user_guide/frames.md" },
         { "Relative Motion" = "user_guide/relative_motion.md" }
     ]},
     { "API Reference" = [
@@ -40,6 +41,7 @@ nav = [
         { "Constants" = "api_reference/constants.md" },
         { "Time" = "api_reference/time.md" },
         { "Epoch" = "api_reference/epoch.md" },
+        { "Frames" = "api_reference/frames.md" },
         { "Relative Motion" = "api_reference/relative_motion.md" }
     ]}
 ]
