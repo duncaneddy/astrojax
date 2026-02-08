@@ -27,7 +27,12 @@ from .constants import (
 from .attitude_representations import (
     Rx,
     Ry,
-    Rz
+    Rz,
+    Quaternion,
+    RotationMatrix,
+    EulerAngle,
+    EulerAngleOrder,
+    EulerAxis,
 )
 
 from .config import set_dtype, get_dtype
@@ -133,6 +138,11 @@ __all__ = [
     "Rx",
     "Ry",
     "Rz",
+    "Quaternion",
+    "RotationMatrix",
+    "EulerAngle",
+    "EulerAngleOrder",
+    "EulerAxis",
     # Config
     "set_dtype",
     "get_dtype",

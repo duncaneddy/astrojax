@@ -17,7 +17,7 @@ import pytest
 
 from astrojax import Epoch
 from astrojax.config import get_dtype, set_dtype
-from astrojax.constants import GM_EARTH, R_EARTH, AU, P_SUN
+from astrojax.constants import GM_EARTH, R_EARTH
 from astrojax.integrators import dp54_step, rk4_step, AdaptiveConfig
 from astrojax.orbit_dynamics import (
     GravityModel,
