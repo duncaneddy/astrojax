@@ -80,6 +80,8 @@ nav = [
             { "Attitude Dynamics" = "user_guide/attitude_modeling/dynamics.md" },
         ]},
         { "Integrators" = "user_guide/integrators.md" },
+        { "Estimation" = "user_guide/estimation.md" },
+        { "Orbit Measurements" = "user_guide/orbit_measurements.md" },
     ]},
     { "API Reference" = [
         { "API Reference" = "api_reference/index.md" },
@@ -132,6 +134,16 @@ nav = [
             { "Attitude Dynamics" = "api_reference/attitude_modeling/dynamics.md" },
         ]},
         { "Integrators" = "api_reference/integrators.md" },
+        { "Estimation" = [
+            { "Overview" = "api_reference/estimation/index.md" },
+            { "Types" = "api_reference/estimation/types.md" },
+            { "EKF" = "api_reference/estimation/ekf.md" },
+            { "UKF" = "api_reference/estimation/ukf.md" },
+        ]},
+        { "Orbit Measurements" = [
+            { "Overview" = "api_reference/orbit_measurements/index.md" },
+            { "GNSS" = "api_reference/orbit_measurements/gnss.md" },
+        ]},
     ]},
 ]
 
@@ -258,7 +270,7 @@ features = [
     # Turn on this feature to expand all collapsible sections in the
     # navigation sidebar by default.
     # https://zensical.org/docs/setup/navigation/#navigation-expansion
-    # "navigation.expand",
+    "navigation.expand",
 
     # This feature turns on navigation elements in the footer that allow the
     # user to navigate to a next or previous page.

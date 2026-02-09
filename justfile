@@ -3,9 +3,9 @@
 
 # ───── Installation ─────
 
-# Install/sync all dev dependencies and set up pre-commit hooks
+# Install/sync all dev dependencies (including notebook extras) and set up pre-commit hooks
 install:
-    uv sync --dev
+    uv sync --dev --extra extras
     uv run pre-commit install
 
 # ───── Testing ─────

@@ -18,6 +18,14 @@ build-backend = "uv_build"
 [tool.uv-build]
 data-includes = ["src/astrojax/data/gravity_models/*.gfc"]
 
+[project.optional-dependencies]
+extras = [
+    "matplotlib",
+    "plotly",
+    "jupyter",
+    "scienceplots",
+]
+
 [dependency-groups]
 dev = [
     "brahe>=1.0.1",

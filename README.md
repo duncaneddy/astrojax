@@ -8,6 +8,8 @@
 
 Astrodynamics written in JAX for massively parallel simulation.
 
+The goal of this project is to provide a high-performance astrodynamics library that can be used for research and education. The library is built on top of JAX, which allows for automatic differentiation and GPU/TPU acceleration. The goal is to provide a proof-of-concept implementation of common astrodynamics algorithms that can be used as a starting point for further development. It is _not_ intended to be a full-featured, high-accuracy astrodynamics library (at least not yet).
+
 ## Install
 
 ```bash
@@ -16,14 +18,28 @@ pip install astrojax
 uv add astrojax
 ```
 
+## Quickstart
+
+This project uses [`just`](https://github.com/casey/just) as a command runner and [`uv`](https://docs.astral.sh/uv/) for Python package management.
+
+```bash
+# Install just (macOS)
+brew install just
+
+# Install uv
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Clone and install everything (dev deps + extras)
+just install
+```
+
 ## Development
 
-This project uses [`just`](https://github.com/casey/just) as a command runner.
 Every recipe has an equivalent raw command you can run directly.
 
 | Task | `just` recipe | Raw command |
 |------|---------------|-------------|
-| Install dev deps | `just install` | `uv sync --dev` |
+| Install dev deps + extras | `just install` | `uv sync --dev --extra extras` |
 | Run tests | `just test` | `uv run pytest tests/ -v` |
 | Test with coverage | `just test-cov` | `uv run pytest --cov=astrojax --cov-report=term-missing` |
 | Format code | `just fmt` | `uv run ruff format` |
