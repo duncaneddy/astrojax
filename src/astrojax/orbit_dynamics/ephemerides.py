@@ -6,8 +6,7 @@ perturbation force modelling where ~0.1 deg accuracy is acceptable.
 
 All positions are in SI base units (metres).
 
-.. note::
-
+Note:
     Time system: UTC is assumed to approximate TT for computing Julian
     centuries from J2000.  The error (~69 s as of 2024) introduces a
     negligible position offset for low-precision ephemeris work.
