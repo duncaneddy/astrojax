@@ -1,8 +1,10 @@
 # astrojax
 
-[![PyPI](https://img.shields.io/pypi/v/astrojax)](https://pypi.org/project/astrojax/)
-[![Documentation](https://img.shields.io/badge/docs-GitHub%20Pages-blue)](https://duncaneddy.github.io/astrojax/)
-[![Coverage Status](https://coveralls.io/repos/github/duncaneddy/astrojax/badge.svg?branch=main)](https://coveralls.io/github/duncaneddy/astrojax?branch=main)
+<p align="center">
+  <a href="https://pypi.org/project/astrojax/"><img src="https://img.shields.io/pypi/v/astrojax" alt="PyPI"></a>
+  <a href="https://duncaneddy.github.io/astrojax/"><img src="https://img.shields.io/badge/docs-latest-blue" alt="Documentation"></a>
+  <a href="https://coveralls.io/github/duncaneddy/astrojax?branch=main"><img src="https://coveralls.io/repos/github/duncaneddy/astrojax/badge.svg?branch=main" alt="Coverage Status"></a>
+</p>
 
 ---
 

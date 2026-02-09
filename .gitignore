@@ -6,6 +6,8 @@ uv.lock
 
 # Miscellaneous Development
 refs/
+seamstress/*
+test_seamstress.py
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
