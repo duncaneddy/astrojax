@@ -56,6 +56,20 @@ from .coordinates import (
     state_eci_to_koe,
     state_koe_to_eci,
 )
+from .eop import (
+    EOPData,
+    EOPExtrapolation,
+    get_dxdy,
+    get_eop,
+    get_lod,
+    get_pm,
+    get_ut1_utc,
+    load_default_eop,
+    load_eop_from_file,
+    load_eop_from_standard_file,
+    static_eop,
+    zero_eop,
+)
 from .epoch import Epoch
 from .estimation import (
     FilterResult,
@@ -173,6 +187,19 @@ __all__ = [
     # Config
     "set_dtype",
     "get_dtype",
+    # EOP
+    "EOPData",
+    "EOPExtrapolation",
+    "get_dxdy",
+    "get_eop",
+    "get_lod",
+    "get_pm",
+    "get_ut1_utc",
+    "load_default_eop",
+    "load_eop_from_file",
+    "load_eop_from_standard_file",
+    "static_eop",
+    "zero_eop",
     # Epoch
     "Epoch",
     # Frames

@@ -79,6 +79,7 @@ nav = [
             ]},
             { "Attitude Dynamics" = "user_guide/attitude_modeling/dynamics.md" },
         ]},
+        { "EOP" = "user_guide/eop.md" },
         { "Integrators" = "user_guide/integrators.md" },
         { "Estimation" = "user_guide/estimation.md" },
         { "Orbit Measurements" = "user_guide/orbit_measurements.md" },
@@ -133,6 +134,7 @@ nav = [
             ]},
             { "Attitude Dynamics" = "api_reference/attitude_modeling/dynamics.md" },
         ]},
+        { "EOP" = "api_reference/eop/index.md" },
         { "Integrators" = "api_reference/integrators.md" },
         { "Estimation" = [
             { "Overview" = "api_reference/estimation/index.md" },
