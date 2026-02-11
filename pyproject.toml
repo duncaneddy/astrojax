@@ -24,6 +24,8 @@ extras = [
     "plotly",
     "jupyter",
     "scienceplots",
+    "cvxpy",
+    "highspy",
 ]
 
 [dependency-groups]
