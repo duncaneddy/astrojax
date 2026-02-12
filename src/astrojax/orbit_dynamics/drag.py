@@ -32,7 +32,7 @@ def accel_drag(
 ) -> Array:
     """Acceleration due to atmospheric drag.
 
-    Transforms the state to a true-of-date (TOD) frame via *T*,
+    Transforms the state to the ECEF (ITRF) frame via *T*,
     computes the velocity relative to the co-rotating atmosphere, and
     returns the drag acceleration in the inertial (ECI) frame.
 
@@ -42,7 +42,7 @@ def accel_drag(
         mass: Spacecraft mass [kg].
         area: Wind-facing cross-sectional area [m^2].
         cd: Coefficient of drag [dimensionless].
-        T: 3x3 rotation matrix from ECI to true-of-date frame.
+        T: 3x3 rotation matrix from ECI to ECEF (ITRF).
 
     Returns:
         Drag acceleration in ECI [m/s^2], shape ``(3,)``.

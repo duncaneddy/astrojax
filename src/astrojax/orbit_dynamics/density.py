@@ -196,7 +196,7 @@ _HP_C_MAX = jnp.array(
 
 
 def density_harris_priester(
-    r_ecef: ArrayLike,
+    r_tod: ArrayLike,
     r_sun: ArrayLike,
 ) -> Array:
     """Atmospheric density using the Harris-Priester model.
@@ -204,11 +204,18 @@ def density_harris_priester(
     Computes density accounting for diurnal bulge caused by solar
     heating.  Returns zero outside the valid 100-1000 km altitude range.
 
+    Both ``r_tod`` and ``r_sun`` must be in the same frame — the
+    true-of-date (TOD) frame, obtained by applying bias-precession-
+    nutation to the GCRF (ECI) vectors.  Geodetic altitude is invariant
+    under z-axis rotation, so the TOD position works correctly with
+    ``position_ecef_to_geodetic`` without Earth-rotation correction.
+
     Args:
-        r_ecef: Satellite position in the ECEF (or TOD) frame [m].
+        r_tod: Satellite position in the true-of-date frame [m].
             Shape ``(3,)``.
-        r_sun: Sun position vector [m].  Shape ``(3,)``.  Used only for
-            computing the right ascension and declination of the Sun.
+        r_sun: Sun position in the true-of-date frame [m].
+            Shape ``(3,)``.  Used only for computing the right ascension
+            and declination of the Sun.
 
     Returns:
         Atmospheric density [kg/m^3] (scalar).
@@ -217,17 +224,17 @@ def density_harris_priester(
         ```python
         import jax.numpy as jnp
         from astrojax.orbit_dynamics import density_harris_priester
-        r = jnp.array([0.0, 0.0, -6466752.314])
+        r_tod = jnp.array([0.0, 0.0, -6466752.314])
         r_sun = jnp.array([24622331959.58, -133060326832.922, -57688711921.833])
-        rho = density_harris_priester(r, r_sun)
+        rho = density_harris_priester(r_tod, r_sun)
         ```
     """
     _float = get_dtype()
-    r_ecef = jnp.asarray(r_ecef, dtype=_float)
+    r_tod = jnp.asarray(r_tod, dtype=_float)
     r_sun = jnp.asarray(r_sun, dtype=_float)
 
-    # Geodetic altitude
-    geod = position_ecef_to_geodetic(r_ecef)  # [lon_rad, lat_rad, alt_m]
+    # Geodetic altitude — invariant under z-rotation, works from TOD
+    geod = position_ecef_to_geodetic(r_tod)  # [lon_rad, lat_rad, alt_m]
     height = geod[2] / _float(1.0e3)  # altitude in [km]
 
     # Sun right ascension and declination
@@ -245,7 +252,7 @@ def density_harris_priester(
     )
 
     # Cosine of half angle between satellite and apex
-    c_psi2 = _float(0.5) + _float(0.5) * jnp.dot(r_ecef, u) / jnp.linalg.norm(r_ecef)
+    c_psi2 = _float(0.5) + _float(0.5) * jnp.dot(r_tod, u) / jnp.linalg.norm(r_tod)
 
     # Height bracket search using searchsorted (JIT-compatible)
     # searchsorted returns the index where height would be inserted to keep

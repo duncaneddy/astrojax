@@ -1,8 +1,8 @@
 # Composing Force Models
 
 The individual force model functions can be composed into a single
-dynamics function using `create_orbit_dynamics`.  This factory takes a
-reference epoch and a configuration object, and returns a
+dynamics function using `create_orbit_dynamics`.  This factory takes
+EOP data, a reference epoch, and a configuration object, and returns a
 `dynamics(t, state) -> derivative` closure compatible with all astrojax
 integrators.
 
@@ -10,11 +10,12 @@ integrators.
 
 ```python
 from astrojax import Epoch, create_orbit_dynamics
+from astrojax.eop import zero_eop
 from astrojax.integrators import rk4_step
 import jax.numpy as jnp
 
 epoch_0 = Epoch(2024, 6, 15, 12, 0, 0)
-dynamics = create_orbit_dynamics(epoch_0)  # default: point-mass gravity
+dynamics = create_orbit_dynamics(zero_eop(), epoch_0)  # default: point-mass gravity
 
 x0 = jnp.array([6878e3, 0.0, 0.0, 0.0, 7612.0, 0.0])
 result = rk4_step(dynamics, 0.0, x0, 60.0)
@@ -39,7 +40,7 @@ config = ForceModelConfig(
     spacecraft=SpacecraftParams(mass=500.0, cd=2.2, cr=1.3),
 )
 
-dynamics = create_orbit_dynamics(epoch_0, config)
+dynamics = create_orbit_dynamics(zero_eop(), epoch_0, config)
 ```
 
 Or use a preset for common scenarios:

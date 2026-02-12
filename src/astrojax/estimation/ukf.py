@@ -99,7 +99,7 @@ def ukf_predict(
     The user constructs ``propagate_fn`` by closing over their dynamics,
     integrator, and timestep::
 
-        dynamics = create_orbit_dynamics(epoch_0)
+        dynamics = create_orbit_dynamics(eop, epoch_0)
         def propagate(x):
             return rk4_step(dynamics, t, x, dt).state
 

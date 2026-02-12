@@ -18,6 +18,7 @@ import pytest
 from astrojax import Epoch
 from astrojax.config import get_dtype, set_dtype
 from astrojax.constants import GM_EARTH, R_EARTH
+from astrojax.eop import zero_eop
 from astrojax.integrators import AdaptiveConfig, dp54_step, rk4_step
 from astrojax.orbit_dynamics import (
     GravityModel,
@@ -163,14 +164,14 @@ class TestCreateOrbitDynamicsValidation:
 
     def test_default_config(self):
         """No config defaults to two-body."""
-        dynamics = create_orbit_dynamics(_epoch())
+        dynamics = create_orbit_dynamics(zero_eop(), _epoch())
         assert callable(dynamics)
 
     def test_spherical_harmonics_requires_model(self):
         """ValueError when spherical_harmonics has no gravity_model."""
         cfg = ForceModelConfig(gravity_type="spherical_harmonics")
         with pytest.raises(ValueError, match="gravity_model"):
-            create_orbit_dynamics(_epoch(), cfg)
+            create_orbit_dynamics(zero_eop(), _epoch(), cfg)
 
 
 # ===========================================================================
@@ -183,14 +184,14 @@ class TestTwoBodyDynamics:
 
     def test_derivative_shape(self):
         """Output is shape (6,)."""
-        dynamics = create_orbit_dynamics(_epoch())
+        dynamics = create_orbit_dynamics(zero_eop(), _epoch())
         x = _leo_state()
         dx = dynamics(0.0, x)
         assert dx.shape == (6,)
 
     def test_matches_manual(self):
         """Two-body acceleration matches manual -GM*r/|r|^3."""
-        dynamics = create_orbit_dynamics(_epoch())
+        dynamics = create_orbit_dynamics(zero_eop(), _epoch())
         x = _leo_state()
         dx = dynamics(0.0, x)
 
@@ -204,7 +205,7 @@ class TestTwoBodyDynamics:
 
     def test_matches_accel_gravity(self):
         """Factory two-body matches standalone accel_gravity."""
-        dynamics = create_orbit_dynamics(_epoch())
+        dynamics = create_orbit_dynamics(zero_eop(), _epoch())
         x = _leo_state()
         dx = dynamics(0.0, x)
 
@@ -218,7 +219,7 @@ class TestTwoBodyDynamics:
         sma = float(jnp.linalg.norm(x0[:3]))
         T_period = 2.0 * jnp.pi * jnp.sqrt(_float(sma**3 / GM_EARTH))
 
-        dynamics = create_orbit_dynamics(_epoch())
+        dynamics = create_orbit_dynamics(zero_eop(), _epoch())
 
         # Use 1 s step for better accuracy at float32
         dt = 1.0
@@ -251,7 +252,7 @@ class TestSphericalHarmonicsDynamics:
         epc = _epoch()
         x = _leo_state()
 
-        dyn_pm = create_orbit_dynamics(epc)
+        dyn_pm = create_orbit_dynamics(zero_eop(), epc)
         dx_pm = dyn_pm(0.0, x)
 
         model = GravityModel.from_type("JGM3")
@@ -261,7 +262,7 @@ class TestSphericalHarmonicsDynamics:
             gravity_degree=2,
             gravity_order=2,
         )
-        dyn_sh = create_orbit_dynamics(epc, cfg)
+        dyn_sh = create_orbit_dynamics(zero_eop(), epc, cfg)
         dx_sh = dyn_sh(0.0, x)
 
         # The J2 perturbation at LEO should be ~1e-3 to 1e-2 m/s^2
@@ -273,7 +274,7 @@ class TestSphericalHarmonicsDynamics:
         epc = _epoch()
         x = _leo_state()
 
-        dyn_pm = create_orbit_dynamics(epc)
+        dyn_pm = create_orbit_dynamics(zero_eop(), epc)
         dx_pm = dyn_pm(0.0, x)
 
         model = GravityModel.from_type("JGM3")
@@ -283,7 +284,7 @@ class TestSphericalHarmonicsDynamics:
             gravity_degree=0,
             gravity_order=0,
         )
-        dyn_sh = create_orbit_dynamics(epc, cfg)
+        dyn_sh = create_orbit_dynamics(zero_eop(), epc, cfg)
         dx_sh = dyn_sh(0.0, x)
 
         # Degree 0 = GM/r^2, should be very close to point-mass.
@@ -311,8 +312,8 @@ class TestDragPhysics:
             spacecraft=SpacecraftParams(mass=100.0, drag_area=10.0, cd=2.2),
         )
 
-        dx_no = create_orbit_dynamics(epc, cfg_no_drag)(0.0, x)
-        dx_yes = create_orbit_dynamics(epc, cfg_drag)(0.0, x)
+        dx_no = create_orbit_dynamics(zero_eop(), epc, cfg_no_drag)(0.0, x)
+        dx_yes = create_orbit_dynamics(zero_eop(), epc, cfg_drag)(0.0, x)
 
         # Drag contribution
         a_drag = dx_yes[3:6] - dx_no[3:6]
@@ -338,8 +339,8 @@ class TestSRPPhysics:
         )
         cfg_no = ForceModelConfig()
 
-        dx_srp = create_orbit_dynamics(epc, cfg_srp)(0.0, x)
-        dx_no = create_orbit_dynamics(epc, cfg_no)(0.0, x)
+        dx_srp = create_orbit_dynamics(zero_eop(), epc, cfg_srp)(0.0, x)
+        dx_no = create_orbit_dynamics(zero_eop(), epc, cfg_no)(0.0, x)
 
         a_srp = dx_srp[3:6] - dx_no[3:6]
 
@@ -374,8 +375,8 @@ class TestSRPPhysics:
         )
         cfg_no = ForceModelConfig()
 
-        dx_srp = create_orbit_dynamics(epc, cfg_srp)(0.0, x_shadow)
-        dx_no = create_orbit_dynamics(epc, cfg_no)(0.0, x_shadow)
+        dx_srp = create_orbit_dynamics(zero_eop(), epc, cfg_srp)(0.0, x_shadow)
+        dx_no = create_orbit_dynamics(zero_eop(), epc, cfg_no)(0.0, x_shadow)
 
         # In full shadow, SRP contribution should be zero
         a_srp = dx_srp[3:6] - dx_no[3:6]
@@ -393,8 +394,8 @@ class TestThirdBodyPhysics:
         cfg = ForceModelConfig(third_body_sun=True)
         cfg_no = ForceModelConfig()
 
-        dx_sun = create_orbit_dynamics(epc, cfg)(0.0, x)
-        dx_no = create_orbit_dynamics(epc, cfg_no)(0.0, x)
+        dx_sun = create_orbit_dynamics(zero_eop(), epc, cfg)(0.0, x)
+        dx_no = create_orbit_dynamics(zero_eop(), epc, cfg_no)(0.0, x)
 
         a_sun = dx_sun[3:6] - dx_no[3:6]
         mag = float(jnp.linalg.norm(a_sun))
@@ -410,8 +411,8 @@ class TestThirdBodyPhysics:
         cfg = ForceModelConfig(third_body_moon=True)
         cfg_no = ForceModelConfig()
 
-        dx_moon = create_orbit_dynamics(epc, cfg)(0.0, x)
-        dx_no = create_orbit_dynamics(epc, cfg_no)(0.0, x)
+        dx_moon = create_orbit_dynamics(zero_eop(), epc, cfg)(0.0, x)
+        dx_no = create_orbit_dynamics(zero_eop(), epc, cfg_no)(0.0, x)
 
         a_moon = dx_moon[3:6] - dx_no[3:6]
         mag = float(jnp.linalg.norm(a_moon))
@@ -433,7 +434,7 @@ class TestFullForceModel:
         epc = _epoch()
         x0 = _leo_state(alt_km=400.0)
         cfg = ForceModelConfig.leo_default()
-        dynamics = create_orbit_dynamics(epc, cfg)
+        dynamics = create_orbit_dynamics(zero_eop(), epc, cfg)
 
         dt = 30.0
         n_steps = 200  # ~100 minutes
@@ -463,7 +464,7 @@ class TestJAXCompatibility:
 
     def test_jit_compatible(self):
         """dynamics function is JIT-compilable."""
-        dynamics = create_orbit_dynamics(_epoch())
+        dynamics = create_orbit_dynamics(zero_eop(), _epoch())
         x = _leo_state()
 
         jit_dynamics = jax.jit(dynamics)
@@ -474,7 +475,7 @@ class TestJAXCompatibility:
     def test_jit_with_perturbations(self):
         """JIT works with spherical harmonics and perturbations."""
         cfg = ForceModelConfig.leo_default()
-        dynamics = create_orbit_dynamics(_epoch(), cfg)
+        dynamics = create_orbit_dynamics(zero_eop(), _epoch(), cfg)
         x = _leo_state()
 
         jit_dynamics = jax.jit(dynamics)
@@ -493,7 +494,7 @@ class TestIntegratorEndToEnd:
 
     def test_rk4_step(self):
         """Single RK4 step produces valid result."""
-        dynamics = create_orbit_dynamics(_epoch())
+        dynamics = create_orbit_dynamics(zero_eop(), _epoch())
         x0 = _leo_state()
         result = rk4_step(dynamics, 0.0, x0, 60.0)
 
@@ -504,7 +505,7 @@ class TestIntegratorEndToEnd:
 
     def test_dp54_step(self):
         """Single DP54 step produces valid result."""
-        dynamics = create_orbit_dynamics(_epoch())
+        dynamics = create_orbit_dynamics(zero_eop(), _epoch())
         x0 = _leo_state()
         config = AdaptiveConfig(abs_tol=1e-6, rel_tol=1e-3)
         result = dp54_step(dynamics, 0.0, x0, 60.0, config=config)
@@ -514,7 +515,7 @@ class TestIntegratorEndToEnd:
 
     def test_dynamics_with_control(self):
         """Thrust control via integrator control parameter."""
-        dynamics = create_orbit_dynamics(_epoch())
+        dynamics = create_orbit_dynamics(zero_eop(), _epoch())
         x0 = _leo_state()
 
         def thrust(t, x):
@@ -564,7 +565,7 @@ class TestBraheComparison:
 
         # astrojax propagation
         epc = Epoch(2024, 6, 15, 12, 0, 0)
-        dynamics = create_orbit_dynamics(epc)
+        dynamics = create_orbit_dynamics(zero_eop(), epc)
         dt = 10.0
 
         state_aj = x0_aj

@@ -72,10 +72,11 @@ R = gnss_measurement_noise(10.0)  # 10 m 1-sigma
 
 # Define propagation (user closes over dynamics, integrator, timestep)
 from astrojax import create_orbit_dynamics, Epoch
+from astrojax.eop import zero_eop
 from astrojax.integrators import rk4_step
 
 epoch_0 = Epoch(2024, 6, 15, 12, 0, 0)
-dynamics = create_orbit_dynamics(epoch_0)
+dynamics = create_orbit_dynamics(zero_eop(), epoch_0)
 
 def propagate(x):
     return rk4_step(dynamics, 0.0, x, 10.0).state

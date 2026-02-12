@@ -11,10 +11,18 @@ import jax.numpy as jnp
 from astrojax import Epoch
 from astrojax.orbit_dynamics import density_harris_priester, sun_position
 
+from astrojax.eop import zero_eop
+from astrojax.frames.gcrf_itrf import bias_precession_nutation
+
 epc = Epoch(2024, 6, 15, 12, 0, 0)
-r_ecef = jnp.array([0.0, 0.0, -(6378e3 + 400e3)])  # 400 km altitude
-r_sun = sun_position(epc)
-rho = density_harris_priester(r_ecef, r_sun)  # kg/m^3
+eop = zero_eop()
+
+# Convert to true-of-date (TOD) frame for density computation
+BPN = bias_precession_nutation(eop, epc)
+r_eci = jnp.array([0.0, 0.0, -(6378e3 + 400e3)])  # 400 km altitude
+r_tod = BPN @ r_eci
+r_sun_tod = BPN @ sun_position(epc)
+rho = density_harris_priester(r_tod, r_sun_tod)  # kg/m^3
 ```
 
 ## Atmospheric Drag
@@ -27,9 +35,9 @@ spacecraft and the co-rotating atmosphere:
 from astrojax.orbit_dynamics import accel_drag
 
 x = jnp.array([6878e3, 0.0, 0.0, 0.0, 7500.0, 0.0])  # ECI state
-T = jnp.eye(3)  # ECI to TOD rotation (identity for simplicity)
+T = jnp.eye(3)  # ECI to ECEF rotation (identity for simplicity)
 a = accel_drag(x, rho, mass=100.0, area=1.0, cd=2.3, T=T)
 ```
 
-The rotation matrix $T$ transforms from ECI to the true-of-date (TOD)
-frame.  For simplified models, the identity matrix can be used.
+The rotation matrix $T$ transforms from ECI to the ECEF (ITRF) frame.
+For simplified models, the identity matrix can be used.

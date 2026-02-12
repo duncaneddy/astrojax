@@ -19,10 +19,10 @@ from jax import Array
 from jax.typing import ArrayLike
 
 from astrojax.constants import P_SUN
-from astrojax.eop._providers import zero_eop
 from astrojax.eop._types import EOPData
 from astrojax.epoch import Epoch
 from astrojax.frames import rotation_eci_to_ecef
+from astrojax.frames.gcrf_itrf import bias_precession_nutation
 from astrojax.orbit_dynamics.config import ForceModelConfig
 from astrojax.orbit_dynamics.density import density_harris_priester
 from astrojax.orbit_dynamics.drag import accel_drag
@@ -43,9 +43,9 @@ from astrojax.orbit_dynamics.third_body import (
 
 
 def create_orbit_dynamics(
+    eop: EOPData,
     epoch_0: Epoch,
     config: ForceModelConfig | None = None,
-    eop: EOPData | None = None,
 ) -> Callable[[ArrayLike, ArrayLike], Array]:
     """Create a configurable orbit dynamics function.
 
@@ -57,12 +57,13 @@ def create_orbit_dynamics(
     (``rk4_step``, ``rkf45_step``, ``dp54_step``, ``rkn1210_step``).
 
     Args:
+        eop: Earth orientation parameters for ECI-ECEF frame rotations.
+            Use ``zero_eop()`` when no Earth orientation corrections are
+            needed.
         epoch_0: Reference epoch.  The integrator time *t* is interpreted
             as seconds since this epoch.
         config: Force model configuration.  Defaults to point-mass
             two-body gravity (``ForceModelConfig.two_body()``).
-        eop: Earth orientation parameters for ECI-ECEF frame rotations.
-            Defaults to ``zero_eop()`` (no Earth orientation corrections).
 
     Returns:
         A callable ``dynamics(t, state) -> derivative`` where:
@@ -79,19 +80,18 @@ def create_orbit_dynamics(
         ```python
         import jax.numpy as jnp
         from astrojax import Epoch
+        from astrojax.eop import zero_eop
         from astrojax.orbit_dynamics.factory import create_orbit_dynamics
         from astrojax.orbit_dynamics.config import ForceModelConfig
         from astrojax.integrators import rk4_step
         epoch_0 = Epoch(2024, 6, 15, 12, 0, 0)
-        dynamics = create_orbit_dynamics(epoch_0)
+        dynamics = create_orbit_dynamics(zero_eop(), epoch_0)
         x0 = jnp.array([6878e3, 0.0, 0.0, 0.0, 7612.0, 0.0])
         result = rk4_step(dynamics, 0.0, x0, 60.0)
         ```
     """
     if config is None:
         config = ForceModelConfig.two_body()
-    if eop is None:
-        eop = zero_eop()
 
     _eop = eop
 
@@ -122,9 +122,10 @@ def create_orbit_dynamics(
     _cd = config.spacecraft.cd
     _cr = config.spacecraft.cr
 
-    # Precompute whether we need the ECI-to-ECEF rotation or sun position,
+    # Precompute whether we need frame rotations or sun position,
     # so we can share intermediate computations.
     _needs_R = _use_sh or _drag
+    _needs_BPN = _drag  # bias-precession-nutation for GCRF -> TOD
     _needs_r_sun = _drag or _srp or _third_body_sun
 
     def dynamics(t: ArrayLike, state: ArrayLike) -> Array:
@@ -145,6 +146,7 @@ def create_orbit_dynamics(
 
         # --- Shared intermediates ---
         R_eci_ecef = rotation_eci_to_ecef(_eop, epc) if _needs_R else None
+        BPN = bias_precession_nutation(_eop, epc) if _needs_BPN else None
         r_sun = sun_position(epc) if _needs_r_sun else None
 
         # --- Gravity ---
@@ -162,8 +164,11 @@ def create_orbit_dynamics(
 
         # --- Atmospheric drag ---
         if _drag:
-            r_ecef = R_eci_ecef @ r
-            rho = density_harris_priester(r_ecef, r_sun)
+            # Convert position and sun vector to true-of-date (TOD) frame
+            # for the Harris-Priester diurnal bulge computation
+            r_tod = BPN @ r
+            r_sun_tod = BPN @ r_sun
+            rho = density_harris_priester(r_tod, r_sun_tod)
             a = a + accel_drag(state, rho, _mass, _drag_area, _cd, R_eci_ecef)
 
         # --- Solar radiation pressure ---
