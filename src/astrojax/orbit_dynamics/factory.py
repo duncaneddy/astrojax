@@ -19,6 +19,8 @@ from jax import Array
 from jax.typing import ArrayLike
 
 from astrojax.constants import P_SUN
+from astrojax.eop._providers import zero_eop
+from astrojax.eop._types import EOPData
 from astrojax.epoch import Epoch
 from astrojax.frames import rotation_eci_to_ecef
 from astrojax.orbit_dynamics.config import ForceModelConfig
@@ -43,6 +45,7 @@ from astrojax.orbit_dynamics.third_body import (
 def create_orbit_dynamics(
     epoch_0: Epoch,
     config: ForceModelConfig | None = None,
+    eop: EOPData | None = None,
 ) -> Callable[[ArrayLike, ArrayLike], Array]:
     """Create a configurable orbit dynamics function.
 
@@ -58,6 +61,8 @@ def create_orbit_dynamics(
             as seconds since this epoch.
         config: Force model configuration.  Defaults to point-mass
             two-body gravity (``ForceModelConfig.two_body()``).
+        eop: Earth orientation parameters for ECI-ECEF frame rotations.
+            Defaults to ``zero_eop()`` (no Earth orientation corrections).
 
     Returns:
         A callable ``dynamics(t, state) -> derivative`` where:
@@ -85,6 +90,10 @@ def create_orbit_dynamics(
     """
     if config is None:
         config = ForceModelConfig.two_body()
+    if eop is None:
+        eop = zero_eop()
+
+    _eop = eop
 
     # Validate spherical harmonics configuration
     use_sh = config.gravity_type == "spherical_harmonics"
@@ -135,7 +144,7 @@ def create_orbit_dynamics(
         epc = epoch_0 + t
 
         # --- Shared intermediates ---
-        R_eci_ecef = rotation_eci_to_ecef(epc) if _needs_R else None
+        R_eci_ecef = rotation_eci_to_ecef(_eop, epc) if _needs_R else None
         r_sun = sun_position(epc) if _needs_r_sun else None
 
         # --- Gravity ---

@@ -81,11 +81,18 @@ from .estimation import (
     ukf_update,
 )
 from .frames import (
+    bias_precession_nutation,
     earth_rotation,
+    earth_rotation_angle,
+    polar_motion,
     rotation_ecef_to_eci,
     rotation_eci_to_ecef,
+    rotation_gcrf_to_itrf,
+    rotation_itrf_to_gcrf,
     state_ecef_to_eci,
     state_eci_to_ecef,
+    state_gcrf_to_itrf,
+    state_itrf_to_gcrf,
 )
 from .integrators import (
     AdaptiveConfig,
@@ -202,7 +209,15 @@ __all__ = [
     "zero_eop",
     # Epoch
     "Epoch",
-    # Frames
+    # Frames (GCRF/ITRF)
+    "bias_precession_nutation",
+    "earth_rotation_angle",
+    "polar_motion",
+    "rotation_gcrf_to_itrf",
+    "rotation_itrf_to_gcrf",
+    "state_gcrf_to_itrf",
+    "state_itrf_to_gcrf",
+    # Frames (ECI/ECEF aliases)
     "earth_rotation",
     "rotation_eci_to_ecef",
     "rotation_ecef_to_eci",

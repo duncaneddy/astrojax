@@ -47,11 +47,13 @@ with the ECI-to-ECEF rotation matrix:
 ```python
 import jax.numpy as jnp
 from astrojax.frames import rotation_eci_to_ecef
+from astrojax.eop import zero_eop
 from astrojax import Epoch
 
+eop = zero_eop()
 epc = Epoch(2024, 6, 15, 12, 0, 0)
 r_eci = jnp.array([6878e3, 0.0, 0.0])
-R = rotation_eci_to_ecef(epc)
+R = rotation_eci_to_ecef(eop, epc)
 
 # Evaluate to degree and order 20
 a = accel_gravity_spherical_harmonics(r_eci, R, model, n_max=20, m_max=20)

@@ -7,6 +7,71 @@ from jax.typing import ArrayLike
 from .config import get_dtype
 from .constants import JD_MJD_OFFSET
 
+# TT - TAI offset in seconds (constant by definition)
+TT_TAI: float = 32.184
+
+# Leap second table: (MJD of introduction, TAI-UTC in seconds)
+# Each entry marks the MJD at which TAI-UTC steps to the given value.
+# Source: IERS Bulletin C / USNO leap second table (1972-01-01 through 2017-01-01).
+_LEAP_SECOND_TABLE: tuple[tuple[float, float], ...] = (
+    (41317.0, 10.0),  # 1972-01-01
+    (41499.0, 11.0),  # 1972-07-01
+    (41683.0, 12.0),  # 1973-01-01
+    (42048.0, 13.0),  # 1974-01-01
+    (42413.0, 14.0),  # 1975-01-01
+    (42778.0, 15.0),  # 1976-01-01
+    (43144.0, 16.0),  # 1977-01-01
+    (43509.0, 17.0),  # 1978-01-01
+    (43874.0, 18.0),  # 1979-01-01
+    (44239.0, 19.0),  # 1980-01-01
+    (44786.0, 20.0),  # 1981-07-01
+    (45151.0, 21.0),  # 1982-01-01
+    (45516.0, 22.0),  # 1983-07-01
+    (46247.0, 23.0),  # 1985-07-01
+    (47161.0, 24.0),  # 1988-01-01
+    (47892.0, 25.0),  # 1990-01-01
+    (48257.0, 26.0),  # 1991-01-01
+    (48804.0, 27.0),  # 1992-07-01
+    (49169.0, 28.0),  # 1993-07-01
+    (49534.0, 29.0),  # 1994-07-01
+    (50083.0, 30.0),  # 1996-01-01
+    (50630.0, 31.0),  # 1997-07-01
+    (51179.0, 32.0),  # 1999-01-01
+    (53736.0, 33.0),  # 2006-01-01
+    (54832.0, 34.0),  # 2009-01-01
+    (56109.0, 35.0),  # 2012-07-01
+    (57204.0, 36.0),  # 2015-07-01
+    (57754.0, 37.0),  # 2017-01-01
+)
+
+
+def leap_seconds_tai_utc(mjd: ArrayLike) -> jax.Array:
+    """Return TAI-UTC (cumulative leap seconds) for a given MJD.
+
+    Uses a hardcoded step-function lookup table covering 1972-01-01 through
+    2017-01-01. For dates before 1972, returns 10.0; for dates after the last
+    entry, returns the most recent value (37.0).
+
+    JIT-compatible: uses ``jnp.searchsorted`` for O(log n) lookup.
+
+    Args:
+        mjd: Modified Julian Date (UTC), scalar or array.
+
+    Returns:
+        TAI-UTC in seconds.
+    """
+    mjd = jnp.asarray(mjd, dtype=get_dtype())
+    mjd_breaks = jnp.array([m for m, _ in _LEAP_SECOND_TABLE], dtype=get_dtype())
+    tai_utc_vals = jnp.array([v for _, v in _LEAP_SECOND_TABLE], dtype=get_dtype())
+
+    # searchsorted(side='right') returns the index of the first entry > mjd,
+    # so idx-1 is the last entry <= mjd.
+    idx = jnp.searchsorted(mjd_breaks, mjd, side="right")
+
+    # Before the first entry (idx=0): return 10.0
+    # Otherwise: return tai_utc_vals[idx-1]
+    return jnp.where(idx == 0, get_dtype()(10.0), tai_utc_vals[idx - 1])
+
 
 def caldate_to_mjd(
     year: ArrayLike,
