@@ -1,4 +1,4 @@
-"""Shared utility functions for angle and unit conversions.
+"""Angle and unit conversion helpers.
 
 These helpers wrap the ``use_degrees`` convention used throughout
 astrojax, providing JAX-traceable degree/radian conversion via
