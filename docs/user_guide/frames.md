@@ -2,19 +2,22 @@
 
 The `astrojax.frames` module provides functions for transforming
 satellite state vectors between common coordinate frames using the
-full IAU 2006/2000A CIO-based model.
+full IAU 2006/2000A CIO-based model and fixed inertial rotations.
 
 ## Reference Frames
 
-Two fundamental reference frames in astrodynamics are:
+Key reference frames in astrodynamics:
 
 | Frame | Full Name | Rotation |
 |-------|-----------|----------|
 | **GCRF** (ECI) | Geocentric Celestial Reference Frame | Fixed with respect to the stars |
 | **ITRF** (ECEF) | International Terrestrial Reference Frame | Rotates with the Earth |
+| **Ecliptic** | Ecliptic Coordinate Frame | Fixed; equator = ecliptic plane |
 
-Both share the same origin (Earth's centre of mass), but their axes
+GCRF and ITRF share the same origin (Earth's centre of mass), but their axes
 differ due to Earth's rotation, precession, nutation, and polar motion.
+The ecliptic frame shares the GCRF origin but its fundamental plane is the
+ecliptic (Earth's orbital plane), tilted by ~23.44° from the GCRF equator.
 
 ## The IAU 2006/2000A Model
 
@@ -89,6 +92,36 @@ x_itrf = state_gcrf_to_itrf(eop, epc, x_gcrf)
 
 # Transform back to GCRF (roundtrip)
 x_back = state_itrf_to_gcrf(eop, epc, x_itrf)
+```
+
+## Ecliptic-ICRF Transformations
+
+The ecliptic coordinate frame is related to ICRF by a fixed rotation
+about the x-axis by the J2000 mean obliquity ($\varepsilon \approx 23.44°$).
+Since both frames are inertial, no epoch, EOP data, or Coriolis velocity
+correction is needed:
+
+$$
+\mathbf{r}_{\text{ICRF}} = R_x(-\varepsilon) \; \mathbf{r}_{\text{ecl}}
+$$
+
+```python
+import jax.numpy as jnp
+from astrojax.frames import (
+    rotation_ecliptic_to_icrf,
+    state_ecliptic_to_icrf,
+    state_icrf_to_ecliptic,
+)
+
+# Rotation matrix (fixed, no epoch needed)
+R = rotation_ecliptic_to_icrf()  # 3x3
+
+# State vector transformation
+x_ecl = jnp.array([7000e3, 0.0, 0.0, 0.0, 7.5e3, 0.0])
+x_icrf = state_ecliptic_to_icrf(x_ecl)
+
+# Roundtrip
+x_back = state_icrf_to_ecliptic(x_icrf)
 ```
 
 ## JAX Compatibility

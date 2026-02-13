@@ -164,3 +164,15 @@ References:
 Applications*, 2012.
 """
 GM_MOON = 4902.800066 * 1e9
+
+# Ecliptic Constants
+"""
+Mean obliquity of the ecliptic at J2000 (IAU 2006 precession model). [arcseconds]
+
+Convert to radians at point of use with ``AS2RAD``.
+
+References:
+
+1. P. Gérard and B. Luzum, *IERS Technical Note 36*, 2010
+"""
+OBLIQUITY_J2000 = 84381.406  # [arcseconds] Mean obliquity at J2000

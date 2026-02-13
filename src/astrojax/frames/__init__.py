@@ -9,9 +9,17 @@ coordinate frames used in astrodynamics:
   angle, and polar motion).
 - **TEME transformations**: converting SGP4 output (TEME frame) to PEF, ITRF,
   and GCRF via GMST rotation and polar motion.
+- **Ecliptic-ICRF transformations**: converting between the ecliptic
+  coordinate frame and ICRF via a fixed rotation by the J2000 mean obliquity.
 - **ECI-ECEF aliases**: backward-compatible names mapping to GCRF/ITRF functions.
 """
 
+from .ecliptic import (
+    rotation_ecliptic_to_icrf,
+    rotation_icrf_to_ecliptic,
+    state_ecliptic_to_icrf,
+    state_icrf_to_ecliptic,
+)
 from .gcrf_itrf import (
     bias_precession_nutation,
     earth_rotation,
@@ -59,6 +67,11 @@ __all__ = [
     "state_itrf_to_teme",
     "state_teme_to_gcrf",
     "state_gcrf_to_teme",
+    # Ecliptic/ICRF transformations
+    "rotation_ecliptic_to_icrf",
+    "rotation_icrf_to_ecliptic",
+    "state_ecliptic_to_icrf",
+    "state_icrf_to_ecliptic",
     # ECI/ECEF aliases
     "earth_rotation",
     "rotation_eci_to_ecef",
