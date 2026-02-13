@@ -1,7 +1,7 @@
 [project]
 name = "astrojax"
-version = "0.2.0"
-description = "Add your description here"
+version = "0.3.0"
+description = "Astrodynamics written in JAX for massively parallel computation"
 readme = "README.md"
 authors = [
     { name = "Duncan Eddy", email = "duncan.eddy@gmail.com" }
