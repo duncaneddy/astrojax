@@ -23,7 +23,7 @@ from .eci_rtn import (
     state_eci_to_rtn,
     state_rtn_to_eci,
 )
-from .hcw_dynamics import hcw_derivative
+from .hcw_dynamics import hcw_derivative, hcw_stm
 from .oe_roe import (
     state_oe_to_roe,
     state_roe_to_oe,
@@ -39,4 +39,5 @@ __all__ = [
     "state_eci_to_roe",
     "state_roe_to_eci",
     "hcw_derivative",
+    "hcw_stm",
 ]

@@ -4,8 +4,10 @@ import pytest
 
 from astrojax.constants import GM_EARTH, R_EARTH
 from astrojax.coordinates import state_koe_to_eci
+from astrojax.integrators import rk4_step
 from astrojax.relative_motion import (
     hcw_derivative,
+    hcw_stm,
     rotation_eci_to_rtn,
     rotation_rtn_to_eci,
     state_eci_to_roe,
@@ -183,6 +185,96 @@ class TestHCWDynamics:
 
 
 # ──────────────────────────────────────────────
+# HCW STM tests
+# ──────────────────────────────────────────────
+
+
+class TestHCWSTM:
+    @pytest.fixture()
+    def n(self):
+        """Mean motion for a 500 km LEO orbit."""
+        sma = R_EARTH + 500e3
+        return jnp.sqrt(GM_EARTH / sma**3)
+
+    def test_identity_at_t_zero(self, n):
+        """STM at t=0 should be the 6x6 identity matrix."""
+        phi = hcw_stm(0.0, n)
+        assert jnp.allclose(phi, jnp.eye(6), atol=_SINGLE_TOL)
+
+    def test_output_shape(self, n):
+        """STM should be a (6, 6) matrix."""
+        phi = hcw_stm(60.0, n)
+        assert phi.shape == (6, 6)
+
+    def test_radial_displacement_propagation(self, n):
+        """Propagating [x0,0,0,0,0,0] should give x(t) = (4 - 3cos(nt)) x0."""
+        x0 = 100.0
+        t = 300.0
+        state0 = jnp.array([x0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        state_t = hcw_stm(t, n) @ state0
+        expected_x = (4.0 - 3.0 * jnp.cos(n * t)) * x0
+        assert jnp.abs(state_t[0] - expected_x) < _SINGLE_TOL
+
+    def test_cross_track_decoupled(self, n):
+        """z-only initial state stays in z: z(t) = z0 cos(nt)."""
+        z0 = 50.0
+        t = 200.0
+        state0 = jnp.array([0.0, 0.0, z0, 0.0, 0.0, 0.0])
+        state_t = hcw_stm(t, n) @ state0
+        expected_z = z0 * jnp.cos(n * t)
+        assert jnp.abs(state_t[2] - expected_z) < _SINGLE_TOL
+        # In-plane components should be zero
+        assert jnp.abs(state_t[0]) < _SINGLE_TOL
+        assert jnp.abs(state_t[1]) < _SINGLE_TOL
+
+    def test_consistency_with_derivative(self, n):
+        """STM propagation should match RK4 integration of hcw_derivative."""
+        state0 = jnp.array([100.0, 50.0, 30.0, 0.1, -0.2, 0.05])
+        dt_total = 60.0
+        n_steps = 200
+        dt = dt_total / n_steps
+
+        # Wrap hcw_derivative to match rk4_step's dynamics(t, state) signature
+        def dynamics(t, s):
+            return hcw_derivative(s, n)
+
+        # Integrate with many small RK4 steps
+        state_rk4 = state0
+        t_current = jnp.array(0.0)
+        for _ in range(n_steps):
+            result = rk4_step(dynamics, t_current, state_rk4, dt)
+            state_rk4 = result.state
+            t_current = t_current + dt
+
+        # Propagate with STM
+        state_stm = hcw_stm(dt_total, n) @ state0
+
+        assert jnp.allclose(state_stm, state_rk4, atol=_SINGLE_TOL)
+
+    def test_stm_composition(self, n):
+        """Semigroup property: Phi(t1+t2) == Phi(t2) @ Phi(t1)."""
+        t1 = 120.0
+        t2 = 180.0
+        phi_total = hcw_stm(t1 + t2, n)
+        phi_composed = hcw_stm(t2, n) @ hcw_stm(t1, n)
+        assert jnp.allclose(phi_total, phi_composed, atol=_SINGLE_TOL)
+
+    def test_determinant_is_one(self, n):
+        """det(Phi(t)) should be 1.0 (volume-preserving)."""
+        phi = hcw_stm(300.0, n)
+        det = jnp.linalg.det(phi)
+        assert jnp.abs(det - 1.0) < _SINGLE_TOL
+
+    def test_use_degrees(self, n):
+        """use_degrees=True should give the same result as radians."""
+        t = 200.0
+        n_deg = jnp.rad2deg(n)
+        phi_rad = hcw_stm(t, n)
+        phi_deg = hcw_stm(t, n_deg, use_degrees=True)
+        assert jnp.allclose(phi_rad, phi_deg, atol=_SINGLE_TOL)
+
+
+# ──────────────────────────────────────────────
 # JAX compatibility tests
 # ──────────────────────────────────────────────
 
@@ -252,6 +344,35 @@ class TestJAXCompatibility:
         assert grad.shape == (6,)
         # Gradient should be nonzero for the x component
         assert jnp.abs(grad[0]) > 0.0
+
+    def test_jit_hcw_stm(self):
+        """hcw_stm is JIT-compilable."""
+        n = jnp.sqrt(GM_EARTH / (R_EARTH + 500e3) ** 3)
+        t = jnp.array(300.0)
+        phi_eager = hcw_stm(t, n)
+        phi_jit = jax.jit(hcw_stm)(t, n)
+        assert jnp.allclose(phi_eager, phi_jit, atol=_SINGLE_TOL)
+
+    def test_vmap_hcw_stm(self):
+        """hcw_stm works with vmap over a batch of time values."""
+        n = jnp.sqrt(GM_EARTH / (R_EARTH + 500e3) ** 3)
+        times = jnp.array([0.0, 60.0, 120.0, 300.0])
+        batched = jax.vmap(hcw_stm, in_axes=(0, None))(times, n)
+        assert batched.shape == (4, 6, 6)
+        # First entry (t=0) should be identity
+        assert jnp.allclose(batched[0], jnp.eye(6), atol=_SINGLE_TOL)
+
+    def test_grad_hcw_stm(self):
+        """hcw_stm supports gradient computation w.r.t. time."""
+        n = jnp.sqrt(GM_EARTH / (R_EARTH + 500e3) ** 3)
+
+        def scalar_fn(t):
+            return jnp.sum(hcw_stm(t, n) ** 2)
+
+        t = jnp.array(300.0)
+        grad = jax.grad(scalar_fn)(t)
+        assert jnp.isfinite(grad)
+        assert jnp.abs(grad) > 0.0
 
 
 # ──────────────────────────────────────────────

@@ -151,6 +151,7 @@ from .orbits import (
 )
 from .relative_motion import (
     hcw_derivative,
+    hcw_stm,
     rotation_eci_to_rtn,
     rotation_rtn_to_eci,
     state_eci_to_roe,
@@ -233,6 +234,7 @@ __all__ = [
     "state_eci_to_roe",
     "state_roe_to_eci",
     "hcw_derivative",
+    "hcw_stm",
     # Coordinates
     "position_geocentric_to_ecef",
     "position_ecef_to_geocentric",
