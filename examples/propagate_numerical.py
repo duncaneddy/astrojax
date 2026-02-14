@@ -119,7 +119,7 @@ def main(
     drag: Annotated[bool, typer.Option(help="Enable atmospheric drag")] = True,
     drag_model: Annotated[
         DragModel, typer.Option(help="Atmospheric density model")
-    ] = DragModel.nrlmsise00,
+    ] = DragModel.harris_priester,
     srp: Annotated[bool, typer.Option(help="Enable solar radiation pressure")] = True,
     third_body_sun: Annotated[bool, typer.Option(help="Enable Sun perturbation")] = True,
     third_body_moon: Annotated[bool, typer.Option(help="Enable Moon perturbation")] = True,
@@ -301,18 +301,15 @@ def main(
     print(f"  Total timesteps: {n_steps}")
     print(f"  Satellites: {n_sats}")
 
-    # Memory estimate: trajectory output in float64
-    output_bytes = n_sats * n_steps * 6 * 8
-    output_gb = output_bytes / (1024**3)
-    print(f"  Estimated output size: {output_gb:.2f} GB")
-    if output_gb > 50:
-        print(
-            "  WARNING: Output exceeds 50 GB! "
-            "Consider reducing --duration or increasing --timestep."
-        )
+    # Memory estimate: only final states stored (not full trajectory)
+    output_bytes = n_sats * 6 * 8
+    output_mb = output_bytes / (1024**2)
+    print(f"  Output size (final states): {output_mb:.2f} MB")
 
     # Define single-spacecraft propagation using lax.scan.
     # n_steps is captured in the closure so it is concrete at trace time.
+    # Only the final state is returned (not the full trajectory) to keep
+    # memory usage low and speed up XLA compilation.
     def propagate_one(x0: jax.Array, dt_val: jax.Array) -> jax.Array:
         """Numerically propagate one spacecraft using RK4 + lax.scan.
 
@@ -321,17 +318,17 @@ def main(
             dt_val: Integration timestep [s].
 
         Returns:
-            Trajectory array of shape (n_steps, 6).
+            Final state vector of shape (6,).
         """
 
         def scan_step(carry, _):
             t, state = carry
             result = rk4_step(dynamics, t, state, dt_val)
-            return (t + dt_val, result.state), result.state
+            return (t + dt_val, result.state), None
 
         init_carry = (jnp.float64(0.0), x0)
-        (_, _), trajectory = jax.lax.scan(scan_step, init_carry, None, length=n_steps)
-        return trajectory  # (n_steps, 6)
+        (_, x_final), _ = jax.lax.scan(scan_step, init_carry, None, length=n_steps)
+        return x_final  # (6,)
 
     # vmap over spacecraft: each gets a different x0
     propagate_batch = jax.vmap(propagate_one, in_axes=(0, None))
@@ -343,10 +340,13 @@ def main(
 
     total_per_pass = batch_size * n_devices if _GPUS else batch_size
 
-    # Pad satellite count to nearest multiple of total_per_pass
+    # Pad satellite count to nearest multiple of total_per_pass.
+    # Use a valid satellite state for padding to avoid singularities
+    # (zero states cause division-by-zero in gravity/drag).
     n_padded = ((n_sats + total_per_pass - 1) // total_per_pass) * total_per_pass
     if n_padded > n_sats:
-        padding = jnp.zeros((n_padded - n_sats, 6))
+        pad_state = x0_all[0:1]  # replicate first valid satellite
+        padding = jnp.tile(pad_state, (n_padded - n_sats, 1))
         x0_padded = jnp.concatenate([x0_all, padding], axis=0)
     else:
         x0_padded = x0_all
@@ -373,20 +373,22 @@ def main(
         if _GPUS:
             batch_x0 = batch_x0.reshape(n_devices, batch_size, 6)
 
-        # Propagate: returns trajectory (batch_size, n_steps, 6) or (n_devices, batch_size, n_steps, 6)
-        trajectory = propagate_parallel(batch_x0, dt_jax)
+        if sat_batch_idx == 0:
+            print("  Compiling dynamics (first call triggers XLA compilation)...", flush=True)
+
+        # Propagate: returns final states (batch_size, 6) or (n_devices, batch_size, 6)
+        batch_final = propagate_parallel(batch_x0, dt_jax)
 
         # Block until computation completes for accurate timing
-        trajectory.block_until_ready()
+        batch_final.block_until_ready()
 
-        # Extract final states from the trajectory
+        if sat_batch_idx == 0:
+            t_compiled = time.perf_counter() - t_prop_start
+            print(f"  Compilation + first batch took {t_compiled:.1f}s")
+
+        # Flatten pmap device dimension if needed
         if _GPUS:
-            # (n_devices, batch_size, n_steps, 6) -> (n_devices, batch_size, 6)
-            batch_final = trajectory[:, :, -1, :]
             batch_final = batch_final.reshape(-1, 6)
-        else:
-            # (batch_size, n_steps, 6) -> (batch_size, 6)
-            batch_final = trajectory[:, -1, :]
 
         final_states.append(batch_final)
 
