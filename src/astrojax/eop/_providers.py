@@ -20,7 +20,6 @@ import logging
 from pathlib import Path
 
 import jax.numpy as jnp
-import numpy as np
 
 from astrojax.config import get_dtype
 from astrojax.eop._download import _STANDARD_FILENAME, download_standard_eop_file
@@ -140,20 +139,20 @@ def load_eop_from_file(filepath: str | Path) -> EOPData:
 
     mjds, pm_xs, pm_ys, ut1_utcs, lods, dXs, dYs = parse_standard_file(str(filepath))
 
-    dtype = np.float64
+    dtype = jnp.float64
 
-    # Convert to numpy first for efficient array construction
-    mjd_np = np.array(mjds, dtype=dtype)
-    lod_np = np.array(lods, dtype=dtype)
-    dX_np = np.array(dXs, dtype=dtype)
-    dY_np = np.array(dYs, dtype=dtype)
+    # Convert to JAX arrays for array construction
+    mjd_np = jnp.array(mjds, dtype=dtype)
+    lod_np = jnp.array(lods, dtype=dtype)
+    dX_np = jnp.array(dXs, dtype=dtype)
+    dY_np = jnp.array(dYs, dtype=dtype)
 
     # Find last valid MJD for optional fields
-    lod_valid = ~np.isnan(lod_np)
-    dxdy_valid = ~np.isnan(dX_np) & ~np.isnan(dY_np)
+    lod_valid = ~jnp.isnan(lod_np)
+    dxdy_valid = ~jnp.isnan(dX_np) & ~jnp.isnan(dY_np)
 
-    mjd_last_lod = float(mjd_np[lod_valid][-1]) if np.any(lod_valid) else float(mjd_np[0])
-    mjd_last_dxdy = float(mjd_np[dxdy_valid][-1]) if np.any(dxdy_valid) else float(mjd_np[0])
+    mjd_last_lod = float(mjd_np[lod_valid][-1]) if jnp.any(lod_valid) else float(mjd_np[0])
+    mjd_last_dxdy = float(mjd_np[dxdy_valid][-1]) if jnp.any(dxdy_valid) else float(mjd_np[0])
 
     jdtype = get_dtype()
     return EOPData(

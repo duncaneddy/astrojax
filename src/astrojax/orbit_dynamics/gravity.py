@@ -17,7 +17,6 @@ from pathlib import Path
 
 import jax
 import jax.numpy as jnp
-import numpy as np
 from jax import Array
 from jax.typing import ArrayLike
 
@@ -150,7 +149,7 @@ class GravityModel:
         radius: float,
         n_max: int,
         m_max: int,
-        data: np.ndarray,
+        data: Array,
         tide_system: str = "unknown",
         normalization: str = "fully_normalized",
     ):
@@ -342,8 +341,8 @@ class GravityModel:
         if n_max == 0:
             raise ValueError("GFC header missing 'max_degree'.")
 
-        # Read coefficient data
-        data = np.zeros((n_max + 1, m_max + 1), dtype=np.float64)
+        # Read coefficient data into a Python list (JAX arrays are immutable)
+        data = [[0.0] * (m_max + 1) for _ in range(n_max + 1)]
 
         for line in lines:
             line = line.strip()
@@ -361,9 +360,9 @@ class GravityModel:
             s = float(parts[4])
 
             if n <= n_max and m <= m_max:
-                data[n, m] = c
+                data[n][m] = c
                 if m > 0:
-                    data[m - 1, n] = s
+                    data[m - 1][n] = s
 
         return cls(
             model_name=model_name,
@@ -371,7 +370,7 @@ class GravityModel:
             radius=radius,
             n_max=n_max,
             m_max=m_max,
-            data=data,
+            data=jnp.array(data, dtype=jnp.float64),
             tide_system=tide_system,
             normalization=normalization,
         )
@@ -575,14 +574,14 @@ def _compute_spherical_harmonics(
     V, W = jax.lax.fori_loop(1, m_max + 2, tesseral_outer, (V, W))
 
     # --- Precompute denormalized coefficient arrays ---
-    # Build normalization matrix using Python loops (pure numpy, no tracing)
-    norm = np.ones((n_max + 1, m_max + 1), dtype=np.float64)
+    # Build normalization matrix using pure Python loops (no tracing)
+    norm = [[1.0] * (m_max + 1) for _ in range(n_max + 1)]
     if is_normalized:
         for n in range(n_max + 1):
             nf = float(n)
-            norm[n, 0] = math.sqrt(2.0 * nf + 1.0)
+            norm[n][0] = math.sqrt(2.0 * nf + 1.0)
             for m in range(1, min(n, m_max) + 1):
-                norm[n, m] = math.sqrt(
+                norm[n][m] = math.sqrt(
                     2.0 * (2.0 * nf + 1.0) * _factorial_product(n, m)
                 )
 

@@ -8,6 +8,7 @@ object with user-friendly properties and methods.
 from __future__ import annotations
 
 from math import pi as _py_pi
+from typing import TYPE_CHECKING
 
 import jax.numpy as jnp
 from jax import Array
@@ -22,8 +23,11 @@ from astrojax.frames.teme import (
 )
 from astrojax.sgp4._constants import GRAVITY_MODELS, EarthGravity
 from astrojax.sgp4._propagation import sgp4_init, sgp4_propagate
-from astrojax.sgp4._tle import parse_tle
+from astrojax.sgp4._tle import parse_omm, parse_tle
 from astrojax.sgp4._types import SGP4Elements
+
+if TYPE_CHECKING:
+    from astrojax._gp_record import GPRecord
 
 _RAD2DEG = 180.0 / _py_pi
 
@@ -77,7 +81,21 @@ class TLE:
         if isinstance(gravity, str):
             gravity = GRAVITY_MODELS[gravity.lower()]
 
-        self._elements: SGP4Elements = parse_tle(line1, line2)
+        elements = parse_tle(line1, line2)
+        self._init_from_elements(elements, gravity)
+
+    def _init_from_elements(
+        self,
+        elements: SGP4Elements,
+        gravity: EarthGravity,
+    ) -> None:
+        """Initialize TLE internals from pre-parsed SGP4 elements.
+
+        Args:
+            elements: Parsed orbital elements.
+            gravity: Earth gravity model constants.
+        """
+        self._elements: SGP4Elements = elements
         self._gravity: EarthGravity = gravity
         self._params: Array
         self._method: str
@@ -92,6 +110,72 @@ class TLE:
             jnp.float64(0.0),
         )
         self._epoch._normalize()
+
+    @classmethod
+    def from_elements(
+        cls,
+        elements: SGP4Elements,
+        gravity: str | EarthGravity = "wgs72",
+    ) -> TLE:
+        """Create a TLE from pre-parsed SGP4 orbital elements.
+
+        Args:
+            elements: Parsed orbital elements from ``parse_tle`` or
+                ``parse_omm``.
+            gravity: Gravity model name or :class:`EarthGravity` instance.
+
+        Returns:
+            A new :class:`TLE` instance.
+        """
+        if isinstance(gravity, str):
+            gravity = GRAVITY_MODELS[gravity.lower()]
+
+        obj = cls.__new__(cls)
+        obj._init_from_elements(elements, gravity)
+        return obj
+
+    @classmethod
+    def from_omm(
+        cls,
+        fields: dict[str, str],
+        gravity: str | EarthGravity = "wgs72",
+    ) -> TLE:
+        """Create a TLE from OMM (Orbit Mean-Elements Message) fields.
+
+        Args:
+            fields: Dictionary mapping OMM field names to string values.
+                See :func:`~astrojax.sgp4.parse_omm` for required keys.
+            gravity: Gravity model name or :class:`EarthGravity` instance.
+
+        Returns:
+            A new :class:`TLE` instance.
+
+        Raises:
+            KeyError: If a required OMM field is missing.
+        """
+        elements = parse_omm(fields)
+        return cls.from_elements(elements, gravity)
+
+    @classmethod
+    def from_gp_record(
+        cls,
+        record: GPRecord,
+        gravity: str | EarthGravity = "wgs72",
+    ) -> TLE:
+        """Create a TLE from a GPRecord.
+
+        Args:
+            record: A GP record from CelesTrak or SpaceTrack.
+            gravity: Gravity model name or :class:`EarthGravity` instance.
+
+        Returns:
+            A new :class:`TLE` instance.
+
+        Raises:
+            KeyError: If the record is missing required fields.
+        """
+        elements = record.to_sgp4_elements()
+        return cls.from_elements(elements, gravity)
 
     # ------------------------------------------------------------------
     # Properties (user-friendly units)

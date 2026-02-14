@@ -12,12 +12,15 @@ Python time and returns this array plus a method flag. The propagation
 function (``sgp4_propagate``) is a pure JAX function suitable for JIT.
 """
 
+from __future__ import annotations
+
 from collections.abc import Callable
 from math import cos as _py_cos
 from math import fabs as _py_fabs
 from math import pi as _py_pi
 from math import sin as _py_sin
 from math import sqrt as _py_sqrt
+from typing import TYPE_CHECKING
 
 import jax
 import jax.numpy as jnp
@@ -25,8 +28,11 @@ from jax import Array
 from jax.typing import ArrayLike
 
 from astrojax.sgp4._constants import GRAVITY_MODELS, WGS72, EarthGravity
-from astrojax.sgp4._tle import parse_tle
-from astrojax.sgp4._types import SGP4Elements
+from astrojax.sgp4._tle import parse_omm, parse_tle
+from astrojax.sgp4._types import SGP4Elements, elements_to_array
+
+if TYPE_CHECKING:
+    from astrojax._gp_record import GPRecord
 
 # ---------------------------------------------------------------------------
 # Parameter index layout for the flat params array
@@ -137,6 +143,8 @@ _PARAM_NAMES = [
     "zmol",
     "zmos",
     "atime",
+    # Method flag (96): 0.0 = near-earth, 1.0 = deep-space
+    "method",
 ]
 
 _IDX = {name: i for i, name in enumerate(_PARAM_NAMES)}
@@ -227,6 +235,113 @@ def _initl(
             gsto = gsto + _twopi
     else:
         gsto = _gstime(epoch + 2433281.5)
+
+    return (
+        no,
+        1.0 / ao,  # ainv
+        ao,
+        con41,
+        con42,
+        cosio,
+        cosio2,
+        eccsq,
+        omeosq,
+        posq,
+        rp,
+        rteosq,
+        sinio,
+        gsto,
+    )
+
+
+# ---------------------------------------------------------------------------
+# JAX-compatible init helpers (JIT-safe)
+# ---------------------------------------------------------------------------
+
+_twopi_jax = 2.0 * jnp.pi
+
+
+def _gstime_jax(jdut1: ArrayLike) -> Array:
+    """Compute Greenwich Sidereal Time from Julian date (JAX).
+
+    Args:
+        jdut1: Julian date (UT1).
+
+    Returns:
+        Greenwich sidereal time [rad].
+    """
+    tut1 = (jdut1 - 2451545.0) / 36525.0
+    temp = (
+        -6.2e-6 * tut1 * tut1 * tut1
+        + 0.093104 * tut1 * tut1
+        + (876600.0 * 3600 + 8640184.812866) * tut1
+        + 67310.54841
+    )
+    temp = (temp * (jnp.pi / 180.0) / 240.0) % _twopi_jax
+    temp = jnp.where(temp < 0.0, temp + _twopi_jax, temp)
+    return temp
+
+
+def _initl_jax(
+    xke: ArrayLike,
+    j2: ArrayLike,
+    ecco: ArrayLike,
+    epoch: ArrayLike,
+    inclo: ArrayLike,
+    no: ArrayLike,
+    opsmode: str,
+) -> tuple:
+    """Initialize SGP4 auxiliary quantities (JAX, JIT-compatible).
+
+    Args:
+        xke: Gravity constant xke.
+        j2: J2 zonal harmonic.
+        ecco: Eccentricity.
+        epoch: Days since 1950 Jan 0.
+        inclo: Inclination [rad].
+        no: Mean motion (Kozai) [rad/min].
+        opsmode: Operation mode ('a' or 'i'). Resolved at trace time.
+
+    Returns:
+        Tuple of computed quantities.
+    """
+    x2o3 = 2.0 / 3.0
+
+    eccsq = ecco * ecco
+    omeosq = 1.0 - eccsq
+    rteosq = jnp.sqrt(omeosq)
+    cosio = jnp.cos(inclo)
+    cosio2 = cosio * cosio
+
+    # Un-Kozai the mean motion
+    ak = (xke / no) ** x2o3
+    d1 = 0.75 * j2 * (3.0 * cosio2 - 1.0) / (rteosq * omeosq)
+    del_ = d1 / (ak * ak)
+    adel = ak * (1.0 - del_ * del_ - del_ * (1.0 / 3.0 + 134.0 * del_ * del_ / 81.0))
+    del_ = d1 / (adel * adel)
+    no = no / (1.0 + del_)
+
+    ao = (xke / no) ** x2o3
+    sinio = jnp.sin(inclo)
+    po = ao * omeosq
+    con42 = 1.0 - 5.0 * cosio2
+    con41 = -con42 - cosio2 - cosio2
+    posq = po * po
+    rp = ao * (1.0 - ecco)
+
+    # Sidereal time
+    if opsmode == "a":
+        ts70 = epoch - 7305.0
+        ds70 = jnp.floor(ts70 + 1.0e-8)
+        tfrac = ts70 - ds70
+        c1 = 1.72027916940703639e-2
+        thgr70 = 1.7321343856509374
+        fk5r = 5.07551419432269442e-15
+        c1p2p = c1 + _twopi_jax
+        gsto = (thgr70 + c1 * ds70 + c1p2p * tfrac + ts70 * ts70 * fk5r) % _twopi_jax
+        gsto = jnp.where(gsto < 0.0, gsto + _twopi_jax, gsto)
+    else:
+        gsto = _gstime_jax(epoch + 2433281.5)
 
     return (
         no,
@@ -443,6 +558,7 @@ def sgp4_init(
         if _twopi / no_unkozai >= 225.0:
             method = "d"
             isimp = 1
+            d["method"] = 1.0
 
         # Store near-earth parameters
         d["cc1"] = cc1
@@ -538,6 +654,268 @@ def sgp4_init(
         _sgp4_propagate_deep_space(params, jnp.float64(0.0))
 
     return params, method
+
+
+# ---------------------------------------------------------------------------
+# JIT-compilable SGP4 Initialization
+# ---------------------------------------------------------------------------
+
+
+def sgp4_init_jax(
+    elements: Array,
+    gravity: EarthGravity = WGS72,
+    opsmode: str = "i",
+) -> Array:
+    """Initialize SGP4 satellite parameters (JAX, JIT-compatible).
+
+    Unlike ``sgp4_init``, this function is compatible with ``jax.jit``,
+    ``jax.vmap``, and ``jax.grad``. It accepts a flat array of numeric
+    orbital elements and returns a flat parameter array with an embedded
+    method flag (0.0 = near-earth, 1.0 = deep-space).
+
+    Use with ``jax.jit``::
+
+        init_jit = jax.jit(sgp4_init_jax, static_argnames=('gravity', 'opsmode'))
+        params = init_jit(elements_arr)
+
+    Args:
+        elements: Array of shape ``(11,)`` containing the numeric orbital
+            elements. Use ``elements_to_array`` to convert from
+            ``SGP4Elements``. Order: jdsatepoch, jdsatepochF, no_kozai,
+            ecco, inclo, nodeo, argpo, mo, bstar, ndot, nddot.
+        gravity: Earth gravity model constants. Treated as a static
+            argument under JIT (use ``static_argnames``).
+        opsmode: Operation mode ('i' for improved, 'a' for AFSPC).
+            Treated as a static argument under JIT.
+
+    Returns:
+        Flat ``jnp.array`` of shape ``(_NUM_PARAMS,)`` with all SGP4
+        parameters, including a method flag at index ``_IDX["method"]``.
+    """
+    from astrojax.sgp4._deep_space import _deep_space_init_jax
+
+    # Unpack elements
+    jdsatepoch = elements[0]
+    jdsatepochF = elements[1]
+    no_kozai = elements[2]
+    ecco = elements[3]
+    inclo = elements[4]
+    nodeo = elements[5]
+    argpo = elements[6]
+    mo = elements[7]
+    bstar = elements[8]
+    ndot = elements[9]
+    nddot = elements[10]
+
+    # Initialize params array
+    params = jnp.zeros(_NUM_PARAMS)
+
+    # Store gravity constants (static — known at trace time)
+    params = params.at[_IDX["tumin"]].set(gravity.tumin)
+    params = params.at[_IDX["mu"]].set(gravity.mu)
+    params = params.at[_IDX["radiusearthkm"]].set(gravity.radiusearthkm)
+    params = params.at[_IDX["xke"]].set(gravity.xke)
+    params = params.at[_IDX["j2"]].set(gravity.j2)
+    params = params.at[_IDX["j3"]].set(gravity.j3)
+    params = params.at[_IDX["j4"]].set(gravity.j4)
+    params = params.at[_IDX["j3oj2"]].set(gravity.j3oj2)
+
+    # Store TLE elements
+    params = params.at[_IDX["bstar"]].set(bstar)
+    params = params.at[_IDX["ecco"]].set(ecco)
+    params = params.at[_IDX["argpo"]].set(argpo)
+    params = params.at[_IDX["inclo"]].set(inclo)
+    params = params.at[_IDX["mo"]].set(mo)
+    params = params.at[_IDX["no_kozai"]].set(no_kozai)
+    params = params.at[_IDX["nodeo"]].set(nodeo)
+    params = params.at[_IDX["ndot"]].set(ndot)
+    params = params.at[_IDX["nddot"]].set(nddot)
+
+    # Compute epoch in days since 1950 Jan 0
+    epoch = jdsatepoch + jdsatepochF - 2433281.5
+
+    temp4 = 1.5e-12
+    x2o3 = 2.0 / 3.0
+    twopi = 2.0 * jnp.pi
+
+    # Earth constants
+    ss = 78.0 / gravity.radiusearthkm + 1.0
+    qzms2ttemp = (120.0 - 78.0) / gravity.radiusearthkm
+    qzms2t = qzms2ttemp**4
+    sfour_base = ss
+
+    # Initialize auxiliary quantities
+    (
+        no_unkozai, ainv, ao, con41, con42, cosio, cosio2,
+        eccsq, omeosq, posq, rp, rteosq, sinio, gsto,
+    ) = _initl_jax(gravity.xke, gravity.j2, ecco, epoch, inclo, no_kozai, opsmode)
+
+    params = params.at[_IDX["no_unkozai"]].set(no_unkozai)
+    params = params.at[_IDX["con41"]].set(con41)
+    params = params.at[_IDX["gsto"]].set(gsto)
+    params = params.at[_IDX["a"]].set((no_unkozai * gravity.tumin) ** (-2.0 / 3.0))
+
+    # Perigee-based s/qoms2t adjustments
+    isimp = jnp.where(rp < 220.0 / gravity.radiusearthkm + 1.0, 1.0, 0.0)
+
+    qzms24 = qzms2t
+    perige = (rp - 1.0) * gravity.radiusearthkm
+
+    # For perigees below 156 km
+    sfour_low = jnp.where(perige < 98.0, 20.0, perige - 78.0)
+    qzms24temp_low = (120.0 - sfour_low) / gravity.radiusearthkm
+    qzms24_low = qzms24temp_low**4
+    sfour_low_adj = sfour_low / gravity.radiusearthkm + 1.0
+
+    is_low_perige = perige < 156.0
+    sfour = jnp.where(is_low_perige, sfour_low_adj, sfour_base)
+    qzms24 = jnp.where(is_low_perige, qzms24_low, qzms24)
+
+    pinvsq = 1.0 / posq
+    tsi = 1.0 / (ao - sfour)
+    eta = ao * ecco * tsi
+    etasq = eta * eta
+    eeta = ecco * eta
+    psisq = jnp.abs(1.0 - etasq)
+    coef = qzms24 * tsi**4
+    coef1 = coef / psisq**3.5
+    cc2 = (
+        coef1
+        * no_unkozai
+        * (
+            ao * (1.0 + 1.5 * etasq + eeta * (4.0 + etasq))
+            + 0.375 * gravity.j2 * tsi / psisq * con41 * (8.0 + 3.0 * etasq * (8.0 + etasq))
+        )
+    )
+    cc1 = bstar * cc2
+    cc3 = jnp.where(
+        ecco > 1.0e-4,
+        -2.0 * coef * tsi * gravity.j3oj2 * no_unkozai * sinio / ecco,
+        0.0,
+    )
+    x1mth2 = 1.0 - cosio2
+    cc4 = (
+        2.0
+        * no_unkozai
+        * coef1
+        * ao
+        * omeosq
+        * (
+            eta * (2.0 + 0.5 * etasq)
+            + ecco * (0.5 + 2.0 * etasq)
+            - gravity.j2
+            * tsi
+            / (ao * psisq)
+            * (
+                -3.0 * con41 * (1.0 - 2.0 * eeta + etasq * (1.5 - 0.5 * eeta))
+                + 0.75
+                * x1mth2
+                * (2.0 * etasq - eeta * (1.0 + etasq))
+                * jnp.cos(2.0 * argpo)
+            )
+        )
+    )
+    cc5 = 2.0 * coef1 * ao * omeosq * (1.0 + 2.75 * (etasq + eeta) + eeta * etasq)
+    cosio4 = cosio2 * cosio2
+    temp1 = 1.5 * gravity.j2 * pinvsq * no_unkozai
+    temp2 = 0.5 * temp1 * gravity.j2 * pinvsq
+    temp3 = -0.46875 * gravity.j4 * pinvsq * pinvsq * no_unkozai
+    mdot = (
+        no_unkozai
+        + 0.5 * temp1 * rteosq * con41
+        + 0.0625 * temp2 * rteosq * (13.0 - 78.0 * cosio2 + 137.0 * cosio4)
+    )
+    argpdot = (
+        -0.5 * temp1 * con42
+        + 0.0625 * temp2 * (7.0 - 114.0 * cosio2 + 395.0 * cosio4)
+        + temp3 * (3.0 - 36.0 * cosio2 + 49.0 * cosio4)
+    )
+    xhdot1 = -temp1 * cosio
+    nodedot = (
+        xhdot1
+        + (0.5 * temp2 * (4.0 - 19.0 * cosio2) + 2.0 * temp3 * (3.0 - 7.0 * cosio2)) * cosio
+    )
+    xpidot = argpdot + nodedot
+    omgcof = bstar * cc3 * jnp.cos(argpo)
+    xmcof = jnp.where(ecco > 1.0e-4, -x2o3 * coef * bstar / eeta, 0.0)
+    nodecf = 3.5 * omeosq * xhdot1 * cc1
+    t2cof = 1.5 * cc1
+
+    # Cosio singularity fix
+    xlcof = jnp.where(
+        jnp.abs(cosio + 1.0) > 1.5e-12,
+        -0.25 * gravity.j3oj2 * sinio * (3.0 + 5.0 * cosio) / (1.0 + cosio),
+        -0.25 * gravity.j3oj2 * sinio * (3.0 + 5.0 * cosio) / temp4,
+    )
+
+    aycof = -0.5 * gravity.j3oj2 * sinio
+    delmotemp = 1.0 + eta * jnp.cos(mo)
+    delmo = delmotemp**3
+    sinmao = jnp.sin(mo)
+    x7thm1 = 7.0 * cosio2 - 1.0
+
+    # Deep-space detection
+    is_deep_space = twopi / no_unkozai >= 225.0
+    isimp = jnp.where(is_deep_space, 1.0, isimp)
+
+    # Store near-earth parameters
+    params = params.at[_IDX["cc1"]].set(cc1)
+    params = params.at[_IDX["cc4"]].set(cc4)
+    params = params.at[_IDX["cc5"]].set(cc5)
+    params = params.at[_IDX["delmo"]].set(delmo)
+    params = params.at[_IDX["eta"]].set(eta)
+    params = params.at[_IDX["argpdot"]].set(argpdot)
+    params = params.at[_IDX["omgcof"]].set(omgcof)
+    params = params.at[_IDX["sinmao"]].set(sinmao)
+    params = params.at[_IDX["t2cof"]].set(t2cof)
+    params = params.at[_IDX["x1mth2"]].set(x1mth2)
+    params = params.at[_IDX["x7thm1"]].set(x7thm1)
+    params = params.at[_IDX["mdot"]].set(mdot)
+    params = params.at[_IDX["nodedot"]].set(nodedot)
+    params = params.at[_IDX["xlcof"]].set(xlcof)
+    params = params.at[_IDX["xmcof"]].set(xmcof)
+    params = params.at[_IDX["nodecf"]].set(nodecf)
+    params = params.at[_IDX["aycof"]].set(aycof)
+    params = params.at[_IDX["isimp"]].set(isimp)
+
+    # Deep-space initialization (always computed, conditionally applied)
+    ds_values = _deep_space_init_jax(
+        ecco=ecco, argpo=argpo, inclo=inclo, mo=mo, nodeo=nodeo,
+        no_unkozai=no_unkozai, epoch=epoch, gsto=gsto, mdot=mdot,
+        nodedot=nodedot, xpidot=xpidot, eccsq=eccsq, xke=gravity.xke,
+    )
+    for name, val in ds_values.items():
+        params = params.at[_IDX[name]].set(
+            jnp.where(is_deep_space, val, params[_IDX[name]])
+        )
+
+    # Higher-order secular terms for non-simplified orbits
+    is_not_simple = isimp < 0.5
+    cc1sq = cc1 * cc1
+    d2_val = 4.0 * ao * tsi * cc1sq
+    temp_d = d2_val * tsi * cc1 / 3.0
+    d3_val = (17.0 * ao + sfour) * temp_d
+    d4_val = 0.5 * temp_d * ao * tsi * (221.0 * ao + 31.0 * sfour) * cc1
+    t3cof_val = d2_val + 2.0 * cc1sq
+    t4cof_val = 0.25 * (3.0 * d3_val + cc1 * (12.0 * d2_val + 10.0 * cc1sq))
+    t5cof_val = 0.2 * (
+        3.0 * d4_val
+        + 12.0 * cc1 * d3_val
+        + 6.0 * d2_val * d2_val
+        + 15.0 * cc1sq * (2.0 * d2_val + cc1sq)
+    )
+
+    params = params.at[_IDX["d2"]].set(jnp.where(is_not_simple, d2_val, 0.0))
+    params = params.at[_IDX["d3"]].set(jnp.where(is_not_simple, d3_val, 0.0))
+    params = params.at[_IDX["d4"]].set(jnp.where(is_not_simple, d4_val, 0.0))
+    params = params.at[_IDX["t3cof"]].set(jnp.where(is_not_simple, t3cof_val, 0.0))
+    params = params.at[_IDX["t4cof"]].set(jnp.where(is_not_simple, t4cof_val, 0.0))
+    params = params.at[_IDX["t5cof"]].set(jnp.where(is_not_simple, t5cof_val, 0.0))
+
+    # Method flag
+    params = params.at[_IDX["method"]].set(jnp.where(is_deep_space, 1.0, 0.0))
+
+    return params
 
 
 # ---------------------------------------------------------------------------
@@ -796,6 +1174,61 @@ def sgp4_propagate(params: Array, tsince: ArrayLike, method: str) -> tuple[Array
         return _sgp4_propagate_deep_space(params, tsince)
 
 
+def sgp4_propagate_unified(params: Array, tsince: ArrayLike) -> tuple[Array, Array]:
+    """Propagate a satellite using SGP4/SDP4 with auto-detection (JAX, JIT-compatible).
+
+    Unlike ``sgp4_propagate``, this function does not require a separate
+    ``method`` string. It reads the method flag from ``params`` (set by
+    ``sgp4_init_jax`` or ``sgp4_init``) and dispatches to the correct
+    propagation branch using ``jax.lax.cond``.
+
+    This enables ``vmap`` over satellites with mixed near-earth and
+    deep-space orbits in a single batch.
+
+    Args:
+        params: Flat parameter array from ``sgp4_init`` or ``sgp4_init_jax``.
+        tsince: Time since epoch in minutes.
+
+    Returns:
+        Tuple of ``(r, v)`` where ``r`` is position [km] and ``v`` is
+        velocity [km/s], both as 3-element arrays in the TEME frame.
+    """
+    is_deep = params[_IDX["method"]] > 0.5
+    return jax.lax.cond(
+        is_deep,
+        _sgp4_propagate_deep_space,
+        _sgp4_propagate_near_earth,
+        params,
+        tsince,
+    )
+
+
+def _create_propagator_from_elements(
+    elements: SGP4Elements,
+    gravity: EarthGravity,
+) -> tuple[Array, Callable[[ArrayLike], tuple[Array, Array]]]:
+    """Shared helper: init SGP4 from elements and return (params, propagate_fn).
+
+    Args:
+        elements: Parsed orbital elements.
+        gravity: Earth gravity model constants.
+
+    Returns:
+        Tuple of ``(params, propagate_fn)`` where:
+            - ``params`` is a flat ``jnp.array`` of satellite parameters
+            - ``propagate_fn(tsince)`` takes time since epoch in minutes
+              and returns ``(r_km, v_kms)`` in the TEME frame
+    """
+    params, method = sgp4_init(elements, gravity)
+
+    if method == "n":
+        propagate_fn = lambda tsince: _sgp4_propagate_near_earth(params, tsince)  # noqa: E731
+    else:
+        propagate_fn = lambda tsince: _sgp4_propagate_deep_space(params, tsince)  # noqa: E731
+
+    return params, propagate_fn
+
+
 def create_sgp4_propagator(
     line1: str,
     line2: str,
@@ -823,11 +1256,135 @@ def create_sgp4_propagator(
     if isinstance(gravity, str):
         gravity = GRAVITY_MODELS[gravity.lower()]
 
-    params, method = sgp4_init(elements, gravity)
+    return _create_propagator_from_elements(elements, gravity)
 
-    if method == "n":
-        propagate_fn = lambda tsince: _sgp4_propagate_near_earth(params, tsince)  # noqa: E731
-    else:
-        propagate_fn = lambda tsince: _sgp4_propagate_deep_space(params, tsince)  # noqa: E731
 
-    return params, propagate_fn
+def create_sgp4_propagator_from_elements(
+    elements: SGP4Elements,
+    gravity: str | EarthGravity = "wgs72",
+) -> tuple[Array, Callable[[ArrayLike], tuple[Array, Array]]]:
+    """Create a JIT-compatible SGP4 propagator from pre-parsed elements.
+
+    Accepts an :class:`SGP4Elements` dataclass (e.g. from ``parse_tle``
+    or ``parse_omm``) and returns a parameter array and propagation closure.
+
+    Args:
+        elements: Parsed orbital elements from ``parse_tle`` or ``parse_omm``.
+        gravity: Gravity model name (``'wgs72'``, ``'wgs84'``, ``'wgs72old'``)
+            or an ``EarthGravity`` instance.
+
+    Returns:
+        Tuple of ``(params, propagate_fn)`` where:
+            - ``params`` is a flat ``jnp.array`` of satellite parameters
+            - ``propagate_fn(tsince)`` takes time since epoch in minutes
+              and returns ``(r_km, v_kms)`` in the TEME frame
+    """
+    if isinstance(gravity, str):
+        gravity = GRAVITY_MODELS[gravity.lower()]
+
+    return _create_propagator_from_elements(elements, gravity)
+
+
+def create_sgp4_propagator_from_omm(
+    fields: dict[str, str],
+    gravity: str | EarthGravity = "wgs72",
+) -> tuple[Array, Callable[[ArrayLike], tuple[Array, Array]]]:
+    """Create a JIT-compatible SGP4 propagator from OMM fields.
+
+    Accepts a dictionary of OMM (Orbit Mean-Elements Message) field names
+    and string values, as would be parsed from a CSV or XML OMM record.
+
+    Args:
+        fields: Dictionary mapping OMM field names to string values.
+            See :func:`~astrojax.sgp4.parse_omm` for required keys.
+        gravity: Gravity model name (``'wgs72'``, ``'wgs84'``, ``'wgs72old'``)
+            or an ``EarthGravity`` instance.
+
+    Returns:
+        Tuple of ``(params, propagate_fn)`` where:
+            - ``params`` is a flat ``jnp.array`` of satellite parameters
+            - ``propagate_fn(tsince)`` takes time since epoch in minutes
+              and returns ``(r_km, v_kms)`` in the TEME frame
+
+    Raises:
+        KeyError: If a required OMM field is missing.
+    """
+    elements = parse_omm(fields)
+
+    if isinstance(gravity, str):
+        gravity = GRAVITY_MODELS[gravity.lower()]
+
+    return _create_propagator_from_elements(elements, gravity)
+
+
+def create_sgp4_propagator_from_gp_record(
+    record: GPRecord,
+    gravity: str | EarthGravity = "wgs72",
+) -> tuple[Array, Callable[[ArrayLike], tuple[Array, Array]]]:
+    """Create a JIT-compatible SGP4 propagator from a GPRecord.
+
+    Accepts a :class:`~astrojax.GPRecord` (e.g. from CelesTrak or
+    SpaceTrack) and returns a parameter array and propagation closure.
+
+    Args:
+        record: A GP record from CelesTrak or SpaceTrack.
+        gravity: Gravity model name (``'wgs72'``, ``'wgs84'``, ``'wgs72old'``)
+            or an ``EarthGravity`` instance.
+
+    Returns:
+        Tuple of ``(params, propagate_fn)`` where:
+            - ``params`` is a flat ``jnp.array`` of satellite parameters
+            - ``propagate_fn(tsince)`` takes time since epoch in minutes
+              and returns ``(r_km, v_kms)`` in the TEME frame
+
+    Raises:
+        KeyError: If the record is missing required fields.
+    """
+    elements = record.to_sgp4_elements()
+
+    if isinstance(gravity, str):
+        gravity = GRAVITY_MODELS[gravity.lower()]
+
+    return _create_propagator_from_elements(elements, gravity)
+
+
+# ---------------------------------------------------------------------------
+# Convenience converters for JIT-compilable init
+# ---------------------------------------------------------------------------
+
+
+def omm_to_array(fields: dict[str, str]) -> Array:
+    """Convert OMM fields dict to a flat JAX array for use with ``sgp4_init_jax``.
+
+    This is a convenience wrapper that calls ``parse_omm`` followed by
+    ``elements_to_array``.
+
+    Args:
+        fields: Dictionary mapping OMM field names to string values.
+            See :func:`~astrojax.sgp4.parse_omm` for required keys.
+
+    Returns:
+        Array of shape ``(11,)`` containing the numeric orbital elements.
+
+    Raises:
+        KeyError: If a required OMM field is missing.
+    """
+    return elements_to_array(parse_omm(fields))
+
+
+def gp_record_to_array(record: GPRecord) -> Array:
+    """Convert a GPRecord to a flat JAX array for use with ``sgp4_init_jax``.
+
+    This is a convenience wrapper that calls ``record.to_sgp4_elements()``
+    followed by ``elements_to_array``.
+
+    Args:
+        record: A GP record from CelesTrak or SpaceTrack.
+
+    Returns:
+        Array of shape ``(11,)`` containing the numeric orbital elements.
+
+    Raises:
+        KeyError: If the record is missing required fields.
+    """
+    return elements_to_array(record.to_sgp4_elements())

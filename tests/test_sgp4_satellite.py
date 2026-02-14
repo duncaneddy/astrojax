@@ -6,10 +6,11 @@ import pytest
 from sgp4.api import WGS72 as SGP4_WGS72
 from sgp4.api import Satrec
 
+from astrojax._gp_record import GPRecord
 from astrojax.config import set_dtype
 from astrojax.eop import zero_eop
 from astrojax.epoch import Epoch
-from astrojax.sgp4 import TLE
+from astrojax.sgp4 import TLE, parse_tle
 
 jax.config.update("jax_enable_x64", True)
 set_dtype(jnp.float64)
@@ -243,3 +244,133 @@ class TestTLERepr:
     def test_repr_contains_method(self) -> None:
         sat = TLE(MOLNIYA_L1, MOLNIYA_L2)
         assert "'d'" in repr(sat)
+
+
+# ---------------------------------------------------------------------------
+# ISS OMM fields matching the ISS TLE used above
+# ---------------------------------------------------------------------------
+
+ISS_OMM_FIELDS: dict[str, str] = {
+    "EPOCH": "2008-09-20T12:25:40.104192",
+    "MEAN_MOTION": "15.72125391",
+    "ECCENTRICITY": "0.0006703",
+    "INCLINATION": "51.6416",
+    "RA_OF_ASC_NODE": "247.4627",
+    "ARG_OF_PERICENTER": "130.5360",
+    "MEAN_ANOMALY": "325.0288",
+    "NORAD_CAT_ID": "25544",
+    "BSTAR": "-0.11606e-4",
+    "MEAN_MOTION_DOT": "-0.00002182",
+    "MEAN_MOTION_DDOT": "0",
+    "CLASSIFICATION_TYPE": "U",
+    "OBJECT_ID": "1998-067A",
+    "EPHEMERIS_TYPE": "0",
+    "ELEMENT_SET_NO": "292",
+    "REV_AT_EPOCH": "56353",
+}
+
+# Deep-space OMM fields for Molniya 2-14
+MOLNIYA_OMM_FIELDS: dict[str, str] = {
+    "EPOCH": "2006-06-25T07:58:18.143616",
+    "MEAN_MOTION": "2.00491383",
+    "ECCENTRICITY": "0.6877146",
+    "INCLINATION": "64.1586",
+    "RA_OF_ASC_NODE": "279.0717",
+    "ARG_OF_PERICENTER": "264.7651",
+    "MEAN_ANOMALY": "20.2257",
+    "NORAD_CAT_ID": "8195",
+    "BSTAR": "0.11873e-3",
+    "MEAN_MOTION_DOT": "0.00000099",
+    "MEAN_MOTION_DDOT": "0",
+    "CLASSIFICATION_TYPE": "U",
+    "OBJECT_ID": "1975-081A",
+}
+
+
+class TestTLEFromElements:
+    """Test TLE.from_elements classmethod."""
+
+    def test_basic_properties(self) -> None:
+        """from_elements produces a TLE with correct properties."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        sat = TLE.from_elements(elements)
+        assert sat.satnum.strip() == "25544"
+        assert sat.method == "n"
+        assert isinstance(sat.epoch, Epoch)
+
+    def test_matches_init_exactly(self) -> None:
+        """from_elements matches TLE(line1, line2) exactly."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        sat_elem = TLE.from_elements(elements)
+        sat_tle = TLE(ISS_LINE1, ISS_LINE2)
+
+        # Params should be identical
+        assert jnp.allclose(sat_elem.params, sat_tle.params, atol=1e-12)
+
+        # Propagation should match
+        r_elem, v_elem = sat_elem.propagate(60.0)
+        r_tle, v_tle = sat_tle.propagate(60.0)
+        assert jnp.allclose(r_elem, r_tle, atol=1e-12)
+        assert jnp.allclose(v_elem, v_tle, atol=1e-12)
+
+    def test_gravity_model_string(self) -> None:
+        """Accepts gravity model as string."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        sat = TLE.from_elements(elements, gravity="wgs84")
+        r, v = sat.propagate(0.0)
+        assert jnp.all(jnp.isfinite(r))
+
+
+class TestTLEFromOMM:
+    """Test TLE.from_omm classmethod."""
+
+    def test_basic_properties(self) -> None:
+        """from_omm produces a TLE with correct properties."""
+        sat = TLE.from_omm(ISS_OMM_FIELDS)
+        assert sat.satnum.strip() == "25544"
+        assert sat.method == "n"
+
+    def test_propagation_works(self) -> None:
+        """Propagation from OMM-created TLE produces finite results."""
+        sat = TLE.from_omm(ISS_OMM_FIELDS)
+        r, v = sat.propagate(60.0)
+        assert jnp.all(jnp.isfinite(r))
+        assert jnp.all(jnp.isfinite(v))
+
+    def test_missing_field_raises(self) -> None:
+        """Missing required OMM field raises KeyError."""
+        incomplete = {k: v for k, v in ISS_OMM_FIELDS.items() if k != "MEAN_MOTION"}
+        with pytest.raises(KeyError):
+            TLE.from_omm(incomplete)
+
+
+class TestTLEFromGPRecord:
+    """Test TLE.from_gp_record classmethod."""
+
+    def test_basic_properties(self) -> None:
+        """from_gp_record produces a TLE with correct properties."""
+        record = GPRecord.from_json_dict(ISS_OMM_FIELDS)
+        sat = TLE.from_gp_record(record)
+        assert sat.satnum.strip() == "25544"
+        assert sat.method == "n"
+
+    def test_state_methods_work(self) -> None:
+        """State methods produce finite results."""
+        record = GPRecord.from_json_dict(ISS_OMM_FIELDS)
+        sat = TLE.from_gp_record(record)
+        x = sat.state_teme(0.0)
+        assert x.shape == (6,)
+        assert jnp.all(jnp.isfinite(x))
+
+    def test_missing_epoch_raises(self) -> None:
+        """GPRecord without epoch raises KeyError."""
+        no_epoch = {k: v for k, v in ISS_OMM_FIELDS.items() if k != "EPOCH"}
+        record = GPRecord.from_json_dict(no_epoch)
+        with pytest.raises(KeyError):
+            TLE.from_gp_record(record)
+
+    def test_deep_space_detection(self) -> None:
+        """Deep-space satellite is correctly identified from GPRecord."""
+        record = GPRecord.from_json_dict(MOLNIYA_OMM_FIELDS)
+        sat = TLE.from_gp_record(record)
+        assert sat.method == "d"

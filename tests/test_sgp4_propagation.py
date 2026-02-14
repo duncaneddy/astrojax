@@ -6,12 +6,21 @@ import pytest
 from sgp4.api import WGS72 as SGP4_WGS72
 from sgp4.api import Satrec
 
+from astrojax._gp_record import GPRecord
 from astrojax.sgp4 import (
     WGS72,
     create_sgp4_propagator,
+    create_sgp4_propagator_from_elements,
+    create_sgp4_propagator_from_gp_record,
+    create_sgp4_propagator_from_omm,
+    elements_to_array,
+    gp_record_to_array,
+    omm_to_array,
     parse_tle,
     sgp4_init,
+    sgp4_init_jax,
     sgp4_propagate,
+    sgp4_propagate_unified,
 )
 
 # Enable float64 for precise comparison tests
@@ -399,3 +408,627 @@ class TestSDP4JITAndVmap:
             assert e_ref == 0
             assert jnp.allclose(r_batch[i], jnp.array(r_ref), atol=1e-6)
             assert jnp.allclose(v_batch[i], jnp.array(v_ref), atol=1e-9)
+
+
+# ---------------------------------------------------------------------------
+# ISS OMM fields matching the ISS TLE used above
+# ---------------------------------------------------------------------------
+
+ISS_OMM_FIELDS: dict[str, str] = {
+    "EPOCH": "2008-09-20T12:25:40.104192",
+    "MEAN_MOTION": "15.72125391",
+    "ECCENTRICITY": "0.0006703",
+    "INCLINATION": "51.6416",
+    "RA_OF_ASC_NODE": "247.4627",
+    "ARG_OF_PERICENTER": "130.5360",
+    "MEAN_ANOMALY": "325.0288",
+    "NORAD_CAT_ID": "25544",
+    "BSTAR": "-0.11606e-4",
+    "MEAN_MOTION_DOT": "-0.00002182",
+    "MEAN_MOTION_DDOT": "0",
+    "CLASSIFICATION_TYPE": "U",
+    "OBJECT_ID": "1998-067A",
+    "EPHEMERIS_TYPE": "0",
+    "ELEMENT_SET_NO": "292",
+    "REV_AT_EPOCH": "56353",
+}
+
+
+class TestCreateSGP4PropagatorFromElements:
+    """Test create_sgp4_propagator_from_elements."""
+
+    def test_returns_params_and_fn(self) -> None:
+        """Returns a params array and callable propagation function."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        params, propagate_fn = create_sgp4_propagator_from_elements(elements)
+        assert params.ndim == 1
+        assert callable(propagate_fn)
+
+    def test_matches_tle_factory(self) -> None:
+        """Output matches create_sgp4_propagator exactly."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        params_elem, fn_elem = create_sgp4_propagator_from_elements(elements)
+        params_tle, fn_tle = create_sgp4_propagator(ISS_LINE1, ISS_LINE2)
+
+        # Params should be identical
+        assert jnp.allclose(params_elem, params_tle, atol=1e-12)
+
+        # Propagation should match
+        r_elem, v_elem = fn_elem(jnp.float64(60.0))
+        r_tle, v_tle = fn_tle(jnp.float64(60.0))
+        assert jnp.allclose(r_elem, r_tle, atol=1e-12)
+        assert jnp.allclose(v_elem, v_tle, atol=1e-12)
+
+    def test_gravity_model_string(self) -> None:
+        """Accepts gravity model as string."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        params, fn = create_sgp4_propagator_from_elements(elements, gravity="wgs84")
+        r, v = fn(jnp.float64(0.0))
+        assert jnp.all(jnp.isfinite(r))
+
+
+class TestCreateSGP4PropagatorFromOMM:
+    """Test create_sgp4_propagator_from_omm."""
+
+    def test_returns_params_and_fn(self) -> None:
+        """Returns a params array and callable propagation function."""
+        params, propagate_fn = create_sgp4_propagator_from_omm(ISS_OMM_FIELDS)
+        assert params.ndim == 1
+        assert callable(propagate_fn)
+
+    def test_results_are_finite(self) -> None:
+        """Propagation produces finite results."""
+        _, fn = create_sgp4_propagator_from_omm(ISS_OMM_FIELDS)
+        r, v = fn(jnp.float64(60.0))
+        assert jnp.all(jnp.isfinite(r))
+        assert jnp.all(jnp.isfinite(v))
+
+    def test_leo_magnitude(self) -> None:
+        """Position magnitude is in LEO range (~6500-7200 km)."""
+        _, fn = create_sgp4_propagator_from_omm(ISS_OMM_FIELDS)
+        r, _ = fn(jnp.float64(0.0))
+        r_mag = float(jnp.linalg.norm(r))
+        assert 6000.0 < r_mag < 7200.0
+
+    def test_jit_compatible(self) -> None:
+        """Propagation closure works under jax.jit."""
+        _, fn = create_sgp4_propagator_from_omm(ISS_OMM_FIELDS)
+        jit_fn = jax.jit(fn)
+        r, v = jit_fn(jnp.float64(60.0))
+        assert jnp.all(jnp.isfinite(r))
+
+    def test_gravity_model_string(self) -> None:
+        """Accepts gravity model as string."""
+        params, fn = create_sgp4_propagator_from_omm(ISS_OMM_FIELDS, gravity="wgs84")
+        r, v = fn(jnp.float64(0.0))
+        assert jnp.all(jnp.isfinite(r))
+
+    def test_missing_field_raises(self) -> None:
+        """Missing required field raises KeyError."""
+        incomplete = {k: v for k, v in ISS_OMM_FIELDS.items() if k != "EPOCH"}
+        with pytest.raises(KeyError):
+            create_sgp4_propagator_from_omm(incomplete)
+
+
+class TestCreateSGP4PropagatorFromGPRecord:
+    """Test create_sgp4_propagator_from_gp_record."""
+
+    def test_full_record(self) -> None:
+        """Full GPRecord produces valid propagator."""
+        record = GPRecord.from_json_dict(ISS_OMM_FIELDS)
+        params, fn = create_sgp4_propagator_from_gp_record(record)
+        r, v = fn(jnp.float64(0.0))
+        assert jnp.all(jnp.isfinite(r))
+        r_mag = float(jnp.linalg.norm(r))
+        assert 6000.0 < r_mag < 7200.0
+
+    def test_minimal_record(self) -> None:
+        """GPRecord with only required fields works."""
+        minimal = {
+            "EPOCH": ISS_OMM_FIELDS["EPOCH"],
+            "MEAN_MOTION": ISS_OMM_FIELDS["MEAN_MOTION"],
+            "ECCENTRICITY": ISS_OMM_FIELDS["ECCENTRICITY"],
+            "INCLINATION": ISS_OMM_FIELDS["INCLINATION"],
+            "RA_OF_ASC_NODE": ISS_OMM_FIELDS["RA_OF_ASC_NODE"],
+            "ARG_OF_PERICENTER": ISS_OMM_FIELDS["ARG_OF_PERICENTER"],
+            "MEAN_ANOMALY": ISS_OMM_FIELDS["MEAN_ANOMALY"],
+            "NORAD_CAT_ID": ISS_OMM_FIELDS["NORAD_CAT_ID"],
+            "BSTAR": ISS_OMM_FIELDS["BSTAR"],
+        }
+        record = GPRecord.from_json_dict(minimal)
+        params, fn = create_sgp4_propagator_from_gp_record(record)
+        r, _ = fn(jnp.float64(0.0))
+        assert jnp.all(jnp.isfinite(r))
+
+    def test_missing_epoch_raises(self) -> None:
+        """GPRecord without epoch raises KeyError."""
+        no_epoch = {k: v for k, v in ISS_OMM_FIELDS.items() if k != "EPOCH"}
+        record = GPRecord.from_json_dict(no_epoch)
+        with pytest.raises(KeyError):
+            create_sgp4_propagator_from_gp_record(record)
+
+    def test_gravity_model_string(self) -> None:
+        """Accepts gravity model as string."""
+        record = GPRecord.from_json_dict(ISS_OMM_FIELDS)
+        params, fn = create_sgp4_propagator_from_gp_record(record, gravity="wgs84")
+        r, _ = fn(jnp.float64(0.0))
+        assert jnp.all(jnp.isfinite(r))
+
+
+# ---------------------------------------------------------------------------
+# JIT-compilable init tests
+# ---------------------------------------------------------------------------
+
+
+class TestElementsToArray:
+    """Test elements_to_array conversion."""
+
+    def test_shape(self) -> None:
+        """Returns array of shape (11,)."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        arr = elements_to_array(elements)
+        assert arr.shape == (11,)
+
+    def test_round_trip(self) -> None:
+        """Values match the original elements."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        arr = elements_to_array(elements)
+        assert float(arr[0]) == pytest.approx(elements.jdsatepoch)
+        assert float(arr[1]) == pytest.approx(elements.jdsatepochF)
+        assert float(arr[2]) == pytest.approx(elements.no_kozai)
+        assert float(arr[3]) == pytest.approx(elements.ecco)
+        assert float(arr[4]) == pytest.approx(elements.inclo)
+        assert float(arr[5]) == pytest.approx(elements.nodeo)
+        assert float(arr[6]) == pytest.approx(elements.argpo)
+        assert float(arr[7]) == pytest.approx(elements.mo)
+        assert float(arr[8]) == pytest.approx(elements.bstar)
+
+
+class TestOMMToArray:
+    """Test omm_to_array conversion."""
+
+    def test_shape(self) -> None:
+        """Returns array of shape (11,)."""
+        arr = omm_to_array(ISS_OMM_FIELDS)
+        assert arr.shape == (11,)
+
+    def test_matches_elements_to_array(self) -> None:
+        """omm_to_array matches manual parse_omm + elements_to_array."""
+        from astrojax.sgp4 import parse_omm
+
+        elements = parse_omm(ISS_OMM_FIELDS)
+        arr_manual = elements_to_array(elements)
+        arr_omm = omm_to_array(ISS_OMM_FIELDS)
+        assert jnp.allclose(arr_manual, arr_omm, atol=1e-15)
+
+
+class TestGPRecordToArray:
+    """Test gp_record_to_array conversion."""
+
+    def test_shape(self) -> None:
+        """Returns array of shape (11,)."""
+        record = GPRecord.from_json_dict(ISS_OMM_FIELDS)
+        arr = gp_record_to_array(record)
+        assert arr.shape == (11,)
+
+
+class TestSGP4InitJax:
+    """Test JIT-compilable SGP4 initialization."""
+
+    def test_iss_near_earth_method_flag(self) -> None:
+        """ISS should have method=0.0 (near-earth)."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+        from astrojax.sgp4._propagation import _IDX
+
+        assert float(params[_IDX["method"]]) == 0.0
+
+    def test_molniya_deep_space_method_flag(self) -> None:
+        """Molniya should have method=1.0 (deep-space)."""
+        elements = parse_tle(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+        from astrojax.sgp4._propagation import _IDX
+
+        assert float(params[_IDX["method"]]) == 1.0
+
+    def test_italsat_deep_space_method_flag(self) -> None:
+        """ITALSAT (synchronous resonance) should have method=1.0."""
+        elements = parse_tle(ITALSAT_2_L1, ITALSAT_2_L2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+        from astrojax.sgp4._propagation import _IDX
+
+        assert float(params[_IDX["method"]]) == 1.0
+
+    def test_vela_deep_space_method_flag(self) -> None:
+        """Vela (non-resonant deep-space) should have method=1.0."""
+        elements = parse_tle(VELA_5A_L1, VELA_5A_L2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+        from astrojax.sgp4._propagation import _IDX
+
+        assert float(params[_IDX["method"]]) == 1.0
+
+    def test_iss_init_parity(self) -> None:
+        """sgp4_init_jax near-earth params match sgp4_init within tolerance."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        params_py, method = sgp4_init(elements, WGS72)
+        assert method == "n"
+
+        arr = elements_to_array(elements)
+        params_jax = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        # Compare all params except the method flag (last element)
+        assert jnp.allclose(params_jax[:-1], params_py[:-1], atol=1e-12), (
+            f"Max diff: {float(jnp.max(jnp.abs(params_jax[:-1] - params_py[:-1])))}"
+        )
+
+    def test_polar_init_parity(self) -> None:
+        """sgp4_init_jax near-earth params match sgp4_init for polar orbit."""
+        elements = parse_tle(POLAR_LINE1, POLAR_LINE2)
+        params_py, method = sgp4_init(elements, WGS72)
+        assert method == "n"
+
+        arr = elements_to_array(elements)
+        params_jax = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        assert jnp.allclose(params_jax[:-1], params_py[:-1], atol=1e-12), (
+            f"Max diff: {float(jnp.max(jnp.abs(params_jax[:-1] - params_py[:-1])))}"
+        )
+
+    def test_molniya_init_parity(self) -> None:
+        """sgp4_init_jax deep-space params match sgp4_init for Molniya."""
+        elements = parse_tle(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2)
+        params_py, method = sgp4_init(elements, WGS72)
+        assert method == "d"
+
+        arr = elements_to_array(elements)
+        params_jax = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        assert jnp.allclose(params_jax[:-1], params_py[:-1], atol=1e-12), (
+            f"Max diff: {float(jnp.max(jnp.abs(params_jax[:-1] - params_py[:-1])))}"
+        )
+
+    def test_italsat_init_parity(self) -> None:
+        """sgp4_init_jax deep-space params match sgp4_init for ITALSAT."""
+        elements = parse_tle(ITALSAT_2_L1, ITALSAT_2_L2)
+        params_py, method = sgp4_init(elements, WGS72)
+        assert method == "d"
+
+        arr = elements_to_array(elements)
+        params_jax = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        assert jnp.allclose(params_jax[:-1], params_py[:-1], atol=1e-12), (
+            f"Max diff: {float(jnp.max(jnp.abs(params_jax[:-1] - params_py[:-1])))}"
+        )
+
+    def test_vela_init_parity(self) -> None:
+        """sgp4_init_jax deep-space params match sgp4_init for Vela."""
+        elements = parse_tle(VELA_5A_L1, VELA_5A_L2)
+        params_py, method = sgp4_init(elements, WGS72)
+        assert method == "d"
+
+        arr = elements_to_array(elements)
+        params_jax = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        assert jnp.allclose(params_jax[:-1], params_py[:-1], atol=1e-12), (
+            f"Max diff: {float(jnp.max(jnp.abs(params_jax[:-1] - params_py[:-1])))}"
+        )
+
+    def test_params_are_finite(self) -> None:
+        """All parameter values are finite."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+        assert jnp.all(jnp.isfinite(params))
+
+    def test_jit_compilation(self) -> None:
+        """sgp4_init_jax compiles and produces correct results under JIT."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        arr = elements_to_array(elements)
+
+        init_jit = jax.jit(sgp4_init_jax, static_argnames=("gravity", "opsmode"))
+        params_jit = init_jit(arr, gravity=WGS72, opsmode="i")
+        params_eager = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        assert jnp.allclose(params_jit, params_eager, atol=1e-15)
+
+    def test_jit_compilation_deep_space(self) -> None:
+        """sgp4_init_jax compiles for deep-space satellites under JIT."""
+        elements = parse_tle(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2)
+        arr = elements_to_array(elements)
+
+        init_jit = jax.jit(sgp4_init_jax, static_argnames=("gravity", "opsmode"))
+        params_jit = init_jit(arr, gravity=WGS72, opsmode="i")
+        params_eager = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        assert jnp.allclose(params_jit, params_eager, atol=1e-15)
+
+    def test_omm_init(self) -> None:
+        """sgp4_init_jax works from OMM fields via omm_to_array."""
+        arr = omm_to_array(ISS_OMM_FIELDS)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+        assert jnp.all(jnp.isfinite(params))
+
+    def test_gp_record_init(self) -> None:
+        """sgp4_init_jax works from GPRecord via gp_record_to_array."""
+        record = GPRecord.from_json_dict(ISS_OMM_FIELDS)
+        arr = gp_record_to_array(record)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+        assert jnp.all(jnp.isfinite(params))
+
+
+class TestSGP4PropagateUnified:
+    """Test unified propagation with auto-detection."""
+
+    def test_iss_matches_reference(self) -> None:
+        """Unified propagation for ISS matches reference python-sgp4."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        r, v = sgp4_propagate_unified(params, jnp.float64(60.0))
+        e_ref, r_ref, v_ref = _get_reference(ISS_LINE1, ISS_LINE2, 60.0)
+        assert e_ref == 0
+        assert jnp.allclose(r, jnp.array(r_ref), atol=1e-6)
+        assert jnp.allclose(v, jnp.array(v_ref), atol=1e-9)
+
+    def test_molniya_matches_reference(self) -> None:
+        """Unified propagation for Molniya matches reference."""
+        elements = parse_tle(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        r, v = sgp4_propagate_unified(params, jnp.float64(360.0))
+        e_ref, r_ref, v_ref = _get_reference(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2, 360.0)
+        assert e_ref == 0
+        assert jnp.allclose(r, jnp.array(r_ref), atol=1e-6)
+        assert jnp.allclose(v, jnp.array(v_ref), atol=1e-9)
+
+    def test_italsat_matches_reference(self) -> None:
+        """Unified propagation for ITALSAT matches reference."""
+        elements = parse_tle(ITALSAT_2_L1, ITALSAT_2_L2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        r, v = sgp4_propagate_unified(params, jnp.float64(1440.0))
+        e_ref, r_ref, v_ref = _get_reference(ITALSAT_2_L1, ITALSAT_2_L2, 1440.0)
+        assert e_ref == 0
+        assert jnp.allclose(r, jnp.array(r_ref), atol=1e-6)
+        assert jnp.allclose(v, jnp.array(v_ref), atol=1e-9)
+
+    def test_vela_matches_reference(self) -> None:
+        """Unified propagation for Vela matches reference."""
+        elements = parse_tle(VELA_5A_L1, VELA_5A_L2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        r, v = sgp4_propagate_unified(params, jnp.float64(1440.0))
+        e_ref, r_ref, v_ref = _get_reference(VELA_5A_L1, VELA_5A_L2, 1440.0)
+        assert e_ref == 0
+        assert jnp.allclose(r, jnp.array(r_ref), atol=1e-6)
+        assert jnp.allclose(v, jnp.array(v_ref), atol=1e-9)
+
+    def test_backward_compat_with_sgp4_init(self) -> None:
+        """sgp4_propagate_unified works with params from sgp4_init."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        params, method = sgp4_init(elements, WGS72)
+        assert method == "n"
+
+        r, v = sgp4_propagate_unified(params, jnp.float64(60.0))
+        e_ref, r_ref, v_ref = _get_reference(ISS_LINE1, ISS_LINE2, 60.0)
+        assert e_ref == 0
+        assert jnp.allclose(r, jnp.array(r_ref), atol=1e-6)
+
+    def test_backward_compat_deep_space(self) -> None:
+        """sgp4_propagate_unified works with deep-space params from sgp4_init."""
+        elements = parse_tle(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2)
+        params, method = sgp4_init(elements, WGS72)
+        assert method == "d"
+
+        r, v = sgp4_propagate_unified(params, jnp.float64(360.0))
+        e_ref, r_ref, v_ref = _get_reference(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2, 360.0)
+        assert e_ref == 0
+        assert jnp.allclose(r, jnp.array(r_ref), atol=1e-6)
+
+    def test_jit_compiled(self) -> None:
+        """Unified propagation works under JIT."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        prop_jit = jax.jit(sgp4_propagate_unified)
+        r, v = prop_jit(params, jnp.float64(60.0))
+        e_ref, r_ref, v_ref = _get_reference(ISS_LINE1, ISS_LINE2, 60.0)
+        assert e_ref == 0
+        assert jnp.allclose(r, jnp.array(r_ref), atol=1e-6)
+
+    def test_vmap_over_time(self) -> None:
+        """vmap over time works with unified propagation."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        times = jnp.array([0.0, 60.0, 360.0, 1440.0])
+        r_batch, v_batch = jax.vmap(lambda t: sgp4_propagate_unified(params, t))(times)
+        assert r_batch.shape == (4, 3)
+        assert v_batch.shape == (4, 3)
+
+        for i, t in enumerate(times):
+            e_ref, r_ref, v_ref = _get_reference(ISS_LINE1, ISS_LINE2, float(t))
+            assert e_ref == 0
+            assert jnp.allclose(r_batch[i], jnp.array(r_ref), atol=1e-6)
+
+    def test_omm_end_to_end(self) -> None:
+        """End-to-end: OMM -> init_jax -> propagate_unified."""
+        arr = omm_to_array(ISS_OMM_FIELDS)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+        r, v = sgp4_propagate_unified(params, jnp.float64(60.0))
+        assert jnp.all(jnp.isfinite(r))
+        r_mag = float(jnp.linalg.norm(r))
+        assert 6000.0 < r_mag < 7200.0
+
+    def test_gp_record_end_to_end(self) -> None:
+        """End-to-end: GPRecord -> init_jax -> propagate_unified."""
+        record = GPRecord.from_json_dict(ISS_OMM_FIELDS)
+        arr = gp_record_to_array(record)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+        r, v = sgp4_propagate_unified(params, jnp.float64(60.0))
+        assert jnp.all(jnp.isfinite(r))
+        r_mag = float(jnp.linalg.norm(r))
+        assert 6000.0 < r_mag < 7200.0
+
+
+class TestSGP4InitJaxVmap:
+    """Test vmap over satellite initialization."""
+
+    def test_vmap_over_satellites(self) -> None:
+        """Batch-init multiple satellites and verify results."""
+        tle_pairs = [
+            (ISS_LINE1, ISS_LINE2),
+            (POLAR_LINE1, POLAR_LINE2),
+            (MOLNIYA_2_14_L1, MOLNIYA_2_14_L2),
+            (ITALSAT_2_L1, ITALSAT_2_L2),
+        ]
+
+        arrays = []
+        for l1, l2 in tle_pairs:
+            elements = parse_tle(l1, l2)
+            arrays.append(elements_to_array(elements))
+
+        batch = jnp.stack(arrays)
+        assert batch.shape == (4, 11)
+
+        init_vmap = jax.vmap(
+            lambda e: sgp4_init_jax(e, gravity=WGS72, opsmode="i"),
+        )
+        params_batch = init_vmap(batch)
+        assert params_batch.shape[0] == 4
+
+        # Verify each matches individual init
+        for i, (l1, l2) in enumerate(tle_pairs):
+            elements = parse_tle(l1, l2)
+            arr = elements_to_array(elements)
+            params_single = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+            assert jnp.allclose(params_batch[i], params_single, atol=1e-12)
+
+    def test_vmap_init_then_propagate(self) -> None:
+        """vmap init + propagate produces valid results for mixed sat types."""
+        tle_pairs = [
+            (ISS_LINE1, ISS_LINE2),
+            (MOLNIYA_2_14_L1, MOLNIYA_2_14_L2),
+        ]
+
+        arrays = []
+        for l1, l2 in tle_pairs:
+            elements = parse_tle(l1, l2)
+            arrays.append(elements_to_array(elements))
+        batch = jnp.stack(arrays)
+
+        init_vmap = jax.vmap(
+            lambda e: sgp4_init_jax(e, gravity=WGS72, opsmode="i"),
+        )
+        params_batch = init_vmap(batch)
+
+        # Propagate all at t=0
+        prop_vmap = jax.vmap(lambda p: sgp4_propagate_unified(p, jnp.float64(0.0)))
+        r_batch, v_batch = prop_vmap(params_batch)
+        assert r_batch.shape == (2, 3)
+        assert jnp.all(jnp.isfinite(r_batch))
+
+
+class TestSGP4InitJaxEndToEnd:
+    """End-to-end tests: init_jax + propagate_unified vs reference."""
+
+    def _assert_match(
+        self,
+        line1: str,
+        line2: str,
+        tsince: float,
+        pos_atol: float = 1e-6,
+        vel_atol: float = 1e-9,
+    ) -> None:
+        """Assert sgp4_init_jax + sgp4_propagate_unified matches reference."""
+        elements = parse_tle(line1, line2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        r, v = sgp4_propagate_unified(params, jnp.float64(tsince))
+        e_ref, r_ref, v_ref = _get_reference(line1, line2, tsince)
+        assert e_ref == 0, f"Reference SGP4 error {e_ref} at tsince={tsince}"
+
+        assert jnp.allclose(r, jnp.array(r_ref), atol=pos_atol), (
+            f"Position mismatch at t={tsince}: {r} vs {r_ref}, "
+            f"diff={float(jnp.max(jnp.abs(r - jnp.array(r_ref))))}"
+        )
+        assert jnp.allclose(v, jnp.array(v_ref), atol=vel_atol), (
+            f"Velocity mismatch at t={tsince}: {v} vs {v_ref}, "
+            f"diff={float(jnp.max(jnp.abs(v - jnp.array(v_ref))))}"
+        )
+
+    def test_iss_multiple_times(self) -> None:
+        """ISS at multiple time points."""
+        for t in [0.0, 60.0, 360.0, 1440.0, -60.0]:
+            self._assert_match(ISS_LINE1, ISS_LINE2, t)
+
+    def test_molniya_multiple_times(self) -> None:
+        """Molniya 2-14 at multiple time points."""
+        for t in [0.0, 359.117678, 718.235357, 1440.0]:
+            self._assert_match(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2, t)
+
+    def test_italsat_multiple_times(self) -> None:
+        """ITALSAT 2 at multiple time points."""
+        for t in [0.0, 714.441261, 1428.882522, 1440.0]:
+            self._assert_match(ITALSAT_2_L1, ITALSAT_2_L2, t)
+
+    def test_vela_multiple_times(self) -> None:
+        """Vela 5A at multiple time points."""
+        for t in [0.0, 291.163502, 582.327004, 1440.0]:
+            self._assert_match(VELA_5A_L1, VELA_5A_L2, t)
+
+    def test_molniya_1_36_multiple_times(self) -> None:
+        """Molniya 1-36 at multiple time points."""
+        for t in [0.0, 358.541428, 717.082857, 1440.0]:
+            self._assert_match(MOLNIYA_1_36_L1, MOLNIYA_1_36_L2, t)
+
+
+class TestSGP4Differentiability:
+    """Test gradient computation through init + propagate.
+
+    Note: sgp4_propagate_unified uses jax.lax.cond which traces both
+    branches. The deep-space branch contains a while_loop that is not
+    compatible with reverse-mode AD. Use sgp4_propagate with method='n'
+    for differentiable near-earth propagation.
+    """
+
+    def test_grad_through_near_earth_propagate(self) -> None:
+        """jax.grad through near-earth propagation produces finite gradients."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        def loss(p):
+            r, v = sgp4_propagate(p, jnp.float64(60.0), "n")
+            return jnp.sum(r**2)
+
+        grad_fn = jax.grad(loss)
+        grads = grad_fn(params)
+        assert jnp.all(jnp.isfinite(grads)), "Gradients contain NaN or Inf"
+
+    def test_grad_through_init_and_near_earth_propagate(self) -> None:
+        """jax.grad through init + near-earth propagate produces finite gradients."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        arr = elements_to_array(elements)
+
+        @jax.jit
+        def loss(elems):
+            p = sgp4_init_jax(elems, gravity=WGS72, opsmode="i")
+            r, v = sgp4_propagate(p, jnp.float64(60.0), "n")
+            return jnp.sum(r**2)
+
+        grad_fn = jax.grad(loss)
+        grads = grad_fn(arr)
+        assert grads.shape == (11,)
+        assert jnp.all(jnp.isfinite(grads)), f"Gradients contain NaN/Inf: {grads}"

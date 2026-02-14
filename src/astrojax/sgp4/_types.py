@@ -4,6 +4,9 @@ Data types for the SGP4/SDP4 propagator.
 
 from dataclasses import dataclass
 
+import jax.numpy as jnp
+from jax import Array
+
 
 @dataclass(frozen=True)
 class SGP4Elements:
@@ -55,3 +58,35 @@ class SGP4Elements:
     no_kozai: float
     jdsatepoch: float
     jdsatepochF: float
+
+
+# Ordered field names for the elements array used by sgp4_init_jax
+_ELEMENTS_FIELDS: list[str] = [
+    "jdsatepoch",
+    "jdsatepochF",
+    "no_kozai",
+    "ecco",
+    "inclo",
+    "nodeo",
+    "argpo",
+    "mo",
+    "bstar",
+    "ndot",
+    "nddot",
+]
+
+
+def elements_to_array(elements: SGP4Elements) -> Array:
+    """Convert SGP4Elements to a flat JAX array for use with ``sgp4_init_jax``.
+
+    The returned array has shape ``(11,)`` with elements in the order:
+    jdsatepoch, jdsatepochF, no_kozai, ecco, inclo, nodeo, argpo, mo,
+    bstar, ndot, nddot.
+
+    Args:
+        elements: Parsed TLE elements from ``parse_tle`` or ``parse_omm``.
+
+    Returns:
+        Array of shape ``(11,)`` containing the numeric orbital elements.
+    """
+    return jnp.array([getattr(elements, f) for f in _ELEMENTS_FIELDS])
