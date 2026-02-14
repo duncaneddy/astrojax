@@ -51,9 +51,7 @@ class CelestrakClient:
         cache_max_age: float | None = None,
     ) -> None:
         self._base_url = (base_url or _DEFAULT_BASE_URL).rstrip("/")
-        self._cache_max_age = (
-            cache_max_age if cache_max_age is not None else _DEFAULT_MAX_CACHE_AGE
-        )
+        self._cache_max_age = cache_max_age if cache_max_age is not None else _DEFAULT_MAX_CACHE_AGE
         self._client = httpx.Client(timeout=120.0, follow_redirects=True)
 
     # ========================================
@@ -84,9 +82,7 @@ class CelestrakClient:
         """
         count = sum(x is not None for x in (catnr, group, name, intdes))
         if count != 1:
-            raise ValueError(
-                "Provide exactly one of: catnr, group, name, intdes"
-            )
+            raise ValueError("Provide exactly one of: catnr, group, name, intdes")
 
         if catnr is not None:
             query = CelestrakQuery.gp.catnr(catnr)
@@ -95,7 +91,7 @@ class CelestrakClient:
         elif name is not None:
             query = CelestrakQuery.gp.name_search(name)
         else:
-            query = CelestrakQuery.gp.intdes(intdes)  # type: ignore[arg-type]
+            query = CelestrakQuery.gp.intdes(intdes)
 
         return self._query_gp(query)
 
@@ -136,9 +132,7 @@ class CelestrakClient:
             ValueError: If no parameters are provided.
         """
         if catnr is None and active is None and payloads is None and on_orbit is None:
-            raise ValueError(
-                "Provide at least one of: catnr, active, payloads, on_orbit"
-            )
+            raise ValueError("Provide at least one of: catnr, active, payloads, on_orbit")
 
         query: Any = CelestrakQuery.satcat
         if catnr is not None:
@@ -156,9 +150,7 @@ class CelestrakClient:
     # Tier 2: Query builder methods
     # ========================================
 
-    def query(
-        self, query: CelestrakQuery
-    ) -> list[GPRecord] | list[CelestrakSATCATRecord]:
+    def query(self, query: CelestrakQuery) -> list[GPRecord] | list[CelestrakSATCATRecord]:
         """Execute a query and return typed results.
 
         Dispatches to the appropriate handler based on query type:
@@ -268,9 +260,7 @@ class CelestrakClient:
 
     def _cache_key_for_url(self, url: str) -> str:
         """Generate a cache key from a URL."""
-        return "".join(
-            c if c.isalnum() or c == "." else "_" for c in url
-        )
+        return "".join(c if c.isalnum() or c == "." else "_" for c in url)
 
     def _read_cache(self, cache_key: str) -> str | None:
         """Read cached data if it exists and is fresh."""

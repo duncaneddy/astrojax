@@ -32,8 +32,8 @@ Examples:
     uv run examples/propagate_numerical.py --limit 32 --no-drag --no-srp \\
         --no-third-body-sun --no-third-body-moon
 
-    # Harris-Priester drag model instead of NRLMSISE-00
-    uv run examples/propagate_numerical.py --limit 32 --drag-model harris_priester
+    # NRLMSISE-00 drag model (slower XLA compilation, ~6 min first call)
+    uv run examples/propagate_numerical.py --limit 32 --drag-model nrlmsise00
 
     # Lower gravity field resolution
     uv run examples/propagate_numerical.py --limit 32 --gravity-degree 8 --gravity-order 8
