@@ -7,7 +7,7 @@ orbit propagation:
 - **Planetary ephemerides**: Approximate heliocentric positions (JPL Table 1)
 - **Gravity**: Point-mass gravitational acceleration
 - **Third body**: Sun and Moon gravitational perturbations
-- **Density**: Harris-Priester atmospheric density model
+- **Density**: Harris-Priester and NRLMSISE-00 atmospheric density models
 - **Drag**: Atmospheric drag acceleration
 - **SRP**: Solar radiation pressure and eclipse shadow models
 """

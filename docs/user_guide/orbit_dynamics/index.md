@@ -13,7 +13,7 @@ JAX-traceable and compatible with `jax.jit`, `jax.vmap`, and
 | **Gravity** | `accel_point_mass`, `accel_gravity` | Point-mass gravitational acceleration |
 | **Spherical Harmonics** | `GravityModel`, `accel_gravity_spherical_harmonics` | Spherical harmonic gravity field |
 | **Third body** | `accel_third_body_sun`, `accel_third_body_moon` | Sun/Moon gravitational perturbations |
-| **Density** | `density_harris_priester` | Harris-Priester atmospheric density model |
+| **Density** | `density_harris_priester`, `density_nrlmsise00` | Atmospheric density models ([Harris-Priester](drag.md#harris-priester), [NRLMSISE-00](drag.md#nrlmsise-00)) |
 | **Drag** | `accel_drag` | Atmospheric drag acceleration |
 | **SRP** | `accel_srp` | Solar radiation pressure acceleration |
 | **Eclipse** | `eclipse_conical`, `eclipse_cylindrical` | Shadow models for SRP modulation |

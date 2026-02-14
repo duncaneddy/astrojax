@@ -80,6 +80,7 @@ nav = [
             { "Attitude Dynamics" = "user_guide/attitude_modeling/dynamics.md" },
         ]},
         { "EOP" = "user_guide/eop.md" },
+        { "Space Weather" = "user_guide/space_weather.md" },
         { "Integrators" = "user_guide/integrators.md" },
         { "Estimation" = "user_guide/estimation.md" },
         { "Orbit Measurements" = "user_guide/orbit_measurements.md" },
@@ -109,6 +110,7 @@ nav = [
             { "Gravity" = "api_reference/orbit_dynamics/gravity.md" },
             { "Third Body" = "api_reference/orbit_dynamics/third_body.md" },
             { "Density" = "api_reference/orbit_dynamics/density.md" },
+            { "NRLMSISE-00" = "api_reference/orbit_dynamics/nrlmsise00.md" },
             { "Drag" = "api_reference/orbit_dynamics/drag.md" },
             { "SRP" = "api_reference/orbit_dynamics/srp.md" },
             { "Config" = "api_reference/orbit_dynamics/config.md" },
@@ -135,6 +137,7 @@ nav = [
             { "Attitude Dynamics" = "api_reference/attitude_modeling/dynamics.md" },
         ]},
         { "EOP" = "api_reference/eop/index.md" },
+        { "Space Weather" = "api_reference/space_weather/index.md" },
         { "Integrators" = "api_reference/integrators.md" },
         { "Estimation" = [
             { "Overview" = "api_reference/estimation/index.md" },

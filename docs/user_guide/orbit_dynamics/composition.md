@@ -51,6 +51,35 @@ config = ForceModelConfig.geo_default()   # 8x8 SH + SRP + Sun/Moon (no drag)
 config = ForceModelConfig.two_body()      # point-mass only
 ```
 
+## Using NRLMSISE-00 Density Model
+
+To use the NRLMSISE-00 atmospheric density model instead of the
+default Harris-Priester, set `density_model="nrlmsise00"` and pass
+[space weather data](../space_weather.md) to `create_orbit_dynamics`:
+
+```python
+from astrojax import Epoch, ForceModelConfig, create_orbit_dynamics
+from astrojax.eop import zero_eop
+from astrojax.space_weather import load_default_sw
+import jax.numpy as jnp
+
+epoch_0 = Epoch(2024, 6, 15, 12, 0, 0)
+sw = load_default_sw()
+
+config = ForceModelConfig.leo_default(density_model="nrlmsise00")
+dynamics = create_orbit_dynamics(zero_eop(), epoch_0, config, space_weather=sw)
+
+x0 = jnp.array([6878e3, 0.0, 0.0, 0.0, 7612.0, 0.0])
+```
+
+The `leo_default()` preset accepts a `density_model` parameter that
+can be either `"harris_priester"` (default) or `"nrlmsise00"`.
+
+!!! note "Space weather is required"
+    When using `density_model="nrlmsise00"`, the `space_weather`
+    argument to `create_orbit_dynamics` must be provided.  A
+    `ValueError` is raised if it is omitted.
+
 ## Multi-Step Propagation
 
 Use `jax.lax.scan` for efficient multi-step propagation:
