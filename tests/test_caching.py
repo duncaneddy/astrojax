@@ -3,6 +3,7 @@
 import hashlib
 import os
 import time
+from pathlib import Path
 
 import pytest
 
@@ -27,7 +28,7 @@ class TestGetCacheDir:
     def test_default_path(self, monkeypatch, tmp_path):
         """Default cache lives under ~/.cache/astrojax."""
         monkeypatch.delenv("ASTROJAX_CACHE", raising=False)
-        monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setattr(Path, "home", staticmethod(lambda: tmp_path))
         result = get_cache_dir()
         assert result == tmp_path / ".cache" / "astrojax"
         assert result.is_dir()
