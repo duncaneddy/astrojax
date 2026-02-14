@@ -33,6 +33,7 @@ from .gravity import (
     accel_gravity_spherical_harmonics,
     accel_point_mass,
 )
+from .nrlmsise00 import density_nrlmsise00, density_nrlmsise00_geod
 from .planetary_ephemerides import (
     emb_position_jpl_approx,
     jupiter_position_jpl_approx,
@@ -80,6 +81,8 @@ __all__ = [
     "accel_third_body_moon",
     # Density
     "density_harris_priester",
+    "density_nrlmsise00",
+    "density_nrlmsise00_geod",
     # Drag
     "accel_drag",
     # SRP & Eclipse

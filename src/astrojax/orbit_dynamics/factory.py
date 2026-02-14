@@ -31,6 +31,7 @@ from astrojax.orbit_dynamics.gravity import (
     accel_gravity,
     accel_gravity_spherical_harmonics,
 )
+from astrojax.orbit_dynamics.nrlmsise00 import density_nrlmsise00
 from astrojax.orbit_dynamics.srp import (
     accel_srp,
     eclipse_conical,
@@ -40,12 +41,14 @@ from astrojax.orbit_dynamics.third_body import (
     accel_third_body_moon,
     accel_third_body_sun,
 )
+from astrojax.space_weather._types import SpaceWeatherData
 
 
 def create_orbit_dynamics(
     eop: EOPData,
     epoch_0: Epoch,
     config: ForceModelConfig | None = None,
+    space_weather: SpaceWeatherData | None = None,
 ) -> Callable[[ArrayLike, ArrayLike], Array]:
     """Create a configurable orbit dynamics function.
 
@@ -64,6 +67,9 @@ def create_orbit_dynamics(
             as seconds since this epoch.
         config: Force model configuration.  Defaults to point-mass
             two-body gravity (``ForceModelConfig.two_body()``).
+        space_weather: Space weather data for NRLMSISE-00 density model.
+            Required when ``config.density_model`` is ``"nrlmsise00"``.
+            Ignored for Harris-Priester.
 
     Returns:
         A callable ``dynamics(t, state) -> derivative`` where:
@@ -75,6 +81,8 @@ def create_orbit_dynamics(
     Raises:
         ValueError: If *gravity_type* is ``"spherical_harmonics"`` but no
             *gravity_model* is provided.
+        ValueError: If *density_model* is ``"nrlmsise00"`` but no
+            *space_weather* is provided.
 
     Examples:
         ```python
@@ -102,6 +110,12 @@ def create_orbit_dynamics(
             "gravity_model must be provided when gravity_type is 'spherical_harmonics'"
         )
 
+    # Validate NRLMSISE-00 configuration
+    _density_model = config.density_model
+    if config.drag and _density_model == "nrlmsise00" and space_weather is None:
+        raise ValueError("space_weather must be provided when density_model is 'nrlmsise00'")
+    _sw = space_weather
+
     # Capture static configuration into local variables for the closure.
     # Python `if` on these booleans is resolved at trace time.
     _use_sh = use_sh
@@ -125,8 +139,8 @@ def create_orbit_dynamics(
     # Precompute whether we need frame rotations or sun position,
     # so we can share intermediate computations.
     _needs_R = _use_sh or _drag
-    _needs_BPN = _drag  # bias-precession-nutation for GCRF -> TOD
-    _needs_r_sun = _drag or _srp or _third_body_sun
+    _needs_BPN = _drag and _density_model == "harris_priester"
+    _needs_r_sun = (_drag and _density_model == "harris_priester") or _srp or _third_body_sun
 
     def dynamics(t: ArrayLike, state: ArrayLike) -> Array:
         """Orbit dynamics: state derivative in ECI.
@@ -164,11 +178,15 @@ def create_orbit_dynamics(
 
         # --- Atmospheric drag ---
         if _drag:
-            # Convert position and sun vector to true-of-date (TOD) frame
-            # for the Harris-Priester diurnal bulge computation
-            r_tod = BPN @ r
-            r_sun_tod = BPN @ r_sun
-            rho = density_harris_priester(r_tod, r_sun_tod)
+            if _density_model == "harris_priester":
+                # Convert position and sun vector to true-of-date (TOD) frame
+                # for the Harris-Priester diurnal bulge computation
+                r_tod = BPN @ r
+                r_sun_tod = BPN @ r_sun
+                rho = density_harris_priester(r_tod, r_sun_tod)
+            elif _density_model == "nrlmsise00":
+                r_ecef = R_eci_ecef @ r
+                rho = density_nrlmsise00(_sw, epc, r_ecef)
             a = a + accel_drag(state, rho, _mass, _drag_area, _cd, R_eci_ecef)
 
         # --- Solar radiation pressure ---

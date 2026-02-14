@@ -48,7 +48,9 @@ class ForceModelConfig:
             *gravity_type* is ``"spherical_harmonics"``.
         gravity_degree: Maximum degree for spherical harmonic evaluation.
         gravity_order: Maximum order for spherical harmonic evaluation.
-        drag: Enable atmospheric drag (Harris-Priester density).
+        drag: Enable atmospheric drag.
+        density_model: Atmospheric density model — ``"harris_priester"``
+            or ``"nrlmsise00"``.  Only used when *drag* is ``True``.
         srp: Enable solar radiation pressure.
         third_body_sun: Enable Sun gravitational perturbation.
         third_body_moon: Enable Moon gravitational perturbation.
@@ -72,6 +74,7 @@ class ForceModelConfig:
 
     # Perturbation toggles
     drag: bool = False
+    density_model: str = "harris_priester"
     srp: bool = False
     third_body_sun: bool = False
     third_body_moon: bool = False
@@ -87,6 +90,11 @@ class ForceModelConfig:
             raise ValueError(
                 f"gravity_type must be 'point_mass' or 'spherical_harmonics', "
                 f"got '{self.gravity_type}'"
+            )
+        if self.density_model not in ("harris_priester", "nrlmsise00"):
+            raise ValueError(
+                f"density_model must be 'harris_priester' or 'nrlmsise00', "
+                f"got '{self.density_model}'"
             )
         if self.eclipse_model not in ("conical", "cylindrical", "none"):
             raise ValueError(
@@ -112,6 +120,7 @@ class ForceModelConfig:
     @staticmethod
     def leo_default(
         gravity_model: GravityModel | None = None,
+        density_model: str = "harris_priester",
     ) -> ForceModelConfig:
         """Preset: typical LEO force model.
 
@@ -121,6 +130,8 @@ class ForceModelConfig:
 
         Args:
             gravity_model: Optional pre-loaded gravity model.
+            density_model: Atmospheric density model — ``"harris_priester"``
+                or ``"nrlmsise00"``.
 
         Returns:
             ForceModelConfig: LEO-appropriate configuration.
@@ -139,6 +150,7 @@ class ForceModelConfig:
             gravity_degree=20,
             gravity_order=20,
             drag=True,
+            density_model=density_model,
             srp=True,
             third_body_sun=True,
             third_body_moon=True,

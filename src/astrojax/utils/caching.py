@@ -53,6 +53,15 @@ def get_eop_cache_dir() -> Path:
     return get_cache_dir("eop")
 
 
+def get_sw_cache_dir() -> Path:
+    """Return the space weather cache directory (``<cache>/space_weather``).
+
+    Returns:
+        Path to the space weather cache directory.
+    """
+    return get_cache_dir("space_weather")
+
+
 def get_datasets_cache_dir() -> Path:
     """Return the datasets cache directory (``<cache>/datasets``).
 

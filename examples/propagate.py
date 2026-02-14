@@ -1,31 +1,37 @@
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["typer>=0.9.0"]
+# dependencies = ["typer>=0.9.0", "astrojax[cuda13]"]
+#
+# [tool.uv.sources]
+# astrojax = { path = ".." }
 # ///
-"""Propagate all Space-Track.org satellites using SGP4 with multi-device parallelization.
+"""Propagate satellites using SGP4 with multi-device parallelization.
 
-Downloads GP elements for all cataloged objects from Space-Track.org, initializes
-SGP4 parameters using JIT-compiled vmap'd initialization, and propagates orbits
+Downloads GP elements from Celestrak or Space-Track.org, initializes SGP4
+parameters using JIT-compiled vmap'd initialization, and propagates orbits
 across all available JAX devices (GPUs or CPUs) using vmap + pmap.
 
 Requires astrojax to be installed (``uv pip install -e .`` from the repo root).
 
-Credentials are read from --identity/--password options or from the
-SPACETRACK_USER and SPACETRACK_PASS environment variables.
-
 Usage:
-    python examples/space_track_propagate.py --identity user@email.com --password secret [OPTIONS]
+    uv run examples/propagate.py [OPTIONS]
 
 Examples:
-    # Quick CPU smoke test
-    SPACETRACK_USER=user@email.com SPACETRACK_PASS=pass \
-        python examples/space_track_propagate.py --timestep 3600 --duration 0.01 --batch-size 4
+    # Celestrak: quick smoke test
+    uv run examples/propagate.py --timestep 3600 --duration 0.01 --batch-size 4
 
-    # Full 7-day propagation at 60s timestep
-    python examples/space_track_propagate.py --identity user@email.com --password pass \
-        --timestep 60 --duration 7.0
+    # Celestrak: full 7-day propagation of active satellites at 60s timestep
+    uv run examples/propagate.py --timestep 60 --duration 7.0
+
+    # Celestrak: propagate a specific group
+    uv run examples/propagate.py --group stations --duration 1.0
+
+    # Space-Track: full catalog propagation
+    SPACETRACK_USER=user@email.com SPACETRACK_PASS=pass \\
+        uv run examples/propagate.py --source spacetrack --timestep 60 --duration 7.0
 """
 
+import enum
 import os
 import sys
 import time
@@ -42,12 +48,6 @@ from astrojax.sgp4 import (
     sgp4_init_jax,
     sgp4_propagate_unified,
 )
-from astrojax.spacetrack import (
-    OutputFormat,
-    RequestClass,
-    SpaceTrackClient,
-    SpaceTrackQuery,
-)
 
 # ── JAX setup ────────────────────────────────────────────────────────────────
 
@@ -60,11 +60,24 @@ set_dtype(jnp.float64)  # Must be before any JIT compilation
 
 # ── JIT-compiled init and propagation ────────────────────────────────────────
 
-_init_jit = jax.jit(sgp4_init_jax, static_argnames=("gravity", "opsmode"))
-_init_batch = jax.jit(jax.vmap(sgp4_init_jax, in_axes=(0, None, None)), static_argnames=("gravity", "opsmode"))
+_init_batch = jax.jit(
+    jax.vmap(sgp4_init_jax, in_axes=(0, None, None)),
+    static_argnames=("gravity", "opsmode"),
+)
+
+
+class Source(enum.StrEnum):
+    """Ephemeris data source."""
+
+    celestrak = "celestrak"
+    spacetrack = "spacetrack"
 
 
 def main(
+    source: Annotated[Source, typer.Option(help="Ephemeris data source")] = Source.celestrak,
+    group: Annotated[
+        str, typer.Option(help="Celestrak GP group (ignored for spacetrack)")
+    ] = "active",
     identity: Annotated[
         str | None,
         typer.Option(help="Space-Track.org login email (or set SPACETRACK_USER env var)"),
@@ -79,30 +92,43 @@ def main(
     time_chunk: Annotated[int, typer.Option(help="Timesteps per propagation chunk")] = 10080,
     init_batch_size: Annotated[int, typer.Option(help="Satellites per init batch (vmap)")] = 4096,
 ) -> None:
-    """Propagate all Space-Track satellites with SGP4 on multiple devices."""
-    # Resolve credentials from args or environment
-    resolved_identity = identity or os.environ.get("SPACETRACK_USER")
-    resolved_password = password or os.environ.get("SPACETRACK_PASS")
-
-    if not resolved_identity or not resolved_password:
-        print(
-            "ERROR: Space-Track credentials required. Provide --identity and --password "
-            "or set SPACETRACK_USER and SPACETRACK_PASS environment variables."
-        )
-        sys.exit(1)
-
+    """Propagate satellites with SGP4 on multiple devices."""
     devices = jax.devices()
     n_devices = len(devices)
     print(f"JAX devices: {n_devices} x {devices[0].platform.upper()}")
     print(f"  Devices: {[str(d) for d in devices]}")
 
     # ── Stage 1: Download GP Records ─────────────────────────────────────
-    print("\n── Stage 1: Downloading GP records from Space-Track ──")
-    t0 = time.perf_counter()
-    client = SpaceTrackClient(resolved_identity, resolved_password)
-    query = SpaceTrackQuery(RequestClass.GP).format(OutputFormat.JSON)
-    records = client.query_gp(query)
-    print(f"  Downloaded {len(records)} GP records in {time.perf_counter() - t0:.1f}s")
+    if source == Source.celestrak:
+        print(f"\n── Stage 1: Downloading GP records from Celestrak (group={group}) ──")
+        t0 = time.perf_counter()
+        from astrojax.celestrak import CelestrakClient
+
+        records = CelestrakClient().get_gp(group=group)
+        print(f"  Downloaded {len(records)} GP records in {time.perf_counter() - t0:.1f}s")
+    else:
+        resolved_identity = identity or os.environ.get("SPACETRACK_USER")
+        resolved_password = password or os.environ.get("SPACETRACK_PASS")
+        if not resolved_identity or not resolved_password:
+            print(
+                "ERROR: Space-Track credentials required. Provide --identity and --password "
+                "or set SPACETRACK_USER and SPACETRACK_PASS environment variables."
+            )
+            sys.exit(1)
+
+        print("\n── Stage 1: Downloading GP records from Space-Track ──")
+        t0 = time.perf_counter()
+        from astrojax.spacetrack import (
+            OutputFormat,
+            RequestClass,
+            SpaceTrackClient,
+            SpaceTrackQuery,
+        )
+
+        client = SpaceTrackClient(resolved_identity, resolved_password)
+        query = SpaceTrackQuery(RequestClass.GP).format(OutputFormat.JSON)
+        records = client.query_gp(query)
+        print(f"  Downloaded {len(records)} GP records in {time.perf_counter() - t0:.1f}s")
 
     if not records:
         print("ERROR: No GP records returned. Exiting.")
@@ -134,7 +160,6 @@ def main(
     print("\n── Stage 3: Batch-initializing SGP4 parameters (JIT + vmap) ──")
     t0 = time.perf_counter()
 
-    # Initialize in batches to manage memory
     params_batches: list[jax.Array] = []
     for batch_start in range(0, n_sats, init_batch_size):
         batch_end = min(batch_start + init_batch_size, n_sats)
@@ -147,7 +172,6 @@ def main(
 
     params_all = jnp.concatenate(params_batches, axis=0)  # (n_sats, 97)
 
-    # Count near-earth vs deep-space from the method flag
     from astrojax.sgp4._propagation import _IDX
 
     is_deep = params_all[:, _IDX["method"]] > 0.5
@@ -155,7 +179,9 @@ def main(
     n_near_earth = n_sats - n_deep_space
 
     elapsed_init = time.perf_counter() - t0
-    print(f"  Initialized: {n_sats} satellites ({n_near_earth} near-earth, {n_deep_space} deep-space)")
+    print(
+        f"  Initialized: {n_sats} satellites ({n_near_earth} near-earth, {n_deep_space} deep-space)"
+    )
     print(f"  Batch init took {elapsed_init:.1f}s")
 
     # ── Stage 4: Multi-device SGP4 propagation ───────────────────────────
@@ -236,7 +262,9 @@ def main(
 
     elapsed = time.perf_counter() - t_prop_start
     total_propagations = n_sats * n_steps
-    print(f"  Propagated {n_sats} satellites x {n_steps} timesteps = {total_propagations:,} evaluations in {elapsed:.1f}s")
+    print(
+        f"  Propagated {n_sats} satellites x {n_steps} timesteps = {total_propagations:,} evaluations in {elapsed:.1f}s"
+    )
     if elapsed > 0:
         print(f"  Throughput: {total_propagations / elapsed:,.0f} propagations/s")
 
