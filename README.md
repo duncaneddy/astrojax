@@ -1,4 +1,9 @@
-# astrojax
+<p align="center">
+  <a href="https://github.com/duncaneddy/astrojax/"><img src="https://raw.githubusercontent.com/duncaneddy/astrojax/main/docs/images/banner.png" alt="Astrojax"></a>
+</p>
+<p align="center">
+    <em>Astrojax - Blazing fast astrodynamics in JAX</em>
+</p>
 
 <p align="center">
   <a href="https://pypi.org/project/astrojax/"><img src="https://img.shields.io/pypi/v/astrojax" alt="PyPI"></a>
@@ -19,6 +24,16 @@ pip install astrojax
 # or
 uv add astrojax
 ```
+
+If you have a GPU and want to take advantage of JAX's acceleration can then install the package with the appropriate JAX extras:
+
+```bash
+pip install astrojax[cuda13]
+# or
+uv add astrojax[cuda13]
+```
+
+Astrojax supports CUDA 12 and CUDA 13.
 
 ## Quickstart
 

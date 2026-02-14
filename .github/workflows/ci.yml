@@ -40,3 +40,10 @@ jobs:
         with:
           file: ./coverage.xml
           github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload coverage reports to Codecov
+        if: matrix.python-version == '3.11'
+        uses: codecov/codecov-action@v5
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          slug: duncaneddy/astrojax

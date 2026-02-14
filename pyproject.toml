@@ -33,7 +33,7 @@ extras = [
 
 [dependency-groups]
 dev = [
-    "brahe>=1.0.1",
+    "brahe>=1.1.2",
     "hypothesis>=6.151.2",
     "mkdocstrings-python>=2.0.1",
     "pre-commit>=4.0.0",
