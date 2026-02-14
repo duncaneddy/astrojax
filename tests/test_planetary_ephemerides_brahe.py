@@ -24,7 +24,6 @@ import pytest
 
 from astrojax import Epoch
 from astrojax.config import set_dtype
-from astrojax.constants import AU
 from astrojax.orbit_dynamics import (
     jupiter_position_jpl_approx,
     mars_position_jpl_approx,

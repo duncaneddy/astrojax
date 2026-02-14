@@ -8,7 +8,8 @@
 <p align="center">
   <a href="https://pypi.org/project/astrojax/"><img src="https://img.shields.io/pypi/v/astrojax" alt="PyPI"></a>
   <a href="https://duncaneddy.github.io/astrojax/"><img src="https://img.shields.io/badge/docs-latest-blue" alt="Documentation"></a>
-  <a href="https://coveralls.io/github/duncaneddy/astrojax?branch=main"><img src="https://coveralls.io/repos/github/duncaneddy/astrojax/badge.svg?branch=main" alt="Coverage Status"></a>
+  <a href="https://codecov.io/gh/duncaneddy/astrojax">  
+    <img src="https://codecov.io/gh/duncaneddy/astrojax/graph/badge.svg?token=DAPYY5wlgz" alt="Coverage Status"></a>
 </p>
 
 ---

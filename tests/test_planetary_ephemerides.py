@@ -6,7 +6,6 @@ and differentiability for all eight major planets.
 
 import jax
 import jax.numpy as jnp
-import pytest
 
 from astrojax import Epoch
 from astrojax.constants import AU
@@ -29,7 +28,6 @@ from astrojax.orbit_dynamics import (
     uranus_position_jpl_approx,
     venus_position_jpl_approx,
 )
-
 
 # ---------------------------------------------------------------------------
 # Orbital distance ranges (heliocentric, in AU) — generous bounds covering

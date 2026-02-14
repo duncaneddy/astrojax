@@ -2,6 +2,7 @@
 astrojax is a simple, minimal satellite orbit and attitude dynamics library implemented in JAX.
 """
 
+from ._gp_record import GPRecord
 from .attitude_dynamics import (
     AttitudeDynamicsConfig,
     SpacecraftInertia,
@@ -174,7 +175,6 @@ from .orbits import (
     state_koe_osc_to_mean,
     sun_synchronous_inclination,
 )
-from ._gp_record import GPRecord
 from .relative_motion import (
     hcw_derivative,
     hcw_stm,
