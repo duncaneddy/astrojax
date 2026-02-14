@@ -154,7 +154,7 @@ Applications*, 2012.
 """
 P_SUN = 4.560e-6  # [N/m^2] (~1367 W/m^2) Solar radiation pressure at 1 AU
 
-# Celestial Constants - from JPL DE430 Ephemerides
+# Celestial Body Constants
 """
 Gravitational constant of the Moon. [m^3/s^2]
 
@@ -164,6 +164,96 @@ References:
 Applications*, 2012.
 """
 GM_MOON = 4902.800066 * 1e9
+
+"""
+Gravitational constant of Mercury. [m^3/s^2]
+
+References:
+
+1. O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and
+Applications*, 2012.
+"""
+GM_MERCURY = 22031.780000 * 1e9
+
+"""
+Gravitational constant of Venus. [m^3/s^2]
+
+References:
+
+1. O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and
+Applications*, 2012.
+"""
+GM_VENUS = 324858.592000 * 1e9
+
+"""
+Gravitational constant of Mars. [m^3/s^2]
+
+References:
+
+1. O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and
+Applications*, 2012.
+"""
+GM_MARS = 42828.37521 * 1e9
+
+"""
+Gravitational constant of Jupiter. [m^3/s^2]
+
+References:
+
+1. O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and
+Applications*, 2012.
+"""
+GM_JUPITER = 126712764.8 * 1e9
+
+"""
+Gravitational constant of Saturn. [m^3/s^2]
+
+References:
+
+1. O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and
+Applications*, 2012.
+"""
+GM_SATURN = 37940585.2 * 1e9
+
+"""
+Gravitational constant of Uranus. [m^3/s^2]
+
+References:
+
+1. O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and
+Applications*, 2012.
+"""
+GM_URANUS = 5794548.6 * 1e9
+
+"""
+Gravitational constant of Neptune. [m^3/s^2]
+
+References:
+
+1. O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and
+Applications*, 2012.
+"""
+GM_NEPTUNE = 6836527.100580 * 1e9
+
+"""
+Gravitational constant of Pluto. [m^3/s^2]
+
+References:
+
+1. O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and
+Applications*, 2012.
+"""
+GM_PLUTO = 977.000000 * 1e9
+
+"""
+Gravitational constant of the Earth-Moon barycenter. [m^3/s^2]
+
+References:
+
+1. O. Montenbruck, and E. Gill, *Satellite Orbits: Models, Methods and
+Applications*, 2012.
+"""
+GM_EMB = GM_EARTH + GM_MOON
 
 # Ecliptic Constants
 """

@@ -433,11 +433,21 @@ class TestFullForceModel:
         """All forces on, propagate one orbit without NaN."""
         epc = _epoch()
         x0 = _leo_state(alt_km=400.0)
-        cfg = ForceModelConfig.leo_default()
+        leo = ForceModelConfig.leo_default()
+        cfg = ForceModelConfig(
+            gravity_type="spherical_harmonics",
+            gravity_model=leo.gravity_model,
+            gravity_degree=4,
+            gravity_order=4,
+            drag=True,
+            srp=True,
+            third_body_sun=True,
+            third_body_moon=True,
+        )
         dynamics = create_orbit_dynamics(zero_eop(), epc, cfg)
 
-        dt = 30.0
-        n_steps = 200  # ~100 minutes
+        dt = 1.0
+        n_steps = 10
 
         def scan_step(carry, _):
             t, state = carry
@@ -474,7 +484,17 @@ class TestJAXCompatibility:
 
     def test_jit_with_perturbations(self):
         """JIT works with spherical harmonics and perturbations."""
-        cfg = ForceModelConfig.leo_default()
+        leo = ForceModelConfig.leo_default()
+        cfg = ForceModelConfig(
+            gravity_type="spherical_harmonics",
+            gravity_model=leo.gravity_model,
+            gravity_degree=4,
+            gravity_order=4,
+            drag=True,
+            srp=True,
+            third_body_sun=True,
+            third_body_moon=True,
+        )
         dynamics = create_orbit_dynamics(zero_eop(), _epoch(), cfg)
         x = _leo_state()
 

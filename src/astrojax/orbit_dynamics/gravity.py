@@ -15,6 +15,7 @@ import importlib.resources
 import math
 from pathlib import Path
 
+import jax
 import jax.numpy as jnp
 import numpy as np
 from jax import Array
@@ -476,12 +477,11 @@ def _compute_spherical_harmonics(
     gm: float,
     is_normalized: bool,
 ) -> Array:
-    """Core V/W recursion for spherical harmonic gravity.
+    """Core V/W recursion for spherical harmonic gravity using ``jax.lax.fori_loop``.
 
     Implements the algorithm from Montenbruck & Gill (2012), p. 56-68.
-    Uses Python loops (traced by JAX) rather than ``jax.lax.fori_loop``
-    for clarity.  The ``n_max`` and ``m_max`` parameters are static
-    Python ints, so changing them triggers recompilation.
+    Uses ``jax.lax.fori_loop`` so the loop body is compiled once,
+    avoiding the large traced-graph overhead of Python ``for`` loops.
 
     Args:
         r_bf: Position in body-fixed frame [m], shape ``(3,)``.
@@ -495,6 +495,8 @@ def _compute_spherical_harmonics(
     Returns:
         Acceleration in body-fixed frame [m/s^2], shape ``(3,)``.
     """
+    dtype = r_bf.dtype
+
     # Auxiliary quantities
     r_sqr = jnp.dot(r_bf, r_bf)
     rho = r_ref * r_ref / r_sqr
@@ -506,81 +508,141 @@ def _compute_spherical_harmonics(
 
     # V and W intermediary matrices
     size = n_max + 2
-    V = jnp.zeros((size, size), dtype=r_bf.dtype)
-    W = jnp.zeros((size, size), dtype=r_bf.dtype)
+    V = jnp.zeros((size, size), dtype=dtype)
+    W = jnp.zeros((size, size), dtype=dtype)
 
-    # Zonal terms V(n,0); W(n,0) = 0
+    # Seed values
     V = V.at[0, 0].set(r_ref / jnp.sqrt(r_sqr))
     V = V.at[1, 0].set(z0 * V[0, 0])
 
-    for n in range(2, n_max + 2):
-        nf = float(n)
+    # --- Loop 1: Zonal recursion V(n, 0) ---
+    def zonal_body(n: int, V: Array) -> Array:
+        nf = n.astype(dtype)
         V = V.at[n, 0].set(
-            ((2.0 * nf - 1.0) * z0 * V[n - 1, 0] - (nf - 1.0) * rho * V[n - 2, 0]) / nf
+            ((2.0 * nf - 1.0) * z0 * V[n - 1, 0] - (nf - 1.0) * rho * V[n - 2, 0])
+            / nf
+        )
+        return V
+
+    V = jax.lax.fori_loop(2, n_max + 2, zonal_body, V)
+
+    # --- Loop 2: Tesseral/sectorial recursion ---
+    def tesseral_outer(m: int, state: tuple[Array, Array]) -> tuple[Array, Array]:
+        V, W = state
+        mf = m.astype(dtype)
+
+        # Diagonal terms V(m,m) and W(m,m)
+        V = V.at[m, m].set(
+            (2.0 * mf - 1.0) * (x0 * V[m - 1, m - 1] - y0 * W[m - 1, m - 1])
+        )
+        W = W.at[m, m].set(
+            (2.0 * mf - 1.0) * (x0 * W[m - 1, m - 1] + y0 * V[m - 1, m - 1])
         )
 
-    # Tesseral and sectorial terms
-    for m in range(1, m_max + 2):
-        mf = float(m)
-        V = V.at[m, m].set((2.0 * mf - 1.0) * (x0 * V[m - 1, m - 1] - y0 * W[m - 1, m - 1]))
-        W = W.at[m, m].set((2.0 * mf - 1.0) * (x0 * W[m - 1, m - 1] + y0 * V[m - 1, m - 1]))
+        # Sub-diagonal terms V(m+1, m), W(m+1, m) — guarded for m <= n_max
+        idx = jnp.minimum(m + 1, size - 1)
+        should_write = m <= n_max
+        new_V_sub = (2.0 * mf + 1.0) * z0 * V[m, m]
+        new_W_sub = (2.0 * mf + 1.0) * z0 * W[m, m]
+        V = V.at[idx, m].set(jnp.where(should_write, new_V_sub, V[idx, m]))
+        W = W.at[idx, m].set(jnp.where(should_write, new_W_sub, W[idx, m]))
 
-        if m <= n_max:
-            V = V.at[m + 1, m].set((2.0 * mf + 1.0) * z0 * V[m, m])
-            W = W.at[m + 1, m].set((2.0 * mf + 1.0) * z0 * W[m, m])
-
-        for n in range(m + 2, n_max + 2):
-            nf = float(n)
+        # Inner recursion for n = m+2 .. n_max+1
+        def tesseral_inner(
+            n: int, state: tuple[Array, Array]
+        ) -> tuple[Array, Array]:
+            V, W = state
+            nf = n.astype(dtype)
             V = V.at[n, m].set(
-                ((2.0 * nf - 1.0) * z0 * V[n - 1, m] - (nf + mf - 1.0) * rho * V[n - 2, m])
+                (
+                    (2.0 * nf - 1.0) * z0 * V[n - 1, m]
+                    - (nf + mf - 1.0) * rho * V[n - 2, m]
+                )
                 / (nf - mf)
             )
             W = W.at[n, m].set(
-                ((2.0 * nf - 1.0) * z0 * W[n - 1, m] - (nf + mf - 1.0) * rho * W[n - 2, m])
+                (
+                    (2.0 * nf - 1.0) * z0 * W[n - 1, m]
+                    - (nf + mf - 1.0) * rho * W[n - 2, m]
+                )
                 / (nf - mf)
             )
+            return V, W
 
-    # Accumulate accelerations
-    ax = jnp.float64(0.0) if r_bf.dtype == jnp.float64 else jnp.float32(0.0)
-    ay = ax
-    az = ax
+        V, W = jax.lax.fori_loop(m + 2, n_max + 2, tesseral_inner, (V, W))
+        return V, W
 
-    for m in range(m_max + 1):
-        mf = float(m)
-        for n in range(m, n_max + 1):
+    V, W = jax.lax.fori_loop(1, m_max + 2, tesseral_outer, (V, W))
+
+    # --- Precompute denormalized coefficient arrays ---
+    # Build normalization matrix using Python loops (pure numpy, no tracing)
+    norm = np.ones((n_max + 1, m_max + 1), dtype=np.float64)
+    if is_normalized:
+        for n in range(n_max + 1):
             nf = float(n)
-            if m == 0:
-                # Denormalize if needed
-                if is_normalized:
-                    N = math.sqrt(2.0 * nf + 1.0)
-                    C = N * CS[n, 0]
-                else:
-                    C = CS[n, 0]
-
-                ax = ax - C * V[n + 1, 1]
-                ay = ay - C * W[n + 1, 1]
-                az = az - (nf + 1.0) * C * V[n + 1, 0]
-            else:
-                # Denormalize if needed
-                if is_normalized:
-                    kron = 0.0 if m != 0 else 1.0
-                    N = math.sqrt((2.0 - kron) * (2.0 * nf + 1.0) * _factorial_product(n, m))
-                    C = N * CS[n, m]
-                    S = N * CS[m - 1, n]
-                else:
-                    C = CS[n, m]
-                    S = CS[m - 1, n]
-
-                Fac = 0.5 * (nf - mf + 1.0) * (nf - mf + 2.0)
-                ax = ax + (
-                    0.5 * (-C * V[n + 1, m + 1] - S * W[n + 1, m + 1])
-                    + Fac * (C * V[n + 1, m - 1] + S * W[n + 1, m - 1])
+            norm[n, 0] = math.sqrt(2.0 * nf + 1.0)
+            for m in range(1, min(n, m_max) + 1):
+                norm[n, m] = math.sqrt(
+                    2.0 * (2.0 * nf + 1.0) * _factorial_product(n, m)
                 )
-                ay = ay + (
-                    0.5 * (-C * W[n + 1, m + 1] + S * V[n + 1, m + 1])
-                    + Fac * (-C * W[n + 1, m - 1] + S * V[n + 1, m - 1])
-                )
-                az = az + (nf - mf + 1.0) * (-C * V[n + 1, m] - S * W[n + 1, m])
+
+    norm_jax = jnp.array(norm, dtype=dtype)
+
+    # Denormalized C coefficients: C_arr[n, m] = norm[n, m] * CS[n, m]
+    C_arr = CS[: n_max + 1, : m_max + 1] * norm_jax
+
+    # Denormalized S coefficients from lower-triangle storage
+    # S_arr[n, m] = norm[n, m] * CS[m-1, n]  for m >= 1;  column 0 stays zero
+    S_arr = jnp.zeros((n_max + 1, m_max + 1), dtype=dtype)
+    if m_max > 0:
+        # CS[m-1, n] for m=1..m_max, n=0..n_max  =>  CS[0:m_max, 0:n_max+1].T
+        S_arr = S_arr.at[:, 1 : m_max + 1].set(
+            CS[0:m_max, 0 : n_max + 1].T * norm_jax[:, 1 : m_max + 1]
+        )
+
+    # --- Loop 3: Acceleration accumulation ---
+    def accum_outer(
+        m: int, state: tuple[Array, Array, Array]
+    ) -> tuple[Array, Array, Array]:
+        ax, ay, az = state
+        mf = m.astype(dtype)
+
+        def accum_inner(
+            n: int, inner_state: tuple[Array, Array, Array]
+        ) -> tuple[Array, Array, Array]:
+            ax, ay, az = inner_state
+            nf = n.astype(dtype)
+            C = C_arr[n, m]
+            S = S_arr[n, m]
+
+            # m == 0 branch (zonal)
+            ax_z = ax - C * V[n + 1, 1]
+            ay_z = ay - C * W[n + 1, 1]
+            az_z = az - (nf + 1.0) * C * V[n + 1, 0]
+
+            # m != 0 branch (tesseral/sectorial)
+            Fac = 0.5 * (nf - mf + 1.0) * (nf - mf + 2.0)
+            ax_t = ax + (
+                0.5 * (-C * V[n + 1, m + 1] - S * W[n + 1, m + 1])
+                + Fac * (C * V[n + 1, m - 1] + S * W[n + 1, m - 1])
+            )
+            ay_t = ay + (
+                0.5 * (-C * W[n + 1, m + 1] + S * V[n + 1, m + 1])
+                + Fac * (-C * W[n + 1, m - 1] + S * V[n + 1, m - 1])
+            )
+            az_t = az + (nf - mf + 1.0) * (-C * V[n + 1, m] - S * W[n + 1, m])
+
+            is_zonal = m == 0
+            ax = jnp.where(is_zonal, ax_z, ax_t)
+            ay = jnp.where(is_zonal, ay_z, ay_t)
+            az = jnp.where(is_zonal, az_z, az_t)
+            return ax, ay, az
+
+        ax, ay, az = jax.lax.fori_loop(m, n_max + 1, accum_inner, (ax, ay, az))
+        return ax, ay, az
+
+    zero = jnp.zeros((), dtype=dtype)
+    ax, ay, az = jax.lax.fori_loop(0, m_max + 1, accum_outer, (zero, zero, zero))
 
     # Scale by GM/R_ref^2
     scale = gm / (r_ref * r_ref)
