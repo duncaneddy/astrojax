@@ -50,6 +50,47 @@ from astrojax.eop import load_eop_from_file
 eop = load_eop_from_file("/path/to/finals.all.iau2000.txt")
 ```
 
+### Cached Data with Auto-Refresh
+
+For production use, `load_cached_eop` keeps a local copy of the IERS
+`finals.all.iau2000.txt` file and automatically downloads a fresh version
+when the cached copy is older than a configurable threshold (default: 7
+days):
+
+```python
+from astrojax.eop import load_cached_eop, get_ut1_utc
+
+# Uses default cache location (~/.cache/astrojax/eop/) and 7-day refresh
+eop = load_cached_eop()
+val = get_ut1_utc(eop, 59569.0)
+
+# Custom cache path and 1-day refresh
+eop = load_cached_eop("/tmp/my_eop/finals.txt", max_age_days=1.0)
+```
+
+If the download fails (network unavailable, IERS server down, etc.), the
+function falls back to the bundled data shipped with astrojax so it never
+raises on network issues.
+
+| Scenario | Behaviour |
+|----------|-----------|
+| File missing, download succeeds | Load from fresh download |
+| File missing, download fails | Fall back to bundled data |
+| File stale, download succeeds | Load from fresh download |
+| File stale, download fails | Fall back to bundled data |
+| File fresh | Load from cached file |
+| Cached file corrupt | Fall back to bundled data |
+
+The cache location defaults to `~/.cache/astrojax/eop/` and can be
+overridden with the `ASTROJAX_CACHE` environment variable.
+
+!!! note "No auto-refresh inside JIT"
+    Unlike brahe's `CachingEOPProvider`, astrojax does **not** check file
+    freshness on every query. File I/O is incompatible with `jax.jit`, so
+    call `load_cached_eop()` once at program startup (or whenever you want
+    to refresh) and pass the resulting `EOPData` into your JIT-compiled
+    functions.
+
 ### Constant / Zero EOP
 
 For testing or when EOP corrections are not needed:

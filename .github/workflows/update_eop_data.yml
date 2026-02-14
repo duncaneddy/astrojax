@@ -1,0 +1,36 @@
+name: Update EOP Data
+
+on:
+  schedule:
+    - cron: '0 2 */2 * *'  # Every other day at 2 AM UTC
+  workflow_dispatch:
+  workflow_call:
+
+jobs:
+  update-eop-data:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Download latest EOP data
+        run: curl -fL "https://datacenter.iers.org/data/latestVersion/finals.all.iau2000.txt" -o ./src/astrojax/data/eop/finals.all.iau2000.txt
+
+      - name: Create Pull Request with updated data
+        uses: peter-evans/create-pull-request@v8
+        with:
+          token: ${{ secrets.WORKFLOW_TOKEN }}
+          commit-message: "Update bundled EOP data"
+          branch: eop-data-update-${{ github.run_id }}
+          delete-branch: true
+          title: "Update bundled EOP data"
+          body: |
+            Automated update of bundled EOP data from IERS.
+
+            Updated files:
+            - `finals.all.iau2000.txt`
+
+            This PR can be auto-merged.
+          labels: automated,data-update

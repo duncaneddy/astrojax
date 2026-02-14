@@ -52,6 +52,9 @@ addopts = "-n auto --dist loadfile"
 testpaths = [
     "tests",
 ]
+markers = [
+    "ci: marks tests that require network access (run in CI only)",
+]
 
 [tool.ruff]
 line-length = 100

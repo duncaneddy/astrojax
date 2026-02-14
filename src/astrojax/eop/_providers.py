@@ -9,19 +9,32 @@ Provides convenience constructors for common EOP configurations:
 - :func:`load_eop_from_file`: Load from IERS standard format file.
 - :func:`load_eop_from_standard_file`: Alias for :func:`load_eop_from_file`.
 - :func:`load_default_eop`: Load bundled ``finals.all.iau2000.txt`` data.
+- :func:`load_cached_eop`: Load from a local cache, downloading fresh data
+  from IERS when stale.
 """
 
 from __future__ import annotations
 
 import importlib.resources
+import logging
 from pathlib import Path
 
 import jax.numpy as jnp
 import numpy as np
 
 from astrojax.config import get_dtype
+from astrojax.eop._download import _STANDARD_FILENAME, download_standard_eop_file
 from astrojax.eop._parsers import parse_standard_file
 from astrojax.eop._types import EOPData
+from astrojax.utils.caching import get_eop_cache_dir, is_file_stale
+
+logger = logging.getLogger(__name__)
+
+_DEFAULT_MAX_AGE_DAYS: float = 7.0
+"""Default maximum age for cached EOP data in days."""
+
+_DEFAULT_MAX_AGE_SECONDS: float = _DEFAULT_MAX_AGE_DAYS * 86400.0
+"""Default maximum age for cached EOP data in seconds."""
 
 
 def static_eop(
@@ -182,3 +195,66 @@ def load_default_eop() -> EOPData:
     resource = data_pkg.joinpath("finals.all.iau2000.txt")
     with importlib.resources.as_file(resource) as path:
         return load_eop_from_file(path)
+
+
+def load_cached_eop(
+    filepath: str | Path | None = None,
+    *,
+    max_age_days: float = _DEFAULT_MAX_AGE_DAYS,
+) -> EOPData:
+    """Load EOP data from a local cache, downloading fresh data when stale.
+
+    Checks whether the cached file at *filepath* exists and is younger than
+    *max_age_days*.  If the file is missing or stale, a fresh copy of
+    ``finals.all.iau2000.txt`` is downloaded from IERS.  If the download
+    fails or the file cannot be parsed, the bundled default data is returned
+    so this function never raises on network issues.
+
+    Args:
+        filepath: Path to the cached EOP file.  When ``None`` (the default),
+            uses ``<cache_dir>/eop/finals.all.iau2000.txt``.
+        max_age_days: Maximum acceptable age of the cached file in days.
+            Defaults to 7.
+
+    Returns:
+        EOPData loaded from the cached (or freshly downloaded) file, or
+        the bundled default data as a fallback.
+
+    Examples:
+        ```python
+        from astrojax.eop import load_cached_eop, get_ut1_utc
+
+        # Uses default cache location and 7-day refresh
+        eop = load_cached_eop()
+        val = get_ut1_utc(eop, 59569.0)
+
+        # Custom path and 1-day refresh
+        eop = load_cached_eop("/tmp/eop_cache/finals.txt", max_age_days=1.0)
+        ```
+    """
+    if filepath is None:
+        filepath = get_eop_cache_dir() / _STANDARD_FILENAME
+    else:
+        filepath = Path(filepath)
+
+    max_age_seconds = max_age_days * 86400.0
+
+    if is_file_stale(filepath, max_age_seconds):
+        try:
+            download_standard_eop_file(filepath)
+        except Exception:
+            logger.warning(
+                "Failed to download EOP data; falling back to bundled data.",
+                exc_info=True,
+            )
+            return load_default_eop()
+
+    try:
+        return load_eop_from_file(filepath)
+    except Exception:
+        logger.warning(
+            "Failed to parse cached EOP file %s; falling back to bundled data.",
+            filepath,
+            exc_info=True,
+        )
+        return load_default_eop()
