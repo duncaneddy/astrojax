@@ -24,7 +24,7 @@ jobs:
       - name: Create Pull Request with updated data
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ secrets.WORKFLOW_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           commit-message: "Update bundled EOP and space weather data"
           branch: data-update-${{ github.run_id }}
           delete-branch: true
