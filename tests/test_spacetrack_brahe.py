@@ -20,15 +20,30 @@ class TestEnumParity:
     """Verify enum variants and string representations match brahe."""
 
     def test_request_controller_variants(self):
-        for name in ["BASIC_SPACE_DATA", "EXPANDED_SPACE_DATA", "FILE_SHARE", "SP_EPHEMERIS", "PUBLIC_FILES"]:
+        for name in [
+            "BASIC_SPACE_DATA",
+            "EXPANDED_SPACE_DATA",
+            "FILE_SHARE",
+            "SP_EPHEMERIS",
+            "PUBLIC_FILES",
+        ]:
             aj = getattr(aj_spacetrack.RequestController, name)
             bh = getattr(brahe.RequestController, name)
             assert str(aj) == str(bh), f"RequestController.{name} mismatch"
 
     def test_request_class_variants(self):
         for name in [
-            "GP", "GP_HISTORY", "SATCAT", "SATCAT_CHANGE", "SATCAT_DEBUT",
-            "DECAY", "TIP", "CDM_PUBLIC", "BOXSCORE", "ANNOUNCEMENT", "LAUNCH_SITE",
+            "GP",
+            "GP_HISTORY",
+            "SATCAT",
+            "SATCAT_CHANGE",
+            "SATCAT_DEBUT",
+            "DECAY",
+            "TIP",
+            "CDM_PUBLIC",
+            "BOXSCORE",
+            "ANNOUNCEMENT",
+            "LAUNCH_SITE",
         ]:
             aj = getattr(aj_spacetrack.RequestClass, name)
             bh = getattr(brahe.RequestClass, name)
@@ -98,7 +113,11 @@ class TestQueryBuilderParity:
         assert aj == bh
 
     def test_filter(self):
-        aj = aj_spacetrack.SpaceTrackQuery(aj_spacetrack.RequestClass.GP).filter("NORAD_CAT_ID", "25544").build()
+        aj = (
+            aj_spacetrack.SpaceTrackQuery(aj_spacetrack.RequestClass.GP)
+            .filter("NORAD_CAT_ID", "25544")
+            .build()
+        )
         bh = brahe.SpaceTrackQuery(brahe.RequestClass.GP).filter("NORAD_CAT_ID", "25544").build()
         assert aj == bh
 
@@ -118,8 +137,16 @@ class TestQueryBuilderParity:
         assert aj == bh
 
     def test_order_by_desc(self):
-        aj = aj_spacetrack.SpaceTrackQuery(aj_spacetrack.RequestClass.GP).order_by("EPOCH", aj_spacetrack.SortOrder.DESC).build()
-        bh = brahe.SpaceTrackQuery(brahe.RequestClass.GP).order_by("EPOCH", brahe.SortOrder.DESC).build()
+        aj = (
+            aj_spacetrack.SpaceTrackQuery(aj_spacetrack.RequestClass.GP)
+            .order_by("EPOCH", aj_spacetrack.SortOrder.DESC)
+            .build()
+        )
+        bh = (
+            brahe.SpaceTrackQuery(brahe.RequestClass.GP)
+            .order_by("EPOCH", brahe.SortOrder.DESC)
+            .build()
+        )
         assert aj == bh
 
     def test_limit(self):
@@ -128,13 +155,25 @@ class TestQueryBuilderParity:
         assert aj == bh
 
     def test_limit_offset(self):
-        aj = aj_spacetrack.SpaceTrackQuery(aj_spacetrack.RequestClass.GP).limit_offset(10, 20).build()
+        aj = (
+            aj_spacetrack.SpaceTrackQuery(aj_spacetrack.RequestClass.GP)
+            .limit_offset(10, 20)
+            .build()
+        )
         bh = brahe.SpaceTrackQuery(brahe.RequestClass.GP).limit_offset(10, 20).build()
         assert aj == bh
 
     def test_predicates(self):
-        aj = aj_spacetrack.SpaceTrackQuery(aj_spacetrack.RequestClass.GP).predicates_filter(["NORAD_CAT_ID", "EPOCH"]).build()
-        bh = brahe.SpaceTrackQuery(brahe.RequestClass.GP).predicates_filter(["NORAD_CAT_ID", "EPOCH"]).build()
+        aj = (
+            aj_spacetrack.SpaceTrackQuery(aj_spacetrack.RequestClass.GP)
+            .predicates_filter(["NORAD_CAT_ID", "EPOCH"])
+            .build()
+        )
+        bh = (
+            brahe.SpaceTrackQuery(brahe.RequestClass.GP)
+            .predicates_filter(["NORAD_CAT_ID", "EPOCH"])
+            .build()
+        )
         assert aj == bh
 
     def test_metadata(self):

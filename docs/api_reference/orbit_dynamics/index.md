@@ -11,5 +11,6 @@ API reference for the `astrojax.orbit_dynamics` module.
 | [NRLMSISE-00](nrlmsise00.md) | NRLMSISE-00 atmospheric density model |
 | [Drag](drag.md) | Atmospheric drag acceleration |
 | [SRP](srp.md) | Solar radiation pressure and eclipse models |
+| [Polyhedral Gravity](polyhedral_gravity.md) | Polyhedral gravity for irregular bodies |
 | [Config](config.md) | Force model configuration and spacecraft parameters |
 | [Factory](factory.md) | Dynamics function factory (`create_orbit_dynamics`) |

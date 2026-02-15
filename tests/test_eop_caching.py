@@ -193,10 +193,17 @@ class TestLoadCachedEOP:
             from astrojax.eop._types import EOPData as _EOPData
 
             mock_load.return_value = _EOPData(
-                mjd=None, pm_x=None, pm_y=None, ut1_utc=None,
-                dX=None, dY=None, lod=None,
-                mjd_min=None, mjd_max=None,
-                mjd_last_lod=None, mjd_last_dxdy=None,
+                mjd=None,
+                pm_x=None,
+                pm_y=None,
+                ut1_utc=None,
+                dX=None,
+                dY=None,
+                lod=None,
+                mjd_min=None,
+                mjd_max=None,
+                mjd_last_lod=None,
+                mjd_last_dxdy=None,
             )
 
             load_cached_eop()

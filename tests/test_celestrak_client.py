@@ -117,9 +117,7 @@ class TestCelestrakSATCATRecord:
         assert record.get_field("INCLINATION") is None
 
     def test_str_repr(self):
-        record = celestrak.CelestrakSATCATRecord(
-            object_name="ISS", norad_cat_id=25544
-        )
+        record = celestrak.CelestrakSATCATRecord(object_name="ISS", norad_cat_id=25544)
         s = str(record)
         assert "ISS" in s
         assert "25544" in s

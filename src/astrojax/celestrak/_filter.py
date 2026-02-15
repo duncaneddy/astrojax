@@ -75,7 +75,7 @@ def _parse_filter_value(value: str) -> tuple[str, str | tuple[str, str]]:
         return ("startswith", value[1:])
     dash_pos = value.find("--")
     if dash_pos >= 0:
-        return ("range", (value[:dash_pos], value[dash_pos + 2:]))
+        return ("range", (value[:dash_pos], value[dash_pos + 2 :]))
     return ("exact", value)
 
 
@@ -135,12 +135,7 @@ def _matches_filter(record: Any, field: str, value: str) -> bool:
         min_val, max_val = operand
         cmp_min = _compare_values(field_value, min_val)
         cmp_max = _compare_values(field_value, max_val)
-        return (
-            cmp_min is not None
-            and cmp_max is not None
-            and cmp_min >= 0
-            and cmp_max <= 0
-        )
+        return cmp_min is not None and cmp_max is not None and cmp_min >= 0 and cmp_max <= 0
     elif op_type == "like":
         return operand.lower() in field_value.lower()
     elif op_type == "startswith":
@@ -149,9 +144,7 @@ def _matches_filter(record: Any, field: str, value: str) -> bool:
         return field_value == operand
 
 
-def apply_filters(
-    records: list[Any], filters: list[tuple[str, str]]
-) -> list[Any]:
+def apply_filters(records: list[Any], filters: list[tuple[str, str]]) -> list[Any]:
     """Apply client-side filters to a list of records.
 
     Records must match ALL filters (AND logic).
@@ -165,16 +158,10 @@ def apply_filters(
     """
     if not filters:
         return records
-    return [
-        r
-        for r in records
-        if all(_matches_filter(r, field, value) for field, value in filters)
-    ]
+    return [r for r in records if all(_matches_filter(r, field, value) for field, value in filters)]
 
 
-def apply_order_by(
-    records: list[Any], order_by: list[tuple[str, bool]]
-) -> None:
+def apply_order_by(records: list[Any], order_by: list[tuple[str, bool]]) -> None:
     """Apply client-side ordering to a list of records (in-place).
 
     Args:

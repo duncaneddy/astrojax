@@ -7,3 +7,5 @@ See the [Datasets User Guide](../../user_guide/datasets/index.md) for concepts a
 | Sub-module | Description |
 |------------|-------------|
 | [MPC Asteroids](mpc_asteroids.md) | MPC asteroid orbit catalog download, parsing, lookup, and state computation |
+| [Asteroid Masses](asteroid_masses.md) | SBN Archive asteroid masses download, parsing, and loading |
+| [DAMIT Asteroid Models](damit.md) | DAMIT asteroid shape models, spin computation, and mesh export |

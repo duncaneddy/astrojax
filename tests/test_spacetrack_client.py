@@ -20,9 +20,7 @@ class TestSpaceTrackClient:
         assert client is not None
 
     def test_client_with_base_url(self):
-        client = SpaceTrackClient(
-            "user@example.com", "password", "https://test.space-track.org"
-        )
+        client = SpaceTrackClient("user@example.com", "password", "https://test.space-track.org")
         assert client is not None
 
     def test_client_with_rate_limit(self):

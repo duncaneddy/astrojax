@@ -75,6 +75,7 @@ def _epc_2024():
 # Per-planet tests
 # ===========================================================================
 
+
 class TestMercury:
     def test_mercury_distance_magnitude(self):
         r = mercury_position_jpl_approx(_epc_2024())
@@ -263,6 +264,7 @@ class TestNeptune:
 # Algorithm tests
 # ===========================================================================
 
+
 class TestAlgorithm:
     def test_planet_ordering_by_distance(self):
         """Mean heliocentric distances should follow Mercury < Venus < ... < Neptune."""
@@ -306,6 +308,7 @@ class TestAlgorithm:
 # JAX integration tests
 # ===========================================================================
 
+
 class TestJAXIntegration:
     def test_vmap_over_epochs(self):
         """vmap should work over multiple epochs for each planet."""
@@ -327,9 +330,7 @@ class TestJAXIntegration:
         epc = _epc_2024()
 
         def loss_fn(seconds_offset):
-            shifted = Epoch._from_internal(
-                epc._jd, epc._seconds + seconds_offset, epc._kahan_c
-            )
+            shifted = Epoch._from_internal(epc._jd, epc._seconds + seconds_offset, epc._kahan_c)
             r = mars_position_jpl_approx(shifted)
             return jnp.sum(r**2)
 

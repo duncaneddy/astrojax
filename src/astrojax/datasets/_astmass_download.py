@@ -1,8 +1,8 @@
-"""Download IERS Earth Orientation Parameter files.
+"""Download the SBN Archive asteroid masses compilation dataset.
 
-Provides a helper to fetch the latest ``finals.all.iau2000.txt`` from
-the IERS data centre.  Network errors are propagated to the caller so
-that higher-level code (e.g. :func:`load_cached_eop`) can decide on
+Provides a helper to fetch the ``compil.ast.masses.zip`` file from the
+SBN Archive.  Network errors are propagated to the caller so that
+higher-level code (e.g. :func:`load_asteroid_masses`) can decide on
 fallback behaviour.
 """
 
@@ -15,31 +15,31 @@ import httpx
 
 logger = logging.getLogger(__name__)
 
-IERS_STANDARD_URL: str = "https://datacenter.iers.org/data/latestVersion/finals.all.iau2000.txt"
-"""Default URL for the IERS Standard Bulletin A finals file."""
+ASTMASS_URL: str = "https://sbnarchive.psi.edu/pds4/non_mission/compil.ast.masses.zip"
+"""Default URL for the SBN Archive asteroid masses compilation (ZIP)."""
 
-_STANDARD_FILENAME: str = "finals.all.iau2000.txt"
-"""Canonical filename used for cached EOP data."""
+_FILENAME: str = "compil.ast.masses.zip"
+"""Canonical filename used for cached asteroid masses data."""
 
 _DEFAULT_TIMEOUT: float = 120.0
 """Default HTTP timeout in seconds."""
 
 
-def download_standard_eop_file(
+def download_astmass_file(
     filepath: str | Path,
     *,
-    url: str = IERS_STANDARD_URL,
+    url: str = ASTMASS_URL,
     timeout: float = _DEFAULT_TIMEOUT,
 ) -> Path:
-    """Download an IERS standard EOP file to *filepath*.
+    """Download the SBN Archive asteroid masses dataset to *filepath*.
 
     Creates parent directories if they do not exist.  On success the
-    downloaded text is written to *filepath* and the resolved path is
-    returned.
+    downloaded binary data is written to *filepath* and the resolved
+    path is returned.
 
     Args:
         filepath: Destination path for the downloaded file.
-        url: URL to fetch.  Defaults to :data:`IERS_STANDARD_URL`.
+        url: URL to fetch.  Defaults to :data:`ASTMASS_URL`.
         timeout: HTTP timeout in seconds.  Defaults to 120.
 
     Returns:
@@ -52,11 +52,11 @@ def download_standard_eop_file(
     filepath = Path(filepath)
     filepath.parent.mkdir(parents=True, exist_ok=True)
 
-    logger.info("Downloading EOP data from %s", url)
+    logger.info("Downloading asteroid masses dataset from %s", url)
     with httpx.Client(timeout=timeout, follow_redirects=True) as client:
         response = client.get(url)
         response.raise_for_status()
 
-    filepath.write_text(response.text, encoding="utf-8")
-    logger.info("EOP data written to %s", filepath)
+    filepath.write_bytes(response.content)
+    logger.info("Asteroid masses data written to %s", filepath)
     return filepath.resolve()

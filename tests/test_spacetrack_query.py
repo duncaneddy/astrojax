@@ -95,9 +95,7 @@ class TestSpaceTrackQuery:
         assert "favorites/my_faves" in url
 
     def test_controller_override(self):
-        query = SpaceTrackQuery(RequestClass.GP).controller(
-            RequestController.EXPANDED_SPACE_DATA
-        )
+        query = SpaceTrackQuery(RequestClass.GP).controller(RequestController.EXPANDED_SPACE_DATA)
         url = query.build()
         assert "/expandedspacedata/" in url
 

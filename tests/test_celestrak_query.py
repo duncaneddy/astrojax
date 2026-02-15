@@ -64,9 +64,7 @@ class TestCelestrakQuerySupGP:
     """Tests for SupGP query builder methods."""
 
     def test_sup_gp_by_source(self):
-        query = celestrak.CelestrakQuery.sup_gp.source(
-            celestrak.SupGPSource.SPACEX
-        )
+        query = celestrak.CelestrakQuery.sup_gp.source(celestrak.SupGPSource.SPACEX)
         assert "SOURCE=spacex" in query.build_url()
 
     def test_sup_gp_by_file(self):
@@ -78,9 +76,9 @@ class TestCelestrakQuerySupGP:
         assert "CATNR=25544" in query.build_url()
 
     def test_sup_gp_with_format(self):
-        query = celestrak.CelestrakQuery.sup_gp.source(
-            celestrak.SupGPSource.STARLINK
-        ).format(celestrak.CelestrakOutputFormat.JSON)
+        query = celestrak.CelestrakQuery.sup_gp.source(celestrak.SupGPSource.STARLINK).format(
+            celestrak.CelestrakOutputFormat.JSON
+        )
         url = query.build_url()
         assert "SOURCE=starlink" in url
         assert "FORMAT=JSON" in url
@@ -114,11 +112,7 @@ class TestCelestrakQuerySATCAT:
         assert "NAME=ISS" in query.build_url()
 
     def test_satcat_multiple_flags(self):
-        query = (
-            celestrak.CelestrakQuery.satcat.active(True)
-            .payloads(True)
-            .on_orbit(True)
-        )
+        query = celestrak.CelestrakQuery.satcat.active(True).payloads(True).on_orbit(True)
         url = query.build_url()
         assert "PAYLOADS=Y" in url
         assert "ONORBIT=Y" in url
@@ -133,17 +127,13 @@ class TestCelestrakQueryClientSide:
     """Tests for client-side filter/order/limit methods."""
 
     def test_filter(self):
-        query = celestrak.CelestrakQuery.gp.group("active").filter(
-            "INCLINATION", ">50"
-        )
+        query = celestrak.CelestrakQuery.gp.group("active").filter("INCLINATION", ">50")
         assert "GROUP=active" in query.build_url()
         assert query.has_client_side_processing()
         assert query.client_side_filters() == [("INCLINATION", ">50")]
 
     def test_order_by(self):
-        query = celestrak.CelestrakQuery.gp.group("active").order_by(
-            "INCLINATION", False
-        )
+        query = celestrak.CelestrakQuery.gp.group("active").order_by("INCLINATION", False)
         assert "GROUP=active" in query.build_url()
         assert query.has_client_side_processing()
         assert query.client_side_order_by() == [("INCLINATION", False)]

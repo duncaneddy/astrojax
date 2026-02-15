@@ -33,7 +33,10 @@ class TestCelestrakQueryType:
 
     def test_endpoint_path(self):
         assert celestrak.CelestrakQueryType.GP.endpoint_path() == "/NORAD/elements/gp.php"
-        assert celestrak.CelestrakQueryType.SUP_GP.endpoint_path() == "/NORAD/elements/supplemental/sup-gp.php"
+        assert (
+            celestrak.CelestrakQueryType.SUP_GP.endpoint_path()
+            == "/NORAD/elements/supplemental/sup-gp.php"
+        )
         assert celestrak.CelestrakQueryType.SATCAT.endpoint_path() == "/satcat/records.php"
 
 

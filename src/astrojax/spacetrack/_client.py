@@ -75,9 +75,7 @@ class SpaceTrackClient:
 
         body = response.text
         if '"Login":"Failed"' in body or '"Login": "Failed"' in body:
-            raise RuntimeError(
-                "SpaceTrack authentication failed: invalid credentials"
-            )
+            raise RuntimeError("SpaceTrack authentication failed: invalid credentials")
 
         self._authenticated = True
 

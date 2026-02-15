@@ -746,8 +746,20 @@ def sgp4_init_jax(
 
     # Initialize auxiliary quantities
     (
-        no_unkozai, ainv, ao, con41, con42, cosio, cosio2,
-        eccsq, omeosq, posq, rp, rteosq, sinio, gsto,
+        no_unkozai,
+        ainv,
+        ao,
+        con41,
+        con42,
+        cosio,
+        cosio2,
+        eccsq,
+        omeosq,
+        posq,
+        rp,
+        rteosq,
+        sinio,
+        gsto,
     ) = _initl_jax(gravity.xke, gravity.j2, ecco, epoch, inclo, no_kozai, opsmode)
 
     params = params.at[_IDX["no_unkozai"]].set(no_unkozai)
@@ -808,10 +820,7 @@ def sgp4_init_jax(
             / (ao * psisq)
             * (
                 -3.0 * con41 * (1.0 - 2.0 * eeta + etasq * (1.5 - 0.5 * eeta))
-                + 0.75
-                * x1mth2
-                * (2.0 * etasq - eeta * (1.0 + etasq))
-                * jnp.cos(2.0 * argpo)
+                + 0.75 * x1mth2 * (2.0 * etasq - eeta * (1.0 + etasq)) * jnp.cos(2.0 * argpo)
             )
         )
     )
@@ -832,8 +841,7 @@ def sgp4_init_jax(
     )
     xhdot1 = -temp1 * cosio
     nodedot = (
-        xhdot1
-        + (0.5 * temp2 * (4.0 - 19.0 * cosio2) + 2.0 * temp3 * (3.0 - 7.0 * cosio2)) * cosio
+        xhdot1 + (0.5 * temp2 * (4.0 - 19.0 * cosio2) + 2.0 * temp3 * (3.0 - 7.0 * cosio2)) * cosio
     )
     xpidot = argpdot + nodedot
     omgcof = bstar * cc3 * jnp.cos(argpo)
@@ -880,14 +888,22 @@ def sgp4_init_jax(
 
     # Deep-space initialization (always computed, conditionally applied)
     ds_values = _deep_space_init_jax(
-        ecco=ecco, argpo=argpo, inclo=inclo, mo=mo, nodeo=nodeo,
-        no_unkozai=no_unkozai, epoch=epoch, gsto=gsto, mdot=mdot,
-        nodedot=nodedot, xpidot=xpidot, eccsq=eccsq, xke=gravity.xke,
+        ecco=ecco,
+        argpo=argpo,
+        inclo=inclo,
+        mo=mo,
+        nodeo=nodeo,
+        no_unkozai=no_unkozai,
+        epoch=epoch,
+        gsto=gsto,
+        mdot=mdot,
+        nodedot=nodedot,
+        xpidot=xpidot,
+        eccsq=eccsq,
+        xke=gravity.xke,
     )
     for name, val in ds_values.items():
-        params = params.at[_IDX[name]].set(
-            jnp.where(is_deep_space, val, params[_IDX[name]])
-        )
+        params = params.at[_IDX[name]].set(jnp.where(is_deep_space, val, params[_IDX[name]]))
 
     # Higher-order secular terms for non-simplified orbits
     is_not_simple = isimp < 0.5

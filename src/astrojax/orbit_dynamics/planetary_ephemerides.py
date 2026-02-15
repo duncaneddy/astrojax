@@ -62,12 +62,12 @@ def _planet_position_heliocentric_ecliptic(planet_id: int, epc: Epoch) -> Array:
     coeffs = TABLE1_ELEMENTS[planet_id]
 
     # Propagate elements: element = element_0 + element_dot * T
-    a = coeffs[0, 0] + coeffs[0, 1] * T          # semi-major axis (AU)
-    e = coeffs[1, 0] + coeffs[1, 1] * T          # eccentricity
-    incl = coeffs[2, 0] + coeffs[2, 1] * T        # inclination (deg)
-    L = coeffs[3, 0] + coeffs[3, 1] * T          # mean longitude (deg)
-    lon_peri = coeffs[4, 0] + coeffs[4, 1] * T   # longitude of perihelion (deg)
-    lon_node = coeffs[5, 0] + coeffs[5, 1] * T   # longitude of ascending node (deg)
+    a = coeffs[0, 0] + coeffs[0, 1] * T  # semi-major axis (AU)
+    e = coeffs[1, 0] + coeffs[1, 1] * T  # eccentricity
+    incl = coeffs[2, 0] + coeffs[2, 1] * T  # inclination (deg)
+    L = coeffs[3, 0] + coeffs[3, 1] * T  # mean longitude (deg)
+    lon_peri = coeffs[4, 0] + coeffs[4, 1] * T  # longitude of perihelion (deg)
+    lon_node = coeffs[5, 0] + coeffs[5, 1] * T  # longitude of ascending node (deg)
 
     # Argument of perihelion and mean anomaly (degrees)
     omega = lon_peri - lon_node

@@ -20,10 +20,14 @@ class TestEnumParity:
         assert str(aj_celestrak.CelestrakQueryType.GP) == str(brahe_celestrak.CelestrakQueryType.GP)
 
     def test_query_type_sup_gp(self):
-        assert str(aj_celestrak.CelestrakQueryType.SUP_GP) == str(brahe_celestrak.CelestrakQueryType.SUP_GP)
+        assert str(aj_celestrak.CelestrakQueryType.SUP_GP) == str(
+            brahe_celestrak.CelestrakQueryType.SUP_GP
+        )
 
     def test_query_type_satcat(self):
-        assert str(aj_celestrak.CelestrakQueryType.SATCAT) == str(brahe_celestrak.CelestrakQueryType.SATCAT)
+        assert str(aj_celestrak.CelestrakQueryType.SATCAT) == str(
+            brahe_celestrak.CelestrakQueryType.SATCAT
+        )
 
     def test_output_format_all_variants(self):
         for name in ["TLE", "TWO_LE", "THREE_LE", "XML", "KVN", "JSON", "JSON_PRETTY", "CSV"]:
@@ -33,10 +37,26 @@ class TestEnumParity:
 
     def test_sup_gp_source_all_variants(self):
         for name in [
-            "SPACEX", "SPACEX_SUP", "PLANET", "ONEWEB", "STARLINK",
-            "STARLINK_SUP", "GEO", "GPS", "GLONASS", "METEOSAT",
-            "INTELSAT", "SES", "IRIDIUM", "IRIDIUM_NEXT", "ORBCOMM",
-            "GLOBALSTAR", "SWARM_TECHNOLOGIES", "AMATEUR", "CELESTRAK", "KUIPER",
+            "SPACEX",
+            "SPACEX_SUP",
+            "PLANET",
+            "ONEWEB",
+            "STARLINK",
+            "STARLINK_SUP",
+            "GEO",
+            "GPS",
+            "GLONASS",
+            "METEOSAT",
+            "INTELSAT",
+            "SES",
+            "IRIDIUM",
+            "IRIDIUM_NEXT",
+            "ORBCOMM",
+            "GLOBALSTAR",
+            "SWARM_TECHNOLOGIES",
+            "AMATEUR",
+            "CELESTRAK",
+            "KUIPER",
         ]:
             aj_src = getattr(aj_celestrak.SupGPSource, name)
             bh_src = getattr(brahe_celestrak.SupGPSource, name)
@@ -72,17 +92,25 @@ class TestQueryBuilderParity:
         assert aj == bh
 
     def test_gp_with_format(self):
-        aj = aj_celestrak.CelestrakQuery.gp.group("stations").format(
-            aj_celestrak.CelestrakOutputFormat.THREE_LE
-        ).build_url()
-        bh = brahe_celestrak.CelestrakQuery.gp.group("stations").format(
-            brahe_celestrak.CelestrakOutputFormat.THREE_LE
-        ).build_url()
+        aj = (
+            aj_celestrak.CelestrakQuery.gp.group("stations")
+            .format(aj_celestrak.CelestrakOutputFormat.THREE_LE)
+            .build_url()
+        )
+        bh = (
+            brahe_celestrak.CelestrakQuery.gp.group("stations")
+            .format(brahe_celestrak.CelestrakOutputFormat.THREE_LE)
+            .build_url()
+        )
         assert aj == bh
 
     def test_sup_gp_by_source(self):
-        aj = aj_celestrak.CelestrakQuery.sup_gp.source(aj_celestrak.SupGPSource.STARLINK).build_url()
-        bh = brahe_celestrak.CelestrakQuery.sup_gp.source(brahe_celestrak.SupGPSource.STARLINK).build_url()
+        aj = aj_celestrak.CelestrakQuery.sup_gp.source(
+            aj_celestrak.SupGPSource.STARLINK
+        ).build_url()
+        bh = brahe_celestrak.CelestrakQuery.sup_gp.source(
+            brahe_celestrak.SupGPSource.STARLINK
+        ).build_url()
         assert aj == bh
 
     def test_satcat_active(self):
@@ -91,8 +119,18 @@ class TestQueryBuilderParity:
         assert aj == bh
 
     def test_satcat_multiple_flags(self):
-        aj = aj_celestrak.CelestrakQuery.satcat.active(True).payloads(True).on_orbit(True).build_url()
-        bh = brahe_celestrak.CelestrakQuery.satcat.active(True).payloads(True).on_orbit(True).build_url()
+        aj = (
+            aj_celestrak.CelestrakQuery.satcat.active(True)
+            .payloads(True)
+            .on_orbit(True)
+            .build_url()
+        )
+        bh = (
+            brahe_celestrak.CelestrakQuery.satcat.active(True)
+            .payloads(True)
+            .on_orbit(True)
+            .build_url()
+        )
         assert aj == bh
 
     def test_empty_query(self):

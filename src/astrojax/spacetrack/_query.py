@@ -189,9 +189,7 @@ class SpaceTrackQuery:
         parts: list[str] = []
 
         # Controller and query prefix
-        parts.append(
-            f"/{self._controller.as_str()}/query/class/{self._class.as_str()}"
-        )
+        parts.append(f"/{self._controller.as_str()}/query/class/{self._class.as_str()}")
 
         # Filters
         for field, value in self._filters:
@@ -199,9 +197,7 @@ class SpaceTrackQuery:
 
         # Order by
         if self._order_by:
-            order_str = ",".join(
-                f"{field}%20{order.as_str()}" for field, order in self._order_by
-            )
+            order_str = ",".join(f"{field}%20{order.as_str()}" for field, order in self._order_by)
             parts.append(f"/orderby/{order_str}")
 
         # Limit

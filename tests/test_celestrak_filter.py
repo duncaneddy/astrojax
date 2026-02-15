@@ -88,10 +88,13 @@ class TestFilterOperators:
 
     def test_and_logic(self):
         records = self._make_records()
-        result = apply_filters(records, [
-            ("INCLINATION", ">30"),
-            ("INCLINATION", "<60"),
-        ])
+        result = apply_filters(
+            records,
+            [
+                ("INCLINATION", ">30"),
+                ("INCLINATION", "<60"),
+            ],
+        )
         assert len(result) == 1  # Only ISS (51.6)
 
     def test_empty_filters(self):

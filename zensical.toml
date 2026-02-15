@@ -58,6 +58,7 @@ nav = [
             { "Third Body" = "user_guide/orbit_dynamics/third_body.md" },
             { "Drag" = "user_guide/orbit_dynamics/drag.md" },
             { "SRP" = "user_guide/orbit_dynamics/srp.md" },
+            { "Polyhedral Gravity" = "user_guide/orbit_dynamics/polyhedral_gravity.md" },
             { "Composing Forces" = "user_guide/orbit_dynamics/composition.md" },
         ]},
         { "Relative Motion" = [
@@ -87,6 +88,8 @@ nav = [
         { "Datasets" = [
             { "Overview" = "user_guide/datasets/index.md" },
             { "MPC Asteroids" = "user_guide/datasets/mpc_asteroids.md" },
+            { "Asteroid Masses" = "user_guide/datasets/asteroid_masses.md" },
+            { "DAMIT Asteroid Models" = "user_guide/datasets/damit.md" },
         ]},
     ]},
     { "API Reference" = [
@@ -117,6 +120,7 @@ nav = [
             { "NRLMSISE-00" = "api_reference/orbit_dynamics/nrlmsise00.md" },
             { "Drag" = "api_reference/orbit_dynamics/drag.md" },
             { "SRP" = "api_reference/orbit_dynamics/srp.md" },
+            { "Polyhedral Gravity" = "api_reference/orbit_dynamics/polyhedral_gravity.md" },
             { "Config" = "api_reference/orbit_dynamics/config.md" },
             { "Factory" = "api_reference/orbit_dynamics/factory.md" },
         ]},
@@ -156,6 +160,8 @@ nav = [
         { "Datasets" = [
             { "Overview" = "api_reference/datasets/index.md" },
             { "MPC Asteroids" = "api_reference/datasets/mpc_asteroids.md" },
+            { "Asteroid Masses" = "api_reference/datasets/asteroid_masses.md" },
+            { "DAMIT Asteroid Models" = "api_reference/datasets/damit.md" },
         ]},
     ]},
 ]

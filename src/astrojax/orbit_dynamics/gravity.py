@@ -518,8 +518,7 @@ def _compute_spherical_harmonics(
     def zonal_body(n: int, V: Array) -> Array:
         nf = n.astype(dtype)
         V = V.at[n, 0].set(
-            ((2.0 * nf - 1.0) * z0 * V[n - 1, 0] - (nf - 1.0) * rho * V[n - 2, 0])
-            / nf
+            ((2.0 * nf - 1.0) * z0 * V[n - 1, 0] - (nf - 1.0) * rho * V[n - 2, 0]) / nf
         )
         return V
 
@@ -531,12 +530,8 @@ def _compute_spherical_harmonics(
         mf = m.astype(dtype)
 
         # Diagonal terms V(m,m) and W(m,m)
-        V = V.at[m, m].set(
-            (2.0 * mf - 1.0) * (x0 * V[m - 1, m - 1] - y0 * W[m - 1, m - 1])
-        )
-        W = W.at[m, m].set(
-            (2.0 * mf - 1.0) * (x0 * W[m - 1, m - 1] + y0 * V[m - 1, m - 1])
-        )
+        V = V.at[m, m].set((2.0 * mf - 1.0) * (x0 * V[m - 1, m - 1] - y0 * W[m - 1, m - 1]))
+        W = W.at[m, m].set((2.0 * mf - 1.0) * (x0 * W[m - 1, m - 1] + y0 * V[m - 1, m - 1]))
 
         # Sub-diagonal terms V(m+1, m), W(m+1, m) — guarded for m <= n_max
         idx = jnp.minimum(m + 1, size - 1)
@@ -547,23 +542,15 @@ def _compute_spherical_harmonics(
         W = W.at[idx, m].set(jnp.where(should_write, new_W_sub, W[idx, m]))
 
         # Inner recursion for n = m+2 .. n_max+1
-        def tesseral_inner(
-            n: int, state: tuple[Array, Array]
-        ) -> tuple[Array, Array]:
+        def tesseral_inner(n: int, state: tuple[Array, Array]) -> tuple[Array, Array]:
             V, W = state
             nf = n.astype(dtype)
             V = V.at[n, m].set(
-                (
-                    (2.0 * nf - 1.0) * z0 * V[n - 1, m]
-                    - (nf + mf - 1.0) * rho * V[n - 2, m]
-                )
+                ((2.0 * nf - 1.0) * z0 * V[n - 1, m] - (nf + mf - 1.0) * rho * V[n - 2, m])
                 / (nf - mf)
             )
             W = W.at[n, m].set(
-                (
-                    (2.0 * nf - 1.0) * z0 * W[n - 1, m]
-                    - (nf + mf - 1.0) * rho * W[n - 2, m]
-                )
+                ((2.0 * nf - 1.0) * z0 * W[n - 1, m] - (nf + mf - 1.0) * rho * W[n - 2, m])
                 / (nf - mf)
             )
             return V, W
@@ -581,9 +568,7 @@ def _compute_spherical_harmonics(
             nf = float(n)
             norm[n][0] = math.sqrt(2.0 * nf + 1.0)
             for m in range(1, min(n, m_max) + 1):
-                norm[n][m] = math.sqrt(
-                    2.0 * (2.0 * nf + 1.0) * _factorial_product(n, m)
-                )
+                norm[n][m] = math.sqrt(2.0 * (2.0 * nf + 1.0) * _factorial_product(n, m))
 
     norm_jax = jnp.array(norm, dtype=dtype)
 
@@ -600,9 +585,7 @@ def _compute_spherical_harmonics(
         )
 
     # --- Loop 3: Acceleration accumulation ---
-    def accum_outer(
-        m: int, state: tuple[Array, Array, Array]
-    ) -> tuple[Array, Array, Array]:
+    def accum_outer(m: int, state: tuple[Array, Array, Array]) -> tuple[Array, Array, Array]:
         ax, ay, az = state
         mf = m.astype(dtype)
 

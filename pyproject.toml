@@ -30,6 +30,7 @@ extras = [
     "scienceplots",
     "cvxpy",
     "highspy",
+    "trimesh[easy]>=4.0",
 ]
 
 [dependency-groups]
@@ -37,6 +38,7 @@ dev = [
     "brahe>=1.1.2",
     "hypothesis>=6.151.2",
     "mkdocstrings-python>=2.0.1",
+    "polyhedral-gravity>=3.2",
     "pre-commit>=4.0.0",
     "pytest>=9.0.2",
     "pytest-cov>=7.0.0",

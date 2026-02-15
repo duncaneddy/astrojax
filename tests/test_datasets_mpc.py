@@ -211,6 +211,41 @@ class TestLoadMpcJsonToDataframe:
         assert row["name"] is None
         assert row["a"] is None
 
+    def test_epoch_float_jd(self, tmp_path: Path) -> None:
+        """Epoch given as a float Julian Date should be used directly."""
+        record = {**_CERES_RECORD, "Epoch": 2461000.5}
+        fp = tmp_path / "test.json.gz"
+        _make_test_json_gz(fp, [record])
+        df = load_mpc_json_to_dataframe(fp)
+
+        row = df.row(0, named=True)
+        assert row["epoch_jd"] == 2461000.5
+        assert row["epoch_packed"] is None
+
+    def test_epoch_mixed_formats(self, tmp_path: Path) -> None:
+        """DataFrame handles records with both packed string and float epochs."""
+        record_packed = {**_CERES_RECORD, "Epoch": "K25A1"}
+        record_float = {**_PALLAS_RECORD, "Epoch": 2461000.5}
+        fp = tmp_path / "test.json.gz"
+        _make_test_json_gz(fp, [record_packed, record_float])
+        df = load_mpc_json_to_dataframe(fp)
+
+        assert df.shape[0] == 2
+        assert df["epoch_jd"].null_count() == 0
+        assert df["epoch_packed"][0] == "K25A1"
+        assert df["epoch_packed"][1] is None
+
+    def test_epoch_missing(self, tmp_path: Path) -> None:
+        """Record with no Epoch field should have null epoch_jd."""
+        record = {"Number": "99999", "Principal_desig": "A999 XX"}
+        fp = tmp_path / "test.json.gz"
+        _make_test_json_gz(fp, [record])
+        df = load_mpc_json_to_dataframe(fp)
+
+        row = df.row(0, named=True)
+        assert row["epoch_jd"] is None
+        assert row["epoch_packed"] is None
+
 
 class TestLoadMpcFromFile:
     """Tests for load_mpc_from_file."""

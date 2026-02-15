@@ -47,7 +47,10 @@ def _use_float64():
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _make_epochs(year: int, month: int, day: int, hour: int = 0, minute: int = 0, second: float = 0.0):
+
+def _make_epochs(
+    year: int, month: int, day: int, hour: int = 0, minute: int = 0, second: float = 0.0
+):
     """Create matched brahe and astrojax Epoch objects."""
     epc_bh = bh.Epoch(year, month, day, hour, minute, second)
     epc_aj = Epoch(year, month, day, hour, minute, second)
@@ -119,7 +122,9 @@ _INNER_DIST_RTOL = 0.02  # 2%
 class TestInnerPlanetsVsBrahe:
     """Cross-validate inner planet positions against brahe DE440s."""
 
-    @pytest.mark.parametrize("date", _TEST_DATES, ids=[f"{d[0]}-{d[1]:02d}-{d[2]:02d}" for d in _TEST_DATES])
+    @pytest.mark.parametrize(
+        "date", _TEST_DATES, ids=[f"{d[0]}-{d[1]:02d}-{d[2]:02d}" for d in _TEST_DATES]
+    )
     @pytest.mark.parametrize("planet", _INNER_PLANETS.keys())
     def test_angular_separation(self, planet, date):
         aj_fn, bh_fn = _INNER_PLANETS[planet]
@@ -131,7 +136,9 @@ class TestInnerPlanetsVsBrahe:
             f"{planet} angular separation {sep:.2f}' > {_INNER_ANGLE_TOL_ARCMIN}' at {date}"
         )
 
-    @pytest.mark.parametrize("date", _TEST_DATES, ids=[f"{d[0]}-{d[1]:02d}-{d[2]:02d}" for d in _TEST_DATES])
+    @pytest.mark.parametrize(
+        "date", _TEST_DATES, ids=[f"{d[0]}-{d[1]:02d}-{d[2]:02d}" for d in _TEST_DATES]
+    )
     @pytest.mark.parametrize("planet", _INNER_PLANETS.keys())
     def test_distance_magnitude(self, planet, date):
         aj_fn, bh_fn = _INNER_PLANETS[planet]
@@ -155,7 +162,9 @@ _MARS_DIST_RTOL = 0.02
 class TestMarsVsBrahe:
     """Cross-validate Mars position against brahe DE440s."""
 
-    @pytest.mark.parametrize("date", _TEST_DATES, ids=[f"{d[0]}-{d[1]:02d}-{d[2]:02d}" for d in _TEST_DATES])
+    @pytest.mark.parametrize(
+        "date", _TEST_DATES, ids=[f"{d[0]}-{d[1]:02d}-{d[2]:02d}" for d in _TEST_DATES]
+    )
     def test_angular_separation(self, date):
         epc_bh, epc_aj = _make_epochs(*date)
         r_aj = np.array(mars_position_jpl_approx(epc_aj))
@@ -165,15 +174,15 @@ class TestMarsVsBrahe:
             f"Mars angular separation {sep:.2f}' > {_MARS_ANGLE_TOL_ARCMIN}' at {date}"
         )
 
-    @pytest.mark.parametrize("date", _TEST_DATES, ids=[f"{d[0]}-{d[1]:02d}-{d[2]:02d}" for d in _TEST_DATES])
+    @pytest.mark.parametrize(
+        "date", _TEST_DATES, ids=[f"{d[0]}-{d[1]:02d}-{d[2]:02d}" for d in _TEST_DATES]
+    )
     def test_distance_magnitude(self, date):
         epc_bh, epc_aj = _make_epochs(*date)
         r_aj = np.array(mars_position_jpl_approx(epc_aj))
         r_bh = _brahe_heliocentric(bh.mars_position_de, epc_bh)
         err = _distance_relative_error(r_aj, r_bh)
-        assert err < _MARS_DIST_RTOL, (
-            f"Mars distance error {err:.4f} > {_MARS_DIST_RTOL} at {date}"
-        )
+        assert err < _MARS_DIST_RTOL, f"Mars distance error {err:.4f} > {_MARS_DIST_RTOL} at {date}"
 
 
 # ---------------------------------------------------------------------------
@@ -194,7 +203,9 @@ _OUTER_DIST_RTOL = 0.02
 class TestOuterPlanetsVsBrahe:
     """Cross-validate outer planet positions against brahe DE440s."""
 
-    @pytest.mark.parametrize("date", _TEST_DATES, ids=[f"{d[0]}-{d[1]:02d}-{d[2]:02d}" for d in _TEST_DATES])
+    @pytest.mark.parametrize(
+        "date", _TEST_DATES, ids=[f"{d[0]}-{d[1]:02d}-{d[2]:02d}" for d in _TEST_DATES]
+    )
     @pytest.mark.parametrize("planet", _OUTER_PLANETS.keys())
     def test_angular_separation(self, planet, date):
         aj_fn, bh_fn = _OUTER_PLANETS[planet]
@@ -206,7 +217,9 @@ class TestOuterPlanetsVsBrahe:
             f"{planet} angular separation {sep:.2f}' > {_OUTER_ANGLE_TOL_ARCMIN}' at {date}"
         )
 
-    @pytest.mark.parametrize("date", _TEST_DATES, ids=[f"{d[0]}-{d[1]:02d}-{d[2]:02d}" for d in _TEST_DATES])
+    @pytest.mark.parametrize(
+        "date", _TEST_DATES, ids=[f"{d[0]}-{d[1]:02d}-{d[2]:02d}" for d in _TEST_DATES]
+    )
     @pytest.mark.parametrize("planet", _OUTER_PLANETS.keys())
     def test_distance_magnitude(self, planet, date):
         aj_fn, bh_fn = _OUTER_PLANETS[planet]

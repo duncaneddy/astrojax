@@ -102,7 +102,9 @@ def load_mpc_json_to_dataframe(filepath: str | Path) -> pl.DataFrame:
     """Load an MPC ``mpcorb_extended.json.gz`` file into a Polars DataFrame.
 
     Decompresses the gzipped JSON, extracts the relevant orbital element
-    columns, and computes an ``epoch_jd`` column from the packed epoch.
+    columns, and derives the ``epoch_jd`` column.  The MPC ``Epoch`` field
+    may be either a 5-character packed date string (older format) or a
+    Julian Date float (current format); both are handled transparently.
 
     Args:
         filepath: Path to the ``.json.gz`` file.
@@ -128,7 +130,6 @@ def load_mpc_json_to_dataframe(filepath: str | Path) -> pl.DataFrame:
         ("number", "Number"),
         ("name", "Name"),
         ("principal_desig", "Principal_desig"),
-        ("epoch_packed", "Epoch"),
         ("a", "a"),
         ("e", "e"),
         ("i", "i"),
@@ -140,19 +141,28 @@ def load_mpc_json_to_dataframe(filepath: str | Path) -> pl.DataFrame:
     ]
 
     rows: dict[str, list] = {col: [] for col, _ in column_map}
+    rows["epoch_packed"] = []
     rows["epoch_jd"] = []
 
     for record in raw:
         for col, key in column_map:
             rows[col].append(record.get(key))
-        epoch_str = record.get("Epoch", "")
-        if epoch_str and len(epoch_str) == 5:
+
+        # The Epoch field may be either a 5-character packed date string
+        # (older MPC format) or a Julian Date float (current format).
+        epoch_val = record.get("Epoch")
+        if isinstance(epoch_val, int | float):
+            rows["epoch_jd"].append(float(epoch_val))
+            rows["epoch_packed"].append(None)
+        elif isinstance(epoch_val, str) and len(epoch_val) == 5:
             try:
-                rows["epoch_jd"].append(packed_mpc_epoch_to_jd(epoch_str))
+                rows["epoch_jd"].append(packed_mpc_epoch_to_jd(epoch_val))
             except (ValueError, KeyError):
                 rows["epoch_jd"].append(None)
+            rows["epoch_packed"].append(epoch_val)
         else:
             rows["epoch_jd"].append(None)
+            rows["epoch_packed"].append(None)
 
     df = pl.DataFrame(
         {

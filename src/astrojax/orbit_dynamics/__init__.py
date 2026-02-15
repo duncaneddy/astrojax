@@ -10,6 +10,7 @@ orbit propagation:
 - **Density**: Harris-Priester and NRLMSISE-00 atmospheric density models
 - **Drag**: Atmospheric drag acceleration
 - **SRP**: Solar radiation pressure and eclipse shadow models
+- **Polyhedral gravity**: Full gravity field of irregular polyhedral bodies
 """
 
 from ._jpl_planetary_coefficients import (
@@ -45,6 +46,7 @@ from .planetary_ephemerides import (
     uranus_position_jpl_approx,
     venus_position_jpl_approx,
 )
+from .polyhedral_gravity import accel_polyhedral_gravity, polyhedral_gravity
 from .srp import accel_srp, eclipse_conical, eclipse_cylindrical
 from .third_body import accel_third_body_moon, accel_third_body_sun
 
@@ -89,6 +91,9 @@ __all__ = [
     "accel_srp",
     "eclipse_conical",
     "eclipse_cylindrical",
+    # Polyhedral gravity
+    "polyhedral_gravity",
+    "accel_polyhedral_gravity",
     # Dynamics factory
     "ForceModelConfig",
     "SpacecraftParams",

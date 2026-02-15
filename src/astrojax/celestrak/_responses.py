@@ -109,10 +109,7 @@ class CelestrakSATCATRecord:
         return str(val)
 
     def __str__(self) -> str:
-        return (
-            f"CelestrakSATCATRecord(name={self.object_name!r}, "
-            f"norad_id={self.norad_cat_id!r})"
-        )
+        return f"CelestrakSATCATRecord(name={self.object_name!r}, norad_id={self.norad_cat_id!r})"
 
     def __repr__(self) -> str:
         return self.__str__()

@@ -17,6 +17,7 @@ JAX-traceable and compatible with `jax.jit`, `jax.vmap`, and
 | **Drag** | `accel_drag` | Atmospheric drag acceleration |
 | **SRP** | `accel_srp` | Solar radiation pressure acceleration |
 | **Eclipse** | `eclipse_conical`, `eclipse_cylindrical` | Shadow models for SRP modulation |
+| **Polyhedral Gravity** | `polyhedral_gravity`, `accel_polyhedral_gravity` | Full gravity field of irregular polyhedral bodies |
 
 ## JAX Compatibility
 
