@@ -167,15 +167,64 @@ def parse_damit_models_table(filepath: str | Path) -> pl.DataFrame:
         member_name = _find_table_member(tf, "asteroid_models.csv")
         raw = _extract_member_bytes(tf, member_name)
 
+    # Read everything as Utf8 first (infer_schema_length=0) to avoid
+    # type-inference failures on mixed-format columns in the live data.
     df = pl.read_csv(
         io.BytesIO(raw),
-        schema_overrides={
-            "id": pl.Int64,
-            "asteroid_id": pl.Int64,
-            "nonconvex": pl.Boolean,
-        },
+        infer_schema_length=0,
         null_values=["", "NA", "NULL"],
     )
+
+    # Cast columns to their expected types.  Only touch columns that exist
+    # so this is robust to archive-version changes.
+    int_cols = ["id", "asteroid_id"]
+    float_cols = [
+        "lambda",
+        "beta",
+        "period",
+        "yorp",
+        "jd0",
+        "phi0",
+        "lsm",
+        "lsm_p1",
+        "lsm_p2",
+        "lsm_p3",
+        "lsm_p4",
+        "lsm_p5",
+        "calibrated_size",
+        "equiv_diameter",
+        "equiv_diameter_err",
+        "thermal_inertia",
+        "thermal_inertia_min",
+        "thermal_inertia_max",
+        "visual_albedo",
+        "visual_albedo_err",
+        "craters_angle",
+        "craters_surface_density",
+        "quality_flag",
+    ]
+
+    cast_exprs: list[pl.Expr] = []
+    for col in int_cols:
+        if col in df.columns:
+            cast_exprs.append(pl.col(col).cast(pl.Int64, strict=False))
+    for col in float_cols:
+        if col in df.columns:
+            cast_exprs.append(pl.col(col).cast(pl.Float64, strict=False))
+    if cast_exprs:
+        df = df.with_columns(cast_exprs)
+
+    # The nonconvex column may contain "true"/"false" or "0"/"1" depending
+    # on the archive version.  Normalise to Boolean.
+    if "nonconvex" in df.columns:
+        df = df.with_columns(
+            pl.when(pl.col("nonconvex").is_in(["true", "1"]))
+            .then(True)
+            .when(pl.col("nonconvex").is_in(["false", "0"]))
+            .then(False)
+            .otherwise(None)
+            .alias("nonconvex")
+        )
 
     # Drop timestamp columns if present
     drop_cols = [c for c in ("created", "modified") if c in df.columns]

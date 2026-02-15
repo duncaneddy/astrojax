@@ -8,6 +8,7 @@ uv.lock
 refs/
 seamstress/*
 test_seamstress.py
+output/*
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

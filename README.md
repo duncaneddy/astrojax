@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://github.com/duncaneddy/astrojax/"><img src="https://raw.githubusercontent.com/duncaneddy/astrojax/main/docs/images/astrojax_logo.svg" alt="Astrojax" style="max-height: 500px;"></a>
+  <a href="https://github.com/duncaneddy/astrojax/"><img src="https://raw.githubusercontent.com/duncaneddy/astrojax/main/docs/images/astrojax_logo.svg" alt="Astrojax" style="max-height: 250px;"></a>
 </p>
 <p align="center">
     <em>Astrojax - Accelerated astrodynamics in JAX</em>
