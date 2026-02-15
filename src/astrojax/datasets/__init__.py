@@ -29,7 +29,7 @@ from astrojax.datasets._astmass_providers import (
     load_asteroid_masses,
     load_astmass_from_file,
 )
-from astrojax.datasets._damit_download import download_damit_file
+from astrojax.datasets._damit_download import download_damit_file, extract_damit_archive
 from astrojax.datasets._damit_parsers import (
     load_shape_for_model,
     parse_damit_asteroids_table,
@@ -72,6 +72,7 @@ __all__ = [
     "damit_spin_to_rotation",
     "download_astmass_file",
     "download_damit_file",
+    "extract_damit_archive",
     "download_mpc_file",
     "export_shape_glb",
     "export_shape_stl",

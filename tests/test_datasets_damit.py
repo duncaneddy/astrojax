@@ -12,7 +12,11 @@ import jax.numpy as jnp
 import polars as pl
 import pytest
 
-from astrojax.datasets._damit_download import _FILENAME
+from astrojax.datasets._damit_download import (
+    _EXTRACTED_MARKER,
+    _FILENAME,
+    extract_damit_archive,
+)
 from astrojax.datasets._damit_parsers import (
     load_shape_for_model,
     parse_damit_asteroids_table,
@@ -20,6 +24,7 @@ from astrojax.datasets._damit_parsers import (
     parse_shape_file,
 )
 from astrojax.datasets._damit_providers import (
+    _is_extraction_stale,
     get_damit_shape,
     get_damit_spin,
     load_damit_asteroids,
@@ -482,6 +487,291 @@ class TestGetDamitShape:
         _make_damit_tar(fp)
         with pytest.raises(KeyError):
             get_damit_shape(fp, model_id=9999, max_age_days=999.0)
+
+
+# ---------------------------------------------------------------------------
+# Archive extraction tests
+# ---------------------------------------------------------------------------
+
+
+class TestExtractDamitArchive:
+    """Tests for extract_damit_archive."""
+
+    def test_extracts_files(self, tmp_path: Path) -> None:
+        """Should extract the archive contents to the target directory."""
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp)
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+
+        # Check that the prefix directory exists
+        subdirs = [p for p in extract_dir.iterdir() if p.is_dir()]
+        assert len(subdirs) == 1
+        assert subdirs[0].name == "damit-20260214T010301Z"
+
+    def test_marker_file_created(self, tmp_path: Path) -> None:
+        """Should create a .extracted marker file after extraction."""
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp)
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+
+        marker = extract_dir / _EXTRACTED_MARKER
+        assert marker.exists()
+
+    def test_tables_extracted(self, tmp_path: Path) -> None:
+        """Should extract CSV tables to the correct location."""
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp)
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+
+        prefix = "damit-20260214T010301Z"
+        assert (extract_dir / prefix / "tables" / "asteroids.csv").exists()
+        assert (extract_dir / prefix / "tables" / "asteroid_models.csv").exists()
+
+    def test_shapes_extracted(self, tmp_path: Path) -> None:
+        """Should extract shape files to the correct location."""
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp, shape_models={10: _SHAPE_TEXT, 20: _SHAPE_TEXT_SIMPLE})
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+
+        prefix = "damit-20260214T010301Z"
+        assert (extract_dir / prefix / "files" / "asteroid_1" / "model_10" / "shape.txt").exists()
+        assert (extract_dir / prefix / "files" / "asteroid_1" / "model_20" / "shape.txt").exists()
+
+    def test_missing_archive_raises(self, tmp_path: Path) -> None:
+        """Should raise FileNotFoundError for nonexistent archive."""
+        with pytest.raises(FileNotFoundError):
+            extract_damit_archive(tmp_path / "nonexistent.tar.gz", tmp_path / "out")
+
+    def test_creates_extract_dir(self, tmp_path: Path) -> None:
+        """Should create the extraction directory if it doesn't exist."""
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp)
+        extract_dir = tmp_path / "deep" / "nested" / "extracted"
+        extract_damit_archive(fp, extract_dir)
+        assert extract_dir.is_dir()
+
+
+class TestIsExtractionStale:
+    """Tests for _is_extraction_stale."""
+
+    def test_missing_marker_is_stale(self, tmp_path: Path) -> None:
+        """Should return True when the marker file doesn't exist."""
+        tar_path = tmp_path / "test.tar.gz"
+        tar_path.write_bytes(b"dummy")
+        extract_dir = tmp_path / "extracted"
+        extract_dir.mkdir()
+        assert _is_extraction_stale(tar_path, extract_dir) is True
+
+    def test_fresh_extraction_is_not_stale(self, tmp_path: Path) -> None:
+        """Should return False when marker is newer than the tar.gz."""
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp)
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+        assert _is_extraction_stale(fp, extract_dir) is False
+
+    def test_updated_tar_makes_extraction_stale(self, tmp_path: Path) -> None:
+        """Should return True when tar.gz is newer than the marker."""
+        import os
+        import time
+
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp)
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+
+        # Make the tar newer than the marker
+        time.sleep(0.05)
+        _make_damit_tar(fp)
+        # Ensure mtime is actually updated
+        os.utime(fp, None)
+        assert _is_extraction_stale(fp, extract_dir) is True
+
+
+# ---------------------------------------------------------------------------
+# Fast-path parser tests (reading from extracted directory)
+# ---------------------------------------------------------------------------
+
+
+class TestParseDamitAsteroidsTableFastPath:
+    """Tests for parse_damit_asteroids_table with extracted_dir."""
+
+    def test_reads_from_extracted_dir(self, tmp_path: Path) -> None:
+        """Should load asteroids from extracted directory."""
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp)
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+
+        df = parse_damit_asteroids_table(fp, extracted_dir=extract_dir)
+        assert df.shape[0] == 3
+
+    def test_same_result_as_tar_path(self, tmp_path: Path) -> None:
+        """Fast-path and tar-path should produce identical DataFrames."""
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp)
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+
+        df_tar = parse_damit_asteroids_table(fp)
+        df_fast = parse_damit_asteroids_table(fp, extracted_dir=extract_dir)
+        assert df_tar.equals(df_fast)
+
+    def test_falls_back_to_tar_when_no_extracted_dir(self, tmp_path: Path) -> None:
+        """Should fall back to tar when extracted_dir doesn't exist."""
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp)
+        df = parse_damit_asteroids_table(fp, extracted_dir=tmp_path / "nonexistent")
+        assert df.shape[0] == 3
+
+
+class TestParseDamitModelsTableFastPath:
+    """Tests for parse_damit_models_table with extracted_dir."""
+
+    def test_reads_from_extracted_dir(self, tmp_path: Path) -> None:
+        """Should load models from extracted directory."""
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp)
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+
+        df = parse_damit_models_table(fp, extracted_dir=extract_dir)
+        assert df.shape[0] == 4
+
+    def test_same_result_as_tar_path(self, tmp_path: Path) -> None:
+        """Fast-path and tar-path should produce identical DataFrames."""
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp)
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+
+        df_tar = parse_damit_models_table(fp)
+        df_fast = parse_damit_models_table(fp, extracted_dir=extract_dir)
+        assert df_tar.equals(df_fast)
+
+
+class TestLoadShapeForModelFastPath:
+    """Tests for load_shape_for_model with extracted_dir."""
+
+    def test_reads_from_extracted_dir(self, tmp_path: Path) -> None:
+        """Should load shape from extracted directory."""
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp, shape_models={10: _SHAPE_TEXT})
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+
+        verts, facets = load_shape_for_model(fp, 10, extracted_dir=extract_dir)
+        assert verts.shape == (4, 3)
+        assert facets.shape == (2, 3)
+
+    def test_same_result_as_tar_path(self, tmp_path: Path) -> None:
+        """Fast-path and tar-path should produce identical arrays."""
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp, shape_models={10: _SHAPE_TEXT})
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+
+        verts_tar, facets_tar = load_shape_for_model(fp, 10)
+        verts_fast, facets_fast = load_shape_for_model(fp, 10, extracted_dir=extract_dir)
+        assert jnp.array_equal(verts_tar, verts_fast)
+        assert jnp.array_equal(facets_tar, facets_fast)
+
+    def test_model_not_found_in_extracted_dir(self, tmp_path: Path) -> None:
+        """Should raise KeyError for nonexistent model in extracted dir."""
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp)
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+
+        with pytest.raises(KeyError, match="model_id=9999"):
+            load_shape_for_model(fp, 9999, extracted_dir=extract_dir)
+
+    def test_falls_back_to_tar_when_no_extracted_dir(self, tmp_path: Path) -> None:
+        """Should fall back to tar when extracted_dir doesn't exist."""
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp, shape_models={10: _SHAPE_TEXT})
+        verts, facets = load_shape_for_model(fp, 10, extracted_dir=tmp_path / "nonexistent")
+        assert verts.shape == (4, 3)
+        assert facets.shape == (2, 3)
+
+    def test_multiple_shapes(self, tmp_path: Path) -> None:
+        """Should load different shapes from extracted directory."""
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp, shape_models={10: _SHAPE_TEXT, 20: _SHAPE_TEXT_SIMPLE})
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+
+        verts_10, facets_10 = load_shape_for_model(fp, 10, extracted_dir=extract_dir)
+        verts_20, facets_20 = load_shape_for_model(fp, 20, extracted_dir=extract_dir)
+        assert verts_10.shape == (4, 3)
+        assert verts_20.shape == (3, 3)
+
+
+class TestProviderExtractionIntegration:
+    """Tests for provider functions using extraction."""
+
+    def test_get_damit_shape_extracts_and_reads(self, tmp_path: Path) -> None:
+        """get_damit_shape should extract the archive and read from disk."""
+        fp = tmp_path / "damit" / _FILENAME
+        _make_damit_tar(fp, shape_models={10: _SHAPE_TEXT})
+
+        verts, facets = get_damit_shape(fp, model_id=10, max_age_days=999.0)
+        assert verts.shape == (4, 3)
+        assert facets.shape == (2, 3)
+
+        # Verify extraction happened
+        extract_dir = fp.parent / "extracted"
+        assert extract_dir.is_dir()
+        assert (extract_dir / _EXTRACTED_MARKER).exists()
+
+    def test_load_damit_asteroids_uses_extracted(self, tmp_path: Path) -> None:
+        """load_damit_asteroids should extract and use the fast path."""
+        fp = tmp_path / "damit" / _FILENAME
+        _make_damit_tar(fp)
+
+        df = load_damit_asteroids(fp, max_age_days=999.0)
+        assert df.shape[0] == 3
+
+        # Verify extraction happened
+        extract_dir = fp.parent / "extracted"
+        assert extract_dir.is_dir()
+
+    def test_load_damit_models_uses_extracted(self, tmp_path: Path) -> None:
+        """load_damit_models should extract and use the fast path."""
+        fp = tmp_path / "damit" / _FILENAME
+        _make_damit_tar(fp)
+
+        df = load_damit_models(fp, max_age_days=999.0)
+        assert df.shape[0] == 4
+
+        # Verify extraction happened
+        extract_dir = fp.parent / "extracted"
+        assert extract_dir.is_dir()
+
+    def test_re_extraction_after_delete(self, tmp_path: Path) -> None:
+        """Deleting the extracted dir should trigger re-extraction on next call."""
+        import shutil
+
+        fp = tmp_path / "damit" / _FILENAME
+        _make_damit_tar(fp, shape_models={10: _SHAPE_TEXT})
+
+        # First call: extract
+        verts1, _ = get_damit_shape(fp, model_id=10, max_age_days=999.0)
+        extract_dir = fp.parent / "extracted"
+        assert extract_dir.is_dir()
+
+        # Delete extracted dir
+        shutil.rmtree(extract_dir)
+        assert not extract_dir.exists()
+
+        # Second call: should re-extract transparently
+        verts2, _ = get_damit_shape(fp, model_id=10, max_age_days=999.0)
+        assert extract_dir.is_dir()
+        assert jnp.array_equal(verts1, verts2)
 
 
 # ---------------------------------------------------------------------------

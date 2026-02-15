@@ -101,15 +101,50 @@ def _extract_member_text(tf: tarfile.TarFile, member_name: str) -> str:
     return _extract_member_bytes(tf, member_name).decode("utf-8")
 
 
-def parse_damit_asteroids_table(filepath: str | Path) -> pl.DataFrame:
+def _find_extracted_prefix(extracted_dir: Path) -> str:
+    """Find the top-level directory name inside an extracted DAMIT directory.
+
+    After extraction the layout is ``extracted/<prefix>/tables/...``.
+    This helper discovers *prefix* by listing the single top-level
+    subdirectory.
+
+    Args:
+        extracted_dir: Root of the extracted archive.
+
+    Returns:
+        The top-level prefix directory name.
+
+    Raises:
+        ValueError: If the extracted directory is empty or ambiguous.
+    """
+    subdirs = [p for p in extracted_dir.iterdir() if p.is_dir() and not p.name.startswith(".")]
+    if len(subdirs) == 0:
+        raise ValueError(f"Extracted DAMIT directory is empty: {extracted_dir}")
+    if len(subdirs) > 1:
+        # Multiple prefixes — pick the first alphabetically for determinism.
+        subdirs.sort()
+    return subdirs[0].name
+
+
+def parse_damit_asteroids_table(
+    filepath: str | Path,
+    *,
+    extracted_dir: str | Path | None = None,
+) -> pl.DataFrame:
     """Parse the ``asteroids.csv`` table from a DAMIT tar.gz archive.
 
     Reads ``tables/asteroids.csv`` from the compressed archive and
     returns a Polars DataFrame with asteroid identity information.
     The ``created`` and ``modified`` timestamp columns are dropped.
 
+    When *extracted_dir* is provided and contains the expected CSV file,
+    it is read directly from disk (fast path) instead of decompressing
+    the tar.gz archive.
+
     Args:
         filepath: Path to the DAMIT ``tar.gz`` archive file.
+        extracted_dir: Optional path to the extracted archive directory.
+            When provided, the CSV is read directly from disk.
 
     Returns:
         Polars DataFrame with columns: ``id`` (Int64), ``number``
@@ -120,6 +155,16 @@ def parse_damit_asteroids_table(filepath: str | Path) -> pl.DataFrame:
         FileNotFoundError: If *filepath* does not exist.
         ValueError: If the archive does not contain ``asteroids.csv``.
     """
+    # Fast path: read directly from extracted directory
+    if extracted_dir is not None:
+        extracted_dir = Path(extracted_dir)
+        if extracted_dir.is_dir():
+            prefix = _find_extracted_prefix(extracted_dir)
+            csv_path = extracted_dir / prefix / "tables" / "asteroids.csv"
+            if csv_path.exists():
+                raw = csv_path.read_bytes()
+                return _parse_asteroids_bytes(raw, source=str(csv_path))
+
     filepath = Path(filepath)
     if not filepath.exists():
         raise FileNotFoundError(f"DAMIT archive not found: {filepath}")
@@ -128,6 +173,19 @@ def parse_damit_asteroids_table(filepath: str | Path) -> pl.DataFrame:
         member_name = _find_table_member(tf, "asteroids.csv")
         raw = _extract_member_bytes(tf, member_name)
 
+    return _parse_asteroids_bytes(raw, source=str(filepath))
+
+
+def _parse_asteroids_bytes(raw: bytes, *, source: str) -> pl.DataFrame:
+    """Parse raw asteroids CSV bytes into a Polars DataFrame.
+
+    Args:
+        raw: Raw CSV bytes.
+        source: Description of the data source for logging.
+
+    Returns:
+        Polars DataFrame with asteroid identity columns.
+    """
     df = pl.read_csv(
         io.BytesIO(raw),
         schema_overrides={"id": pl.Int64, "number": pl.Int64},
@@ -138,19 +196,29 @@ def parse_damit_asteroids_table(filepath: str | Path) -> pl.DataFrame:
     if drop_cols:
         df = df.drop(drop_cols)
 
-    logger.info("Loaded %d DAMIT asteroid records from %s", len(df), filepath)
+    logger.info("Loaded %d DAMIT asteroid records from %s", len(df), source)
     return df
 
 
-def parse_damit_models_table(filepath: str | Path) -> pl.DataFrame:
+def parse_damit_models_table(
+    filepath: str | Path,
+    *,
+    extracted_dir: str | Path | None = None,
+) -> pl.DataFrame:
     """Parse the ``asteroid_models.csv`` table from a DAMIT tar.gz archive.
 
     This table is the canonical source for spin parameters (lambda, beta,
     period, yorp, jd0, phi0) as well as physical properties (diameter,
     albedo, thermal inertia) and model quality flags.
 
+    When *extracted_dir* is provided and contains the expected CSV file,
+    it is read directly from disk (fast path) instead of decompressing
+    the tar.gz archive.
+
     Args:
         filepath: Path to the DAMIT ``tar.gz`` archive file.
+        extracted_dir: Optional path to the extracted archive directory.
+            When provided, the CSV is read directly from disk.
 
     Returns:
         Polars DataFrame with spin and physical property columns.
@@ -159,6 +227,16 @@ def parse_damit_models_table(filepath: str | Path) -> pl.DataFrame:
         FileNotFoundError: If *filepath* does not exist.
         ValueError: If the archive does not contain ``asteroid_models.csv``.
     """
+    # Fast path: read directly from extracted directory
+    if extracted_dir is not None:
+        extracted_dir = Path(extracted_dir)
+        if extracted_dir.is_dir():
+            prefix = _find_extracted_prefix(extracted_dir)
+            csv_path = extracted_dir / prefix / "tables" / "asteroid_models.csv"
+            if csv_path.exists():
+                raw = csv_path.read_bytes()
+                return _parse_models_bytes(raw, source=str(csv_path))
+
     filepath = Path(filepath)
     if not filepath.exists():
         raise FileNotFoundError(f"DAMIT archive not found: {filepath}")
@@ -167,6 +245,19 @@ def parse_damit_models_table(filepath: str | Path) -> pl.DataFrame:
         member_name = _find_table_member(tf, "asteroid_models.csv")
         raw = _extract_member_bytes(tf, member_name)
 
+    return _parse_models_bytes(raw, source=str(filepath))
+
+
+def _parse_models_bytes(raw: bytes, *, source: str) -> pl.DataFrame:
+    """Parse raw asteroid_models CSV bytes into a Polars DataFrame.
+
+    Args:
+        raw: Raw CSV bytes.
+        source: Description of the data source for logging.
+
+    Returns:
+        Polars DataFrame with spin and physical property columns.
+    """
     # Read everything as Utf8 first (infer_schema_length=0) to avoid
     # type-inference failures on mixed-format columns in the live data.
     df = pl.read_csv(
@@ -231,7 +322,7 @@ def parse_damit_models_table(filepath: str | Path) -> pl.DataFrame:
     if drop_cols:
         df = df.drop(drop_cols)
 
-    logger.info("Loaded %d DAMIT model records from %s", len(df), filepath)
+    logger.info("Loaded %d DAMIT model records from %s", len(df), source)
     return df
 
 
@@ -292,16 +383,24 @@ def parse_shape_file(shape_text: str) -> tuple[Array, Array]:
     return vertices, facets
 
 
-def load_shape_for_model(filepath: str | Path, model_id: int) -> tuple[Array, Array]:
-    """Load the shape mesh for a specific DAMIT model from a tar.gz archive.
+def load_shape_for_model(
+    filepath: str | Path,
+    model_id: int,
+    *,
+    extracted_dir: str | Path | None = None,
+) -> tuple[Array, Array]:
+    """Load the shape mesh for a specific DAMIT model.
 
-    Searches the archive for ``model_{model_id}/shape.txt`` and parses
-    it into vertices and facets.
+    When *extracted_dir* is provided, looks for the shape file directly
+    on disk (fast O(1) read).  Otherwise falls back to scanning the
+    tar.gz archive.
 
     Args:
         filepath: Path to the DAMIT ``tar.gz`` archive file.
         model_id: DAMIT model ID (from the ``id`` column of
             ``asteroid_models.csv``).
+        extracted_dir: Optional path to the extracted archive directory.
+            When provided, the shape file is read directly from disk.
 
     Returns:
         Tuple of ``(vertices, facets)`` as JAX arrays.
@@ -310,6 +409,15 @@ def load_shape_for_model(filepath: str | Path, model_id: int) -> tuple[Array, Ar
         FileNotFoundError: If *filepath* does not exist.
         KeyError: If no shape file is found for the given *model_id*.
     """
+    # Fast path: read directly from extracted directory
+    if extracted_dir is not None:
+        extracted_dir = Path(extracted_dir)
+        if extracted_dir.is_dir():
+            shape_path = _find_extracted_shape(extracted_dir, model_id)
+            if shape_path is not None:
+                text = shape_path.read_text(encoding="utf-8")
+                return parse_shape_file(text)
+
     filepath = Path(filepath)
     if not filepath.exists():
         raise FileNotFoundError(f"DAMIT archive not found: {filepath}")
@@ -323,3 +431,29 @@ def load_shape_for_model(filepath: str | Path, model_id: int) -> tuple[Array, Ar
                 return parse_shape_file(text)
 
     raise KeyError(f"No shape file found for model_id={model_id} in {filepath}")
+
+
+def _find_extracted_shape(extracted_dir: Path, model_id: int) -> Path | None:
+    """Find the shape.txt file for a model in the extracted directory.
+
+    The extracted layout is ``<extracted_dir>/<prefix>/files/asteroid_*/model_<id>/shape.txt``.
+    Since the asteroid subdirectory name varies, we glob for the model directory.
+
+    Args:
+        extracted_dir: Root of the extracted archive.
+        model_id: DAMIT model ID.
+
+    Returns:
+        Path to the shape file, or ``None`` if not found.
+    """
+    prefix = _find_extracted_prefix(extracted_dir)
+    files_dir = extracted_dir / prefix / "files"
+    if not files_dir.is_dir():
+        return None
+
+    # Glob for the shape file across asteroid subdirectories
+    pattern = f"*/model_{model_id}/shape.txt"
+    matches = list(files_dir.glob(pattern))
+    if matches:
+        return matches[0]
+    return None

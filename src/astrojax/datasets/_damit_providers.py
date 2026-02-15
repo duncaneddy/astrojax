@@ -17,7 +17,12 @@ from pathlib import Path
 import polars as pl
 from jax import Array
 
-from astrojax.datasets._damit_download import _FILENAME, download_damit_file
+from astrojax.datasets._damit_download import (
+    _EXTRACTED_MARKER,
+    _FILENAME,
+    download_damit_file,
+    extract_damit_archive,
+)
 from astrojax.datasets._damit_parsers import (
     load_shape_for_model,
     parse_damit_asteroids_table,
@@ -33,28 +38,58 @@ _DEFAULT_MAX_AGE_DAYS: float = 30.0
 _DEFAULT_MAX_AGE_SECONDS: float = _DEFAULT_MAX_AGE_DAYS * 86400.0
 """Default maximum age for cached DAMIT data in seconds."""
 
+_EXTRACTED_DIR_NAME: str = "extracted"
+"""Name of the subdirectory used for extracted archive contents."""
 
-def _ensure_damit_tar(
+
+def _is_extraction_stale(tar_path: Path, extract_dir: Path) -> bool:
+    """Check whether the extraction directory is missing or stale.
+
+    Compares the ``tar.gz`` mtime against the ``.extracted`` marker
+    file mtime.  Returns ``True`` if extraction is needed.
+
+    Args:
+        tar_path: Path to the DAMIT tar.gz archive.
+        extract_dir: Path to the extraction directory.
+
+    Returns:
+        ``True`` if the extraction directory is missing, the marker
+        file is absent, or the tar.gz is newer than the marker.
+    """
+    marker = extract_dir / _EXTRACTED_MARKER
+    if not marker.exists():
+        return True
+    return tar_path.stat().st_mtime > marker.stat().st_mtime
+
+
+def _ensure_damit_data(
     filepath: Path,
     max_age_days: float,
-) -> Path:
-    """Ensure the DAMIT tar.gz exists and is fresh, downloading if needed.
+) -> tuple[Path, Path]:
+    """Ensure the DAMIT tar.gz and extracted directory are ready.
+
+    Downloads the archive if it is missing or stale, then extracts it
+    to a sibling ``extracted/`` directory if the extraction is missing
+    or the archive has been updated.
 
     Args:
         filepath: Path to the cached tar.gz file.
         max_age_days: Maximum acceptable age in days.
 
     Returns:
-        Path to the (possibly freshly downloaded) tar.gz file.
+        Tuple of ``(tar_path, extracted_dir)`` where *extracted_dir*
+        is the root of the extracted archive contents.
 
     Raises:
         RuntimeError: If the download fails and no cached file exists.
     """
     max_age_seconds = max_age_days * 86400.0
+    freshly_downloaded = False
 
     if is_file_stale(filepath, max_age_seconds):
         try:
             download_damit_file(filepath)
+            freshly_downloaded = True
         except Exception as exc:
             if filepath.exists():
                 logger.warning(
@@ -71,7 +106,14 @@ def _ensure_damit_tar(
                     f"{filepath}. Check your network connection."
                 ) from exc
 
-    return filepath
+    # Determine extraction directory (sibling to the tar.gz)
+    extract_dir = filepath.parent / _EXTRACTED_DIR_NAME
+
+    # Extract if needed: freshly downloaded, or extraction is stale/missing
+    if freshly_downloaded or _is_extraction_stale(filepath, extract_dir):
+        extract_damit_archive(filepath, extract_dir)
+
+    return filepath, extract_dir
 
 
 def _resolve_filepath(filepath: str | Path | None) -> Path:
@@ -120,8 +162,8 @@ def load_damit_asteroids(
         ```
     """
     filepath = _resolve_filepath(filepath)
-    _ensure_damit_tar(filepath, max_age_days)
-    return parse_damit_asteroids_table(filepath)
+    tar_path, extracted_dir = _ensure_damit_data(filepath, max_age_days)
+    return parse_damit_asteroids_table(tar_path, extracted_dir=extracted_dir)
 
 
 def load_damit_models(
@@ -156,8 +198,8 @@ def load_damit_models(
         ```
     """
     filepath = _resolve_filepath(filepath)
-    _ensure_damit_tar(filepath, max_age_days)
-    return parse_damit_models_table(filepath)
+    tar_path, extracted_dir = _ensure_damit_data(filepath, max_age_days)
+    return parse_damit_models_table(tar_path, extracted_dir=extracted_dir)
 
 
 def get_damit_spin(
@@ -217,8 +259,8 @@ def get_damit_shape(
 ) -> tuple[Array, Array]:
     """Load the shape mesh for a specific DAMIT model.
 
-    Downloads the DAMIT archive if needed, then extracts and parses
-    ``model_{model_id}/shape.txt``.
+    Downloads the DAMIT archive if needed, extracts it, then reads
+    ``model_{model_id}/shape.txt`` directly from disk.
 
     Args:
         filepath: Path to the cached tar.gz file.  When ``None``,
@@ -245,5 +287,5 @@ def get_damit_shape(
         ```
     """
     filepath = _resolve_filepath(filepath)
-    _ensure_damit_tar(filepath, max_age_days)
-    return load_shape_for_model(filepath, model_id)
+    tar_path, extracted_dir = _ensure_damit_data(filepath, max_age_days)
+    return load_shape_for_model(tar_path, model_id, extracted_dir=extracted_dir)
