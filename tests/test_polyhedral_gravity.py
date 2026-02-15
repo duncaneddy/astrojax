@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from pathlib import Path
+import itertools
 
 import jax
 import jax.numpy as jnp
 import numpy as np
 import numpy.testing as npt
+import polyhedral_gravity as pg  # ty: ignore[unresolved-import]
 import pytest
 
 from astrojax.config import set_dtype
@@ -56,36 +57,49 @@ CUBE_FACES = jnp.array(
 )
 
 
-def _load_analytic_solution(density: float) -> list[tuple]:
-    """Load analytic cube solutions from the reference data file.
+def _generate_analytic_reference(
+    density: float, n_points: int = 25
+) -> list[tuple[jnp.ndarray, float, jnp.ndarray]]:
+    """Generate reference gravity solutions using the polyhedral-gravity package.
+
+    Creates a grid of test points from -5 to 5 in 0.5 steps (matching the
+    original reference file layout) and evaluates the polyhedral gravity model
+    to produce reference potential and acceleration values.
+
+    Args:
+        density: Mass density of the polyhedron.
+        n_points: Number of grid points to generate (default 25, tests use 20).
 
     Returns:
         List of (point, potential, acceleration) tuples.
     """
-    if density == 1.0:
-        fname = "analytic_cube_solution_density1.txt"
-    else:
-        fname = "analytic_cube_solution_density42.txt"
-    path = (
-        Path(__file__).resolve().parents[1]
-        / "refs"
-        / "polyhedral-gravity-model"
-        / "test"
-        / "resources"
-        / fname
+
+    # Build the same grid as the original reference files: -5 to 5 in 0.5 steps
+    axis = [v / 2.0 for v in range(-10, 11)]  # -5.0, -4.5, ..., 5.0
+    grid = list(itertools.product(axis, repeat=3))
+
+    # Take only the needed number of points
+    grid = grid[:n_points]
+
+    vertices_list = CUBE_VERTICES.tolist()
+    faces_list = CUBE_FACES.tolist()
+    poly = pg.Polyhedron(
+        polyhedral_source=(vertices_list, faces_list),
+        density=density,
+        integrity_check=pg.PolyhedronIntegrity.DISABLE,
     )
-    data = []
-    with open(path) as f:
-        lines = f.readlines()
-    # First line is density
-    for line in lines[1:]:
-        parts = line.strip().split()
-        if len(parts) < 7:
-            continue
-        x, y, z = float(parts[0]), float(parts[1]), float(parts[2])
-        pot = float(parts[3])
-        ax, ay, az = float(parts[4]), float(parts[5]), float(parts[6])
-        data.append((jnp.array([x, y, z]), pot, jnp.array([ax, ay, az])))
+
+    results = pg.evaluate(poly, grid)
+
+    data: list[tuple[jnp.ndarray, float, jnp.ndarray]] = []
+    for (x, y, z), (pot, accel, _tensor) in zip(grid, results, strict=True):
+        data.append(
+            (
+                jnp.array([x, y, z]),
+                float(pot),
+                jnp.array(accel),
+            )
+        )
     return data
 
 
@@ -233,9 +247,9 @@ class TestPolyhedralGravityAnalytical:
     """Tests against analytical solutions from reference data files."""
 
     @pytest.fixture(scope="class")
-    def analytic_data_d1(self) -> list[tuple]:
-        """Load density=1 analytical solutions."""
-        return _load_analytic_solution(1.0)
+    def analytic_data_d1(self) -> list[tuple[jnp.ndarray, float, jnp.ndarray]]:
+        """Generate density=1 analytical reference solutions."""
+        return _generate_analytic_reference(1.0)
 
     def test_analytic_cube_density1_potential_sample(self, analytic_data_d1: list[tuple]) -> None:
         """Check potential against analytical solution at sampled points."""
@@ -278,26 +292,20 @@ class TestPolyhedralGravityAnalytical:
 class TestPolyhedralGravityReference:
     """Comparison tests against the polyhedral-gravity C++ package."""
 
-    @pytest.fixture(scope="class")
-    def ref_module(self):
-        """Import polyhedral_gravity reference package."""
-        pg = pytest.importorskip("polyhedral_gravity")
-        return pg
-
-    def _evaluate_reference(self, ref_module, point: list, density: float) -> tuple:
+    def _evaluate_reference(self, point: list, density: float) -> tuple:
         """Evaluate with reference package and return (potential, accel, tensor)."""
         vertices_list = CUBE_VERTICES.tolist()
         faces_list = CUBE_FACES.tolist()
-        poly = ref_module.Polyhedron(
+        poly = pg.Polyhedron(
             polyhedral_source=(vertices_list, faces_list),
             density=density,
-            integrity_check=ref_module.PolyhedronIntegrity.DISABLE,
+            integrity_check=pg.PolyhedronIntegrity.DISABLE,
         )
-        result = ref_module.evaluate(poly, [point])
+        result = pg.evaluate(poly, [point])
         pot, accel, tensor = result[0]
         return pot, accel, tensor
 
-    def test_reference_density1(self, ref_module) -> None:
+    def test_reference_density1(self) -> None:
         """Match reference package at density=1.0 for several points."""
         test_points = [
             [5.0, 5.0, 5.0],
@@ -308,7 +316,7 @@ class TestPolyhedralGravityReference:
             [2.0, 3.0, 4.0],
         ]
         for pt in test_points:
-            ref_pot, ref_accel, ref_tensor = self._evaluate_reference(ref_module, pt, 1.0)
+            ref_pot, ref_accel, ref_tensor = self._evaluate_reference(pt, 1.0)
             r = jnp.array(pt)
             pot, accel, tensor = polyhedral_gravity(r, CUBE_VERTICES, CUBE_FACES, 1.0)
             npt.assert_allclose(
@@ -330,7 +338,7 @@ class TestPolyhedralGravityReference:
                 err_msg=f"Tensor mismatch at {pt}",
             )
 
-    def test_reference_density42(self, ref_module) -> None:
+    def test_reference_density42(self) -> None:
         """Match reference package at density=42.0."""
         test_points = [
             [5.0, 5.0, 5.0],
@@ -338,7 +346,7 @@ class TestPolyhedralGravityReference:
             [0.0, 0.0, 5.0],
         ]
         for pt in test_points:
-            ref_pot, ref_accel, ref_tensor = self._evaluate_reference(ref_module, pt, 42.0)
+            ref_pot, ref_accel, ref_tensor = self._evaluate_reference(pt, 42.0)
             r = jnp.array(pt)
             pot, accel, tensor = polyhedral_gravity(r, CUBE_VERTICES, CUBE_FACES, 42.0)
             npt.assert_allclose(
