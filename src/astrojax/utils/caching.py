@@ -86,7 +86,7 @@ def file_age_seconds(filepath: str | Path) -> float:
     filepath = Path(filepath)
     if not filepath.exists():
         raise FileNotFoundError(f"No such file: '{filepath}'")
-    return time.time() - filepath.stat().st_mtime
+    return max(0.0, time.time() - filepath.stat().st_mtime)
 
 
 def file_age_days(filepath: str | Path) -> float:
