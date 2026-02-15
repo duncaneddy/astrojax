@@ -65,6 +65,16 @@ from .coordinates import (
     state_eci_to_koe,
     state_koe_to_eci,
 )
+from .datasets import (
+    asteroid_state_ecliptic,
+    download_mpc_file,
+    get_asteroid_ephemeris,
+    load_mpc_asteroids,
+    load_mpc_from_file,
+    load_mpc_json_to_dataframe,
+    packed_mpc_epoch_to_jd,
+    unpack_mpc_epoch,
+)
 from .eop import (
     EOPData,
     EOPExtrapolation,
@@ -391,6 +401,15 @@ __all__ = [
     "rkf45_step",
     "dp54_step",
     "rkn1210_step",
+    # Datasets (MPC)
+    "asteroid_state_ecliptic",
+    "download_mpc_file",
+    "get_asteroid_ephemeris",
+    "load_mpc_asteroids",
+    "load_mpc_from_file",
+    "load_mpc_json_to_dataframe",
+    "packed_mpc_epoch_to_jd",
+    "unpack_mpc_epoch",
     # Space Weather
     "SpaceWeatherData",
     "download_sw_file",
