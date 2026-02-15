@@ -1,4 +1,4 @@
-name: Update EOP Data
+name: Update Bundled Data
 
 on:
   schedule:
@@ -7,7 +7,7 @@ on:
   workflow_call:
 
 jobs:
-  update-eop-data:
+  update-bundled-data:
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -18,19 +18,23 @@ jobs:
       - name: Download latest EOP data
         run: curl -fL "https://datacenter.iers.org/data/latestVersion/finals.all.iau2000.txt" -o ./src/astrojax/data/eop/finals.all.iau2000.txt
 
+      - name: Download latest space weather data
+        run: curl -fL "https://celestrak.org/SpaceData/SW-All.txt" -o ./src/astrojax/data/space_weather/sw19571001.txt
+
       - name: Create Pull Request with updated data
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ secrets.WORKFLOW_TOKEN }}
-          commit-message: "Update bundled EOP data"
-          branch: eop-data-update-${{ github.run_id }}
+          commit-message: "Update bundled EOP and space weather data"
+          branch: data-update-${{ github.run_id }}
           delete-branch: true
-          title: "Update bundled EOP data"
+          title: "Update bundled EOP and space weather data"
           body: |
-            Automated update of bundled EOP data from IERS.
+            Automated update of bundled data files.
 
             Updated files:
-            - `finals.all.iau2000.txt`
+            - `finals.all.iau2000.txt` (EOP data from IERS)
+            - `sw19571001.txt` (space weather data from CelesTrak)
 
             This PR can be auto-merged.
           labels: automated,data-update
