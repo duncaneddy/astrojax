@@ -15,3 +15,4 @@ This guide walks through the core features of astrojax with practical code examp
 | [Attitude Representations](attitude_representations.md) | Quaternion, rotation matrix, Euler angle, and Euler axis representations |
 | [Attitude Dynamics](attitude_dynamics.md) | Rigid-body attitude propagation with torque models |
 | [Integrators](integrators.md) | Numerical integration methods for dynamics propagation |
+| [Datasets](datasets/index.md) | External catalogs: MPC asteroid orbits, loading, querying, and state computation |
