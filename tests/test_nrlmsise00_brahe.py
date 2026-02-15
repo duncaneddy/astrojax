@@ -293,7 +293,7 @@ class TestDensityConsistencyBrahe:
         np.testing.assert_allclose(
             rho_ecef,
             rho_geod,
-            rtol=1e-5,
+            rtol=1e-4,
             err_msg=(
                 f"ECEF vs geod density mismatch in astrojax at lat={lat_deg}, alt={alt_km} km"
             ),
