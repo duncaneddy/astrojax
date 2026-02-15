@@ -2,7 +2,7 @@
   <a href="https://github.com/duncaneddy/astrojax/"><img src="https://raw.githubusercontent.com/duncaneddy/astrojax/main/docs/images/astrojax_logo.svg" alt="Astrojax"></a>
 </p>
 <p align="center">
-    <em>Astrojax - Blazing fast astrodynamics in JAX</em>
+    <em>Astrojax - Accelerated astrodynamics in JAX</em>
 </p>
 
 <p align="center">
