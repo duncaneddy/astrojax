@@ -434,3 +434,122 @@ class TestAccelPolyhedralGravity:
         a_jit = jit_fn(r_point, r_body, R, CUBE_VERTICES, CUBE_FACES, 1.0)
         a_eager = accel_polyhedral_gravity(r_point, r_body, R, CUBE_VERTICES, CUBE_FACES, 1.0)
         npt.assert_allclose(np.array(a_jit), np.array(a_eager), atol=1e-12)
+
+
+# ---------------------------------------------------------------------------
+# TestPolyhedralGravityDegenerateFaces
+# ---------------------------------------------------------------------------
+
+
+class TestPolyhedralGravityDegenerateFaces:
+    """Tests that degenerate (padded) faces are handled gracefully.
+
+    When batching polyhedra with different face counts (e.g., via ``jax.vmap``),
+    vertex/face arrays must be padded to a uniform size.  Both NaN-padded and
+    zero-padded vertices create degenerate triangles whose per-face contributions
+    are NaN.  The ``nan_to_num`` guard in ``polyhedral_gravity`` should zero
+    these out so the final result is unaffected.
+    """
+
+    # Reference result from the clean cube
+    R_TEST = jnp.array([5.0, 3.0, 4.0])
+    DENSITY = 1.0
+
+    @pytest.fixture(scope="class")
+    def clean_result(self) -> tuple:
+        """Compute the reference result from the clean (unpadded) cube."""
+        return polyhedral_gravity(self.R_TEST, CUBE_VERTICES, CUBE_FACES, self.DENSITY)
+
+    # -- NaN-padded vertices --------------------------------------------------
+
+    @staticmethod
+    def _make_nan_padded() -> tuple[jnp.ndarray, jnp.ndarray]:
+        """Append NaN-vertex rows and degenerate faces that reference them."""
+        n_pad = 4
+        nan_verts = jnp.full((n_pad, 3), jnp.nan, dtype=jnp.float64)
+        padded_verts = jnp.concatenate([CUBE_VERTICES, nan_verts], axis=0)
+
+        # Degenerate faces pointing to the NaN vertices
+        base = CUBE_VERTICES.shape[0]
+        pad_faces = jnp.array(
+            [[base, base + 1, base + 2], [base + 1, base + 2, base + 3]],
+            dtype=jnp.int32,
+        )
+        padded_faces = jnp.concatenate([CUBE_FACES, pad_faces], axis=0)
+        return padded_verts, padded_faces
+
+    def test_nan_padded_faces_ignored(self, clean_result: tuple) -> None:
+        """NaN-padded faces produce the same result as the clean cube."""
+        padded_verts, padded_faces = self._make_nan_padded()
+        pot, accel, tensor = polyhedral_gravity(
+            self.R_TEST, padded_verts, padded_faces, self.DENSITY
+        )
+        clean_pot, clean_accel, clean_tensor = clean_result
+
+        assert jnp.isfinite(pot), "Potential must be finite"
+        assert jnp.all(jnp.isfinite(accel)), "Acceleration must be finite"
+        assert jnp.all(jnp.isfinite(tensor)), "Tensor must be finite"
+
+        npt.assert_allclose(float(pot), float(clean_pot), atol=1e-12)
+        npt.assert_allclose(np.array(accel), np.array(clean_accel), atol=1e-12)
+        npt.assert_allclose(np.array(tensor), np.array(clean_tensor), atol=1e-12)
+
+    # -- Zero-padded vertices -------------------------------------------------
+
+    @staticmethod
+    def _make_zero_padded() -> tuple[jnp.ndarray, jnp.ndarray]:
+        """Append zero-vertex rows and degenerate faces (all same index)."""
+        n_pad = 4
+        zero_verts = jnp.zeros((n_pad, 3), dtype=jnp.float64)
+        padded_verts = jnp.concatenate([CUBE_VERTICES, zero_verts], axis=0)
+
+        # Degenerate faces: all three indices point to the same zero vertex
+        base = CUBE_VERTICES.shape[0]
+        pad_faces = jnp.array(
+            [[base, base, base], [base + 1, base + 1, base + 1]],
+            dtype=jnp.int32,
+        )
+        padded_faces = jnp.concatenate([CUBE_FACES, pad_faces], axis=0)
+        return padded_verts, padded_faces
+
+    def test_zero_padded_faces_ignored(self, clean_result: tuple) -> None:
+        """Zero-padded faces produce the same result as the clean cube."""
+        padded_verts, padded_faces = self._make_zero_padded()
+        pot, accel, tensor = polyhedral_gravity(
+            self.R_TEST, padded_verts, padded_faces, self.DENSITY
+        )
+        clean_pot, clean_accel, clean_tensor = clean_result
+
+        assert jnp.isfinite(pot), "Potential must be finite"
+        assert jnp.all(jnp.isfinite(accel)), "Acceleration must be finite"
+        assert jnp.all(jnp.isfinite(tensor)), "Tensor must be finite"
+
+        npt.assert_allclose(float(pot), float(clean_pot), atol=1e-12)
+        npt.assert_allclose(np.array(accel), np.array(clean_accel), atol=1e-12)
+        npt.assert_allclose(np.array(tensor), np.array(clean_tensor), atol=1e-12)
+
+    # -- Gradient through padded faces ----------------------------------------
+
+    def test_padded_grad_clean(self) -> None:
+        """grad(potential) with NaN-padded faces produces finite values."""
+        padded_verts, padded_faces = self._make_nan_padded()
+
+        def _potential(r_pt: jnp.ndarray) -> jnp.ndarray:
+            pot, _, _ = polyhedral_gravity(r_pt, padded_verts, padded_faces, self.DENSITY)
+            return pot
+
+        grad_pot = jax.grad(_potential)(self.R_TEST)
+        assert jnp.all(jnp.isfinite(grad_pot)), f"Gradient must be finite, got {grad_pot}"
+
+    # -- JIT with padded faces ------------------------------------------------
+
+    def test_padded_jit(self) -> None:
+        """JIT compilation works with NaN-padded faces."""
+        padded_verts, padded_faces = self._make_nan_padded()
+
+        jit_fn = jax.jit(polyhedral_gravity)
+        pot, accel, tensor = jit_fn(self.R_TEST, padded_verts, padded_faces, self.DENSITY)
+
+        assert jnp.isfinite(pot), "JIT potential must be finite"
+        assert jnp.all(jnp.isfinite(accel)), "JIT acceleration must be finite"
+        assert jnp.all(jnp.isfinite(tensor)), "JIT tensor must be finite"

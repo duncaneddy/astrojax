@@ -709,6 +709,20 @@ def polyhedral_gravity(
     # Gather face vertices: (M, 3, 3)
     face_v = shifted_verts[face_idx]
 
+    # Detect degenerate faces with NaN vertices (e.g., from NaN-padded arrays
+    # used when batching polyhedra with different face counts via jax.vmap).
+    face_valid = jnp.all(jnp.isfinite(face_v), axis=(-2, -1))  # (M,)
+
+    # Substitute a valid dummy triangle for NaN faces so the forward pass
+    # stays NaN-free. This ensures clean gradient propagation: jnp.where
+    # with lax.select blocks gradient flow through the unselected branch,
+    # unlike nan_to_num which suffers from 0 * NaN = NaN in the backward pass.
+    _dummy_tri = jnp.array(
+        [[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]],
+        dtype=_float,
+    )
+    face_v = jnp.where(face_valid[:, None, None], face_v, _dummy_tri[None, :, :])
+
     # Pre-compute per-face invariants
     def _prepare_face(fv: Array) -> tuple[Array, Array, Array, Array]:
         sv = _build_segment_vectors(fv[0], fv[1], fv[2])
@@ -720,6 +734,17 @@ def polyhedral_gravity(
 
     # Evaluate all faces
     all_pot, all_accel, all_tensor = jax.vmap(_evaluate_face)(all_fv, all_sv, all_pn, all_sn)
+
+    # Zero out contributions from NaN-padded degenerate faces.
+    all_pot = jnp.where(face_valid, all_pot, 0.0)
+    all_accel = jnp.where(face_valid[:, None], all_accel, 0.0)
+    all_tensor = jnp.where(face_valid[:, None], all_tensor, 0.0)
+
+    # Safety net: zero out any remaining NaN/Inf from other degenerate faces
+    # (e.g., zero-padded vertices creating zero-area triangles).
+    all_pot = jnp.nan_to_num(all_pot, nan=0.0, posinf=0.0, neginf=0.0)
+    all_accel = jnp.nan_to_num(all_accel, nan=0.0, posinf=0.0, neginf=0.0)
+    all_tensor = jnp.nan_to_num(all_tensor, nan=0.0, posinf=0.0, neginf=0.0)
 
     # Reduce: sum over faces
     total_pot = jnp.sum(all_pot)
