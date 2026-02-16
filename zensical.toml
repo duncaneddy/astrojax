@@ -90,6 +90,7 @@ nav = [
             { "MPC Asteroids" = "user_guide/datasets/mpc_asteroids.md" },
             { "Asteroid Masses" = "user_guide/datasets/asteroid_masses.md" },
             { "DAMIT Asteroid Models" = "user_guide/datasets/damit.md" },
+            { "SBDB Asteroids" = "user_guide/datasets/sbdb_asteroids.md" },
         ]},
     ]},
     { "API Reference" = [
@@ -162,6 +163,7 @@ nav = [
             { "MPC Asteroids" = "api_reference/datasets/mpc_asteroids.md" },
             { "Asteroid Masses" = "api_reference/datasets/asteroid_masses.md" },
             { "DAMIT Asteroid Models" = "api_reference/datasets/damit.md" },
+            { "SBDB Asteroids" = "api_reference/datasets/sbdb_asteroids.md" },
         ]},
     ]},
 ]

@@ -9,6 +9,7 @@ from unittest.mock import patch
 
 import jax
 import jax.numpy as jnp
+import numpy as np
 import polars as pl
 import pytest
 
@@ -32,7 +33,9 @@ from astrojax.datasets._damit_providers import (
 )
 from astrojax.datasets._damit_shapes import (
     _HAS_TRIMESH,
+    compute_spherical_uvs,
     export_shape_glb,
+    export_shape_glb_textured,
     export_shape_stl,
     shape_to_trimesh,
 )
@@ -1001,4 +1004,128 @@ class TestMeshExportWithoutTrimesh:
                     jnp.array([[1.0, 0.0, 0.0]]),
                     jnp.array([[0, 0, 0]]),
                     "/tmp/test.stl",
+                )
+
+
+# ---------------------------------------------------------------------------
+# Spherical UV tests
+# ---------------------------------------------------------------------------
+
+
+class TestComputeSphericalUvs:
+    """Tests for compute_spherical_uvs."""
+
+    def test_output_shape(self) -> None:
+        """Should return (N, 2) float32 array."""
+        verts = jnp.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0], [-1.0, 0.0, 0.0]])
+        uvs = compute_spherical_uvs(verts)
+        assert uvs.shape == (4, 2)
+        assert uvs.dtype == np.float32
+
+    def test_uv_range(self) -> None:
+        """All UV values should be in [0, 1]."""
+        verts = jnp.array(
+            [
+                [1.0, 0.0, 0.0],
+                [0.0, 1.0, 0.0],
+                [0.0, 0.0, 1.0],
+                [-1.0, 0.0, 0.0],
+                [0.0, -1.0, 0.0],
+                [0.0, 0.0, -1.0],
+            ]
+        )
+        uvs = compute_spherical_uvs(verts)
+        assert np.all(uvs >= 0.0)
+        assert np.all(uvs <= 1.0)
+
+    def test_known_geometry(self) -> None:
+        """Symmetric vertices (centroid=origin) should produce expected UVs.
+
+        With centroid at origin the direction vector equals the vertex position:
+        - (1, 0, 0): theta=atan2(0,1)=0 -> u=0.5, phi=acos(0)=pi/2 -> v=0.5
+        - (-1, 0, 0): theta=atan2(0,-1)=pi -> u=1.0, phi=acos(0)=pi/2 -> v=0.5
+        - (0, 0, 1): theta=atan2(0,0)=0 -> u=0.5, phi=acos(1)=0 -> v=0.0
+        - (0, 0, -1): theta=atan2(0,0)=0 -> u=0.5, phi=acos(-1)=pi -> v=1.0
+        """
+        verts = np.array(
+            [
+                [1.0, 0.0, 0.0],
+                [-1.0, 0.0, 0.0],
+                [0.0, 0.0, 1.0],
+                [0.0, 0.0, -1.0],
+            ]
+        )
+        uvs = compute_spherical_uvs(verts)
+        # (1,0,0): u=0.5, v=0.5
+        assert abs(uvs[0, 0] - 0.5) < 1e-5
+        assert abs(uvs[0, 1] - 0.5) < 1e-5
+        # (-1,0,0): u=1.0, v=0.5
+        assert abs(uvs[1, 0] - 1.0) < 1e-5
+        assert abs(uvs[1, 1] - 0.5) < 1e-5
+        # (0,0,1): u=0.5, v=0.0
+        assert abs(uvs[2, 0] - 0.5) < 1e-5
+        assert abs(uvs[2, 1] - 0.0) < 1e-5
+        # (0,0,-1): u=0.5, v=1.0
+        assert abs(uvs[3, 0] - 0.5) < 1e-5
+        assert abs(uvs[3, 1] - 1.0) < 1e-5
+
+    def test_single_vertex(self) -> None:
+        """A single vertex should still produce valid UVs."""
+        verts = np.array([[5.0, 3.0, 2.0]])
+        uvs = compute_spherical_uvs(verts)
+        assert uvs.shape == (1, 2)
+        # Centroid == vertex itself, direction is zero -> clipped, should still be in range
+        assert np.all(uvs >= 0.0)
+        assert np.all(uvs <= 1.0)
+
+
+# ---------------------------------------------------------------------------
+# Textured GLB export tests
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.skipif(not _HAS_TRIMESH, reason="trimesh not installed")
+class TestExportShapeGlbTextured:
+    """Tests for export_shape_glb_textured."""
+
+    def test_creates_file(self, tmp_path: Path) -> None:
+        """Should create a non-empty GLB file with texture."""
+        from PIL import Image
+
+        verts = jnp.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+        facets = jnp.array([[0, 1, 2]])
+        # Create a small synthetic texture image
+        tex_img = Image.fromarray(np.full((4, 4, 3), 128, dtype=np.uint8))
+        fp = tmp_path / "test_textured.glb"
+        result = export_shape_glb_textured(verts, facets, fp, tex_img)
+        assert result.exists()
+        assert result.stat().st_size > 0
+
+    def test_file_is_valid_glb(self, tmp_path: Path) -> None:
+        """Exported file should be loadable by trimesh."""
+        import trimesh
+        from PIL import Image
+
+        verts = jnp.array([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
+        facets = jnp.array([[0, 1, 2]])
+        tex_img = Image.fromarray(np.full((8, 8, 3), 200, dtype=np.uint8))
+        fp = tmp_path / "valid.glb"
+        export_shape_glb_textured(verts, facets, fp, tex_img)
+
+        scene = trimesh.load(str(fp))
+        # GLB loads as a Scene; verify it has geometry
+        assert len(scene.geometry) > 0
+
+    def test_import_error_without_trimesh(self) -> None:
+        """Should raise ImportError when trimesh is unavailable."""
+        from PIL import Image
+
+        tex_img = Image.fromarray(np.full((4, 4, 3), 128, dtype=np.uint8))
+        with patch("astrojax.datasets._damit_shapes._HAS_TRIMESH", False):
+            with pytest.raises(ImportError, match="trimesh is required"):
+                export_shape_glb_textured(
+                    jnp.array([[1.0, 0.0, 0.0]]),
+                    jnp.array([[0, 0, 0]]),
+                    "/tmp/test.glb",
+                    tex_img,
                 )

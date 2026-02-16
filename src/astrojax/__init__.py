@@ -68,10 +68,15 @@ from .coordinates import (
 from .datasets import (
     asteroid_state_ecliptic,
     download_mpc_file,
+    download_sbdb_file,
     get_asteroid_ephemeris,
+    get_sbdb_asteroid_ephemeris,
     load_mpc_asteroids,
     load_mpc_from_file,
     load_mpc_json_to_dataframe,
+    load_sbdb_asteroids,
+    load_sbdb_csv_to_dataframe,
+    load_sbdb_from_file,
     packed_mpc_epoch_to_jd,
     unpack_mpc_epoch,
 )
@@ -410,6 +415,12 @@ __all__ = [
     "load_mpc_json_to_dataframe",
     "packed_mpc_epoch_to_jd",
     "unpack_mpc_epoch",
+    # Datasets (SBDB)
+    "download_sbdb_file",
+    "get_sbdb_asteroid_ephemeris",
+    "load_sbdb_asteroids",
+    "load_sbdb_csv_to_dataframe",
+    "load_sbdb_from_file",
     # Space Weather
     "SpaceWeatherData",
     "download_sw_file",

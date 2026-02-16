@@ -1,10 +1,10 @@
 """Asteroid and small-body datasets for astrojax.
 
 Provides access to the Minor Planet Center (MPC) asteroid orbit catalog,
-the SBN Archive asteroid masses compilation, and the DAMIT asteroid
-shape model database, including download/caching, Polars DataFrame
-loading, per-asteroid lookups, and heliocentric ecliptic state vector
-computation.
+the SBN Archive asteroid masses compilation, the DAMIT asteroid shape
+model database, and the JPL Small Body Database (SBDB), including
+download/caching, Polars DataFrame loading, per-asteroid lookups, and
+heliocentric ecliptic state vector computation.
 
 Typical usage::
 
@@ -21,6 +21,10 @@ Typical usage::
 
     from astrojax.datasets import load_damit_models, damit_spin_to_rotation
     models = load_damit_models()
+
+    from astrojax.datasets import load_sbdb_asteroids, get_sbdb_asteroid_ephemeris
+    sbdb_df = load_sbdb_asteroids()
+    eph = get_sbdb_asteroid_ephemeris(sbdb_df, 1)  # Ceres
 """
 
 from astrojax.datasets._astmass_download import download_astmass_file
@@ -43,7 +47,9 @@ from astrojax.datasets._damit_providers import (
     load_damit_models,
 )
 from astrojax.datasets._damit_shapes import (
+    compute_spherical_uvs,
     export_shape_glb,
+    export_shape_glb_textured,
     export_shape_stl,
     shape_to_trimesh,
 )
@@ -66,15 +72,24 @@ from astrojax.datasets._mpc_state import (
     asteroid_state_ecliptic,
     get_asteroid_ephemeris,
 )
+from astrojax.datasets._sbdb_download import download_sbdb_file
+from astrojax.datasets._sbdb_parsers import load_sbdb_csv_to_dataframe
+from astrojax.datasets._sbdb_providers import (
+    get_sbdb_asteroid_ephemeris,
+    load_sbdb_asteroids,
+    load_sbdb_from_file,
+)
 
 __all__ = [
     "asteroid_state_ecliptic",
+    "compute_spherical_uvs",
     "damit_spin_to_rotation",
     "download_astmass_file",
     "download_damit_file",
     "extract_damit_archive",
     "download_mpc_file",
     "export_shape_glb",
+    "export_shape_glb_textured",
     "export_shape_stl",
     "get_asteroid_ephemeris",
     "get_damit_shape",
@@ -96,4 +111,10 @@ __all__ = [
     "scale_shape_vertices",
     "shape_to_trimesh",
     "unpack_mpc_epoch",
+    # SBDB
+    "download_sbdb_file",
+    "get_sbdb_asteroid_ephemeris",
+    "load_sbdb_asteroids",
+    "load_sbdb_csv_to_dataframe",
+    "load_sbdb_from_file",
 ]
