@@ -17,6 +17,8 @@ from pathlib import Path
 
 import httpx
 
+from astrojax.datasets._damit_parsers import write_shape_index
+
 logger = logging.getLogger(__name__)
 
 DAMIT_URL: str = "https://damit.cuni.cz/projects/damit/exports/complete/latest"
@@ -149,6 +151,9 @@ def extract_damit_archive(
     # Write marker file with empty content; its mtime is what matters.
     marker = extract_dir / _EXTRACTED_MARKER
     marker.write_text("")
+
+    # Build the shape index for O(1) lookups by model ID
+    write_shape_index(extract_dir)
 
     logger.info("DAMIT archive extracted to %s", extract_dir)
     return extract_dir.resolve()

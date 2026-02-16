@@ -19,10 +19,14 @@ from astrojax.datasets._damit_download import (
     extract_damit_archive,
 )
 from astrojax.datasets._damit_parsers import (
+    _find_extracted_prefix,
+    _ShapePathIndex,
+    build_shape_index,
     load_shape_for_model,
     parse_damit_asteroids_table,
     parse_damit_models_table,
     parse_shape_file,
+    write_shape_index,
 )
 from astrojax.datasets._damit_providers import (
     _is_extraction_stale,
@@ -797,6 +801,166 @@ class TestProviderExtractionIntegration:
         verts2, _ = get_damit_shape(fp, model_id=10, max_age_days=999.0)
         assert extract_dir.is_dir()
         assert jnp.array_equal(verts1, verts2)
+
+
+# ---------------------------------------------------------------------------
+# Shape index tests
+# ---------------------------------------------------------------------------
+
+
+class TestBuildShapeIndex:
+    """Tests for build_shape_index."""
+
+    def test_maps_model_ids_to_paths(self, tmp_path: Path) -> None:
+        """Should map model IDs to relative paths from files_dir."""
+        files_dir = tmp_path / "files"
+        (files_dir / "asteroid_1" / "model_10").mkdir(parents=True)
+        (files_dir / "asteroid_1" / "model_10" / "shape.txt").write_text("dummy")
+        (files_dir / "asteroid_2" / "model_20").mkdir(parents=True)
+        (files_dir / "asteroid_2" / "model_20" / "shape.txt").write_text("dummy")
+
+        index = build_shape_index(files_dir)
+        assert index == {
+            10: "asteroid_1/model_10/shape.txt",
+            20: "asteroid_2/model_20/shape.txt",
+        }
+
+    def test_skips_dirs_without_shape(self, tmp_path: Path) -> None:
+        """Should skip model directories that lack shape.txt."""
+        files_dir = tmp_path / "files"
+        (files_dir / "asteroid_1" / "model_10").mkdir(parents=True)
+        # No shape.txt inside model_10
+
+        index = build_shape_index(files_dir)
+        assert index == {}
+
+    def test_empty_dir(self, tmp_path: Path) -> None:
+        """Should return empty dict for empty files_dir."""
+        files_dir = tmp_path / "files"
+        files_dir.mkdir()
+        assert build_shape_index(files_dir) == {}
+
+    def test_nonexistent_dir(self, tmp_path: Path) -> None:
+        """Should return empty dict for nonexistent directory."""
+        assert build_shape_index(tmp_path / "no_such_dir") == {}
+
+
+class TestWriteShapeIndex:
+    """Tests for write_shape_index."""
+
+    def test_writes_json_file(self, tmp_path: Path) -> None:
+        """Should write shape_index.json with expected entries."""
+        # Reset lru_cache to avoid cross-test pollution
+        _find_extracted_prefix.cache_clear()
+
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp, shape_models={10: _SHAPE_TEXT, 20: _SHAPE_TEXT_SIMPLE})
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+
+        # Remove the index written by extraction to test write_shape_index directly
+        json_path = extract_dir / "shape_index.json"
+        if json_path.exists():
+            json_path.unlink()
+
+        result = write_shape_index(extract_dir)
+        assert result == json_path
+        assert json_path.exists()
+
+        import json
+
+        data = json.loads(json_path.read_text())
+        assert "10" in data
+        assert "20" in data
+        assert data["10"].endswith("shape.txt")
+
+
+class TestShapePathIndex:
+    """Tests for _ShapePathIndex."""
+
+    def _setup_extracted(self, tmp_path: Path) -> Path:
+        """Create a synthetic extracted directory with shape index."""
+        _find_extracted_prefix.cache_clear()
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp, shape_models={10: _SHAPE_TEXT, 20: _SHAPE_TEXT_SIMPLE})
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+        return extract_dir
+
+    def test_lookup_returns_correct_path(self, tmp_path: Path) -> None:
+        """Should return the correct absolute path for a known model."""
+        extract_dir = self._setup_extracted(tmp_path)
+        idx = _ShapePathIndex()
+        result = idx.lookup(extract_dir, 10)
+        assert result is not None
+        assert result.exists()
+        assert result.name == "shape.txt"
+        assert "model_10" in str(result)
+
+    def test_lookup_missing_model_returns_none(self, tmp_path: Path) -> None:
+        """Should return None for an unknown model_id."""
+        extract_dir = self._setup_extracted(tmp_path)
+        idx = _ShapePathIndex()
+        assert idx.lookup(extract_dir, 99999) is None
+
+    def test_fallback_builds_index(self, tmp_path: Path) -> None:
+        """When shape_index.json is missing, should build and persist it."""
+        extract_dir = self._setup_extracted(tmp_path)
+        json_path = extract_dir / "shape_index.json"
+        # Remove the index
+        json_path.unlink()
+        assert not json_path.exists()
+
+        idx = _ShapePathIndex()
+        result = idx.lookup(extract_dir, 10)
+        assert result is not None
+        assert result.exists()
+        # Should have been persisted
+        assert json_path.exists()
+
+    def test_invalidate_forces_reload(self, tmp_path: Path) -> None:
+        """After invalidate(), the next lookup should reload from disk."""
+        extract_dir = self._setup_extracted(tmp_path)
+        idx = _ShapePathIndex()
+
+        # Initial load
+        result1 = idx.lookup(extract_dir, 10)
+        assert result1 is not None
+
+        # Invalidate
+        idx.invalidate()
+        assert idx._index is None
+
+        # Should reload successfully
+        result2 = idx.lookup(extract_dir, 10)
+        assert result2 is not None
+        assert result1 == result2
+
+
+class TestFindExtractedPrefixCache:
+    """Tests for _find_extracted_prefix lru_cache behavior."""
+
+    def test_cache_hits(self, tmp_path: Path) -> None:
+        """Repeated calls with the same arg should hit the cache."""
+        _find_extracted_prefix.cache_clear()
+
+        fp = tmp_path / "test.tar.gz"
+        _make_damit_tar(fp)
+        extract_dir = tmp_path / "extracted"
+        extract_damit_archive(fp, extract_dir)
+
+        _find_extracted_prefix.cache_clear()
+
+        # First call: cache miss
+        result1 = _find_extracted_prefix(extract_dir)
+        info1 = _find_extracted_prefix.cache_info()
+        assert info1.misses >= 1
+
+        # Second call: cache hit
+        result2 = _find_extracted_prefix(extract_dir)
+        info2 = _find_extracted_prefix.cache_info()
+        assert info2.hits >= 1
+        assert result1 == result2
 
 
 # ---------------------------------------------------------------------------

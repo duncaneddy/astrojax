@@ -24,6 +24,8 @@ from astrojax.datasets._damit_download import (
     extract_damit_archive,
 )
 from astrojax.datasets._damit_parsers import (
+    _find_extracted_prefix,
+    _shape_index,
     load_shape_for_model,
     parse_damit_asteroids_table,
     parse_damit_models_table,
@@ -112,6 +114,9 @@ def _ensure_damit_data(
     # Extract if needed: freshly downloaded, or extraction is stale/missing
     if freshly_downloaded or _is_extraction_stale(filepath, extract_dir):
         extract_damit_archive(filepath, extract_dir)
+        # Invalidate cached lookups so they reload from the fresh extraction
+        _find_extracted_prefix.cache_clear()
+        _shape_index.invalidate()
 
     return filepath, extract_dir
 

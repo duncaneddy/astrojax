@@ -11,8 +11,11 @@ properties, eliminating the need to parse individual ``spin.txt`` files.
 
 from __future__ import annotations
 
+import functools
 import io
+import json
 import logging
+import re
 import tarfile
 from pathlib import Path
 
@@ -101,6 +104,7 @@ def _extract_member_text(tf: tarfile.TarFile, member_name: str) -> str:
     return _extract_member_bytes(tf, member_name).decode("utf-8")
 
 
+@functools.lru_cache(maxsize=4)
 def _find_extracted_prefix(extracted_dir: Path) -> str:
     """Find the top-level directory name inside an extracted DAMIT directory.
 
@@ -124,6 +128,123 @@ def _find_extracted_prefix(extracted_dir: Path) -> str:
         # Multiple prefixes — pick the first alphabetically for determinism.
         subdirs.sort()
     return subdirs[0].name
+
+
+def build_shape_index(files_dir: Path) -> dict[int, str]:
+    """Build a mapping from model ID to relative shape file path.
+
+    Walks the ``files/`` directory tree looking for directories matching
+    ``model_<N>`` that contain a ``shape.txt`` file.
+
+    Args:
+        files_dir: The ``files/`` directory inside the extracted DAMIT archive.
+
+    Returns:
+        Dictionary mapping model ID (int) to the relative path from
+        *files_dir* to the ``shape.txt`` file (e.g.
+        ``"asteroid_1/model_42/shape.txt"``).
+    """
+    model_re = re.compile(r"^model_(\d+)$")
+    index: dict[int, str] = {}
+
+    if not files_dir.is_dir():
+        return index
+
+    for asteroid_dir in files_dir.iterdir():
+        if not asteroid_dir.is_dir():
+            continue
+        for model_dir in asteroid_dir.iterdir():
+            if not model_dir.is_dir():
+                continue
+            m = model_re.match(model_dir.name)
+            if m is None:
+                continue
+            shape_path = model_dir / "shape.txt"
+            if shape_path.exists():
+                rel = shape_path.relative_to(files_dir)
+                index[int(m.group(1))] = str(rel)
+
+    return index
+
+
+def write_shape_index(extracted_dir: Path) -> Path:
+    """Build and persist the shape index JSON file.
+
+    Locates the ``files/`` directory inside *extracted_dir*, builds
+    the model-ID-to-path mapping, and writes it as
+    ``extracted_dir/shape_index.json``.
+
+    Args:
+        extracted_dir: Root of the extracted archive.
+
+    Returns:
+        Path to the written ``shape_index.json`` file.
+    """
+    prefix = _find_extracted_prefix(extracted_dir)
+    files_dir = extracted_dir / prefix / "files"
+    index = build_shape_index(files_dir)
+
+    # Serialise with string keys for JSON compatibility
+    json_path = extracted_dir / "shape_index.json"
+    json_path.write_text(
+        json.dumps({str(k): v for k, v in index.items()}, indent=None),
+        encoding="utf-8",
+    )
+    logger.info("Wrote shape index with %d models to %s", len(index), json_path)
+    return json_path
+
+
+class _ShapePathIndex:
+    """In-memory cache for the shape index.
+
+    Loads ``shape_index.json`` from the extracted directory on first
+    access and serves O(1) lookups thereafter.  If the JSON file is
+    missing (e.g. pre-existing extraction), it is built and persisted
+    automatically as a backward-compatibility fallback.
+    """
+
+    def __init__(self) -> None:
+        self._index: dict[int, Path] | None = None
+        self._extracted_dir: Path | None = None
+
+    def _load(self, extracted_dir: Path) -> None:
+        """Load or build the index for *extracted_dir*."""
+        prefix = _find_extracted_prefix(extracted_dir)
+        files_dir = extracted_dir / prefix / "files"
+
+        json_path = extracted_dir / "shape_index.json"
+        if not json_path.exists():
+            # Backward compat: build and persist
+            write_shape_index(extracted_dir)
+
+        raw = json.loads(json_path.read_text(encoding="utf-8"))
+        self._index = {int(k): files_dir / v for k, v in raw.items()}
+        self._extracted_dir = extracted_dir
+
+    def lookup(self, extracted_dir: Path, model_id: int) -> Path | None:
+        """Return the absolute path to ``shape.txt`` for *model_id*, or ``None``.
+
+        Args:
+            extracted_dir: Root of the extracted archive.
+            model_id: DAMIT model ID.
+
+        Returns:
+            Absolute path to the shape file, or ``None`` if the model
+            is not in the index.
+        """
+        if self._index is None or self._extracted_dir != extracted_dir:
+            self._load(extracted_dir)
+        assert self._index is not None  # noqa: S101
+        return self._index.get(model_id)
+
+    def invalidate(self) -> None:
+        """Clear the cached index so the next lookup reloads from disk."""
+        self._index = None
+        self._extracted_dir = None
+
+
+_shape_index = _ShapePathIndex()
+"""Module-level singleton for shape path lookups."""
 
 
 def parse_damit_asteroids_table(
@@ -436,8 +557,8 @@ def load_shape_for_model(
 def _find_extracted_shape(extracted_dir: Path, model_id: int) -> Path | None:
     """Find the shape.txt file for a model in the extracted directory.
 
-    The extracted layout is ``<extracted_dir>/<prefix>/files/asteroid_*/model_<id>/shape.txt``.
-    Since the asteroid subdirectory name varies, we glob for the model directory.
+    Uses the persisted shape index for O(1) lookups instead of globbing
+    across thousands of asteroid subdirectories.
 
     Args:
         extracted_dir: Root of the extracted archive.
@@ -446,14 +567,4 @@ def _find_extracted_shape(extracted_dir: Path, model_id: int) -> Path | None:
     Returns:
         Path to the shape file, or ``None`` if not found.
     """
-    prefix = _find_extracted_prefix(extracted_dir)
-    files_dir = extracted_dir / prefix / "files"
-    if not files_dir.is_dir():
-        return None
-
-    # Glob for the shape file across asteroid subdirectories
-    pattern = f"*/model_{model_id}/shape.txt"
-    matches = list(files_dir.glob(pattern))
-    if matches:
-        return matches[0]
-    return None
+    return _shape_index.lookup(extracted_dir, model_id)
