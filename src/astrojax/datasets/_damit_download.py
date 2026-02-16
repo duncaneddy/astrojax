@@ -10,6 +10,7 @@ atomic rename on completion.
 from __future__ import annotations
 
 import logging
+import os
 import sys
 import tarfile
 from pathlib import Path
@@ -133,6 +134,17 @@ def extract_damit_archive(
                 if not m.name.startswith("/") and ".." not in m.name.split("/")
             ]
             tf.extractall(path=extract_dir, members=safe_members)
+
+            # Normalize permissions (mimics what filter="data" does on 3.12+).
+            # Some tar archives ship entries with restrictive mode bits that
+            # prevent reading or traversing the extracted tree.
+            for root, dirs, files in os.walk(extract_dir):
+                for d in dirs:
+                    dp = Path(root) / d
+                    dp.chmod(dp.stat().st_mode | 0o755)
+                for f in files:
+                    fp_ = Path(root) / f
+                    fp_.chmod(fp_.stat().st_mode | 0o644)
 
     # Write marker file with empty content; its mtime is what matters.
     marker = extract_dir / _EXTRACTED_MARKER

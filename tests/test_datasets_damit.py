@@ -110,32 +110,54 @@ def _make_damit_tar(
         # Add directory entry for prefix
         dir_info = tarfile.TarInfo(name=f"{prefix}/")
         dir_info.type = tarfile.DIRTYPE
+        dir_info.mode = 0o755
         tf.addfile(dir_info)
 
         # Add tables directory
         tables_dir = tarfile.TarInfo(name=f"{prefix}/tables/")
         tables_dir.type = tarfile.DIRTYPE
+        tables_dir.mode = 0o755
         tf.addfile(tables_dir)
 
         # Add asteroids.csv
         ast_bytes = asteroids_csv.encode("utf-8")
         ast_info = tarfile.TarInfo(name=f"{prefix}/tables/asteroids.csv")
         ast_info.size = len(ast_bytes)
+        ast_info.mode = 0o644
         tf.addfile(ast_info, io.BytesIO(ast_bytes))
 
         # Add asteroid_models.csv
         mod_bytes = models_csv.encode("utf-8")
         mod_info = tarfile.TarInfo(name=f"{prefix}/tables/asteroid_models.csv")
         mod_info.size = len(mod_bytes)
+        mod_info.mode = 0o644
         tf.addfile(mod_info, io.BytesIO(mod_bytes))
+
+        # Add intermediate directories for shape files
+        files_dir = tarfile.TarInfo(name=f"{prefix}/files/")
+        files_dir.type = tarfile.DIRTYPE
+        files_dir.mode = 0o755
+        tf.addfile(files_dir)
+
+        ast1_dir = tarfile.TarInfo(name=f"{prefix}/files/asteroid_1/")
+        ast1_dir.type = tarfile.DIRTYPE
+        ast1_dir.mode = 0o755
+        tf.addfile(ast1_dir)
 
         # Add shape files
         for model_id, shape_text in shape_models.items():
+            # Add model directory entry
+            model_dir = tarfile.TarInfo(name=f"{prefix}/files/asteroid_1/model_{model_id}/")
+            model_dir.type = tarfile.DIRTYPE
+            model_dir.mode = 0o755
+            tf.addfile(model_dir)
+
             shape_bytes = shape_text.encode("utf-8")
             shape_info = tarfile.TarInfo(
                 name=f"{prefix}/files/asteroid_1/model_{model_id}/shape.txt"
             )
             shape_info.size = len(shape_bytes)
+            shape_info.mode = 0o644
             tf.addfile(shape_info, io.BytesIO(shape_bytes))
 
     filepath.write_bytes(buf.getvalue())
