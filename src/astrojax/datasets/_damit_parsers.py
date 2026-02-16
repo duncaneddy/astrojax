@@ -17,7 +17,7 @@ import json
 import logging
 import re
 import tarfile
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 import jax.numpy as jnp
 import polars as pl
@@ -162,7 +162,7 @@ def build_shape_index(files_dir: Path) -> dict[int, str]:
             shape_path = model_dir / "shape.txt"
             if shape_path.exists():
                 rel = shape_path.relative_to(files_dir)
-                index[int(m.group(1))] = str(rel)
+                index[int(m.group(1))] = str(PurePosixPath(rel))
 
     return index
 
