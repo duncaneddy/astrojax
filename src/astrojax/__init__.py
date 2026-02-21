@@ -3,6 +3,18 @@ astrojax is a simple, minimal satellite orbit and attitude dynamics library impl
 """
 
 from ._gp_record import GPRecord
+from .access import (
+    AccessResult,
+    AccessWindow,
+    GroundLocation,
+    compute_azel,
+    compute_elevation,
+    find_access_windows,
+    find_access_windows_from_ephemeris,
+    find_access_windows_jit,
+    find_all_access_windows,
+    ground_location,
+)
 from .attitude_dynamics import (
     AttitudeDynamicsConfig,
     SpacecraftInertia,
@@ -225,6 +237,17 @@ from .space_weather import (
 )
 
 __all__ = [
+    # Access prediction
+    "GroundLocation",
+    "AccessWindow",
+    "AccessResult",
+    "ground_location",
+    "compute_elevation",
+    "compute_azel",
+    "find_access_windows",
+    "find_access_windows_jit",
+    "find_all_access_windows",
+    "find_access_windows_from_ephemeris",
     # Constants
     "DEG2RAD",
     "RAD2DEG",
