@@ -9,11 +9,18 @@ from .access import (
     GroundLocation,
     compute_azel,
     compute_elevation,
+    compute_off_nadir,
+    constraint_all,
+    constraint_any,
+    constraint_not,
+    elevation_constraint,
+    elevation_mask_constraint,
     find_access_windows,
     find_access_windows_from_ephemeris,
     find_access_windows_jit,
     find_all_access_windows,
     ground_location,
+    off_nadir_constraint,
 )
 from .attitude_dynamics import (
     AttitudeDynamicsConfig,
@@ -235,6 +242,7 @@ from .space_weather import (
     static_space_weather,
     zero_space_weather,
 )
+from .utils import hermite_interp, make_hermite_position_fn
 
 __all__ = [
     # Access prediction
@@ -248,6 +256,14 @@ __all__ = [
     "find_access_windows_jit",
     "find_all_access_windows",
     "find_access_windows_from_ephemeris",
+    # Constraints
+    "compute_off_nadir",
+    "elevation_constraint",
+    "elevation_mask_constraint",
+    "off_nadir_constraint",
+    "constraint_all",
+    "constraint_any",
+    "constraint_not",
     # Constants
     "DEG2RAD",
     "RAD2DEG",
@@ -460,6 +476,9 @@ __all__ = [
     "load_sw_from_file",
     "static_space_weather",
     "zero_space_weather",
+    # Interpolation
+    "hermite_interp",
+    "make_hermite_position_fn",
     # GP Record
     "GPRecord",
 ]

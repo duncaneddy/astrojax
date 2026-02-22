@@ -4,6 +4,7 @@ Provides angle conversion helpers and filesystem cache management.
 """
 
 from astrojax.utils._angle import from_radians, to_radians
+from astrojax.utils._interpolation import hermite_interp, make_hermite_position_fn
 from astrojax.utils.caching import (
     file_age_days,
     file_age_seconds,
@@ -22,6 +23,8 @@ __all__ = [
     "get_cache_dir",
     "get_datasets_cache_dir",
     "get_eop_cache_dir",
+    "hermite_interp",
     "is_file_stale",
+    "make_hermite_position_fn",
     "to_radians",
 ]

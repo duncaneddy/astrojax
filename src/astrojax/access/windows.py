@@ -24,6 +24,7 @@ import numpy as np
 from jax import Array
 from jax.typing import ArrayLike
 
+from astrojax.access.constraints import elevation_constraint
 from astrojax.config import get_dtype
 from astrojax.coordinates.geodetic import position_geodetic_to_ecef
 from astrojax.coordinates.topocentric import (
@@ -272,7 +273,7 @@ def _refine_boundary(
 
     def cond(state):
         lo, hi, i = state
-        return ((hi - lo) > tol) & (i < max_iter)
+        return (jnp.abs(hi - lo) > tol) & (i < max_iter)
 
     def body(state):
         lo, hi, i = state
@@ -486,11 +487,13 @@ def find_access_windows(
     dt: float = 60.0,
     tol: float = 0.001,
     use_degrees: bool = False,
+    *,
+    constraint_fn: Callable | None = None,
 ) -> list[AccessWindow]:
     """Find satellite visibility windows from a ground station.
 
     Takes a callable that returns ECEF position at a given time and finds
-    all windows where the satellite exceeds the minimum elevation.
+    all windows where the constraint is satisfied.
 
     Args:
         position_ecef_fn: Callable ``f(t) -> Array[3]`` returning the
@@ -499,64 +502,76 @@ def find_access_windows(
         t_start: Start time in seconds.
         t_end: End time in seconds.
         min_elevation: Minimum elevation threshold.  Radians by default,
-            or degrees if ``use_degrees=True``.
+            or degrees if ``use_degrees=True``.  Ignored when
+            *constraint_fn* is provided.
         dt: Coarse grid step size in seconds (default 60).
         tol: Bisection convergence tolerance in seconds (default 0.001).
         use_degrees: If ``True``, interpret *min_elevation* as degrees.
+        constraint_fn: Constraint function with signature
+            ``(sat_ecef, station_ecef, rot_enz) -> float``.  When
+            provided, takes precedence over *min_elevation*.  Defaults
+            to ``elevation_constraint(min_elevation)``.
 
     Returns:
         List of :class:`AccessWindow` instances (may be empty).
     """
     dtype = get_dtype()
 
-    if use_degrees:
-        min_el_rad = float(jnp.deg2rad(min_elevation))
-    else:
-        min_el_rad = float(min_elevation)
-
     station_ecef = location.ecef
     rot_enz = location.rot_enz
 
-    # --- Stage 1: JIT-accelerated elevation grid ---
+    # Build constraint function
+    if constraint_fn is None:
+        if use_degrees:
+            min_el_rad = float(jnp.deg2rad(min_elevation))
+        else:
+            min_el_rad = float(min_elevation)
+        constraint_fn = elevation_constraint(min_el_rad)
+
+    # --- Stage 1: JIT-accelerated constraint grid ---
     n_steps = int(jnp.ceil((t_end - t_start) / dt)) + 1
     times_jax = jnp.linspace(dtype(t_start), dtype(t_end), n_steps)
 
-    def el_at_t(t):
-        return _elevation_at_time(position_ecef_fn, station_ecef, rot_enz, t)
+    def constraint_at_t(t):
+        sat_ecef = position_ecef_fn(t)
+        return constraint_fn(sat_ecef, station_ecef, rot_enz)
 
-    elevations_jax = jax.vmap(el_at_t)(times_jax)
+    constraint_vals_jax = jax.vmap(constraint_at_t)(times_jax)
 
     # Convert to numpy for window detection
-    elevations_np = np.asarray(elevations_jax)
+    constraint_vals_np = np.asarray(constraint_vals_jax)
     times_np = np.asarray(times_jax)
 
     # --- Stage 2: Python-level window detection ---
-    raw_windows = _detect_windows(elevations_np, times_np, min_el_rad)
+    # Detect where constraint >= 0 (threshold = 0)
+    raw_windows = _detect_windows(constraint_vals_np, times_np, 0.0)
 
     if not raw_windows:
         return []
 
     # --- Stage 3: Refine boundaries and collect window info ---
-    def shifted_el(t):
-        return el_at_t(t) - dtype(min_el_rad)
+    def el_at_t(t):
+        return _elevation_at_time(position_ecef_fn, station_ecef, rot_enz, t)
 
     results = []
     for i_rise, i_set in raw_windows:
         # Refine rise time
-        if i_rise == 0 and elevations_np[0] >= min_el_rad:
+        if i_rise == 0 and constraint_vals_np[0] >= 0.0:
             t_rise = float(times_np[0])
         else:
             t_rise = float(
-                _refine_boundary(shifted_el, times_np[i_rise], times_np[i_rise + 1], tol)
+                _refine_boundary(constraint_at_t, times_np[i_rise], times_np[i_rise + 1], tol)
             )
 
         # Refine set time
-        if i_set == len(elevations_np) - 1 and elevations_np[-1] >= min_el_rad:
+        if i_set == len(constraint_vals_np) - 1 and constraint_vals_np[-1] >= 0.0:
             t_set = float(times_np[-1])
         else:
-            t_set = float(_refine_boundary(shifted_el, times_np[i_set + 1], times_np[i_set], tol))
+            t_set = float(
+                _refine_boundary(constraint_at_t, times_np[i_set + 1], times_np[i_set], tol)
+            )
 
-        # Find max elevation
+        # Find max elevation (always elevation, regardless of constraint)
         t_max = float(_find_max_elevation(el_at_t, t_rise, t_set))
 
         # Compute azel at rise, set, max
@@ -594,10 +609,10 @@ def find_access_windows_jit(
     rot_enz: ArrayLike,
     t_start: ArrayLike,
     t_end: ArrayLike,
-    min_elevation: ArrayLike,
     max_windows: int,
     n_steps: int,
     tol: float = 0.001,
+    constraint_fn: Callable | None = None,
 ) -> AccessResult:
     """Find satellite visibility windows — fully JIT-compilable.
 
@@ -612,12 +627,15 @@ def find_access_windows_jit(
         rot_enz: Pre-computed 3x3 ECEF-to-ENZ rotation matrix.
         t_start: Start time in seconds (scalar).
         t_end: End time in seconds (scalar).
-        min_elevation: Minimum elevation threshold in radians (scalar).
         max_windows: Maximum windows to detect.  **Static** — determines
             output array shapes.  Must be passed via ``static_argnums``.
         n_steps: Number of coarse grid samples.  **Static** — determines
             ``lax.scan`` length.  Must be passed via ``static_argnums``.
         tol: Bisection convergence tolerance in seconds (default 0.001).
+        constraint_fn: Constraint function with signature
+            ``(sat_ecef, station_ecef, rot_enz) -> float``.  Positive
+            means satisfied, negative means violated.  Defaults to
+            ``elevation_constraint(0.0)`` (elevation >= 0).
 
     Returns:
         An :class:`AccessResult` with fixed-shape arrays.  Only slots
@@ -628,24 +646,27 @@ def find_access_windows_jit(
     rot_enz = jnp.asarray(rot_enz, dtype=dtype)
     t_start = jnp.asarray(t_start, dtype=dtype)
     t_end = jnp.asarray(t_end, dtype=dtype)
-    min_el = jnp.asarray(min_elevation, dtype=dtype)
     tol = jnp.asarray(tol, dtype=dtype)
 
-    # --- Stage 1: elevation grid via vmap ---
+    if constraint_fn is None:
+        constraint_fn = elevation_constraint(0.0)
+
+    # --- Stage 1: constraint grid via vmap ---
     times = jnp.linspace(t_start, t_end, n_steps)
 
-    def el_at_t(t):
-        return _elevation_at_time(position_ecef_fn, station_ecef, rot_enz, t)
+    def constraint_at_t(t):
+        sat_ecef = position_ecef_fn(t)
+        return constraint_fn(sat_ecef, station_ecef, rot_enz)
 
-    elevations = jax.vmap(el_at_t)(times)
+    constraint_vals = jax.vmap(constraint_at_t)(times)
 
     # --- Stage 2: JIT-compatible window detection ---
-    rise_idx, set_idx, valid, n_windows = _detect_crossings_jit(elevations, min_el, max_windows)
+    # Detect zero-crossings: constraint >= 0 means satisfied
+    rise_idx, set_idx, valid, n_windows = _detect_crossings_jit(
+        constraint_vals, jnp.asarray(0.0, dtype=dtype), max_windows
+    )
 
     # --- Stage 3: refine boundaries via vmap ---
-    def shifted_el(t):
-        return el_at_t(t) - min_el
-
     def refine_one_window(i):
         ri = rise_idx[i]
         si = set_idx[i]
@@ -653,22 +674,22 @@ def find_access_windows_jit(
         # Rise refinement: bracket is [times[ri], times[ri+1]]
         # If ri==0 and visible at start, use times[0] directly
         ri_safe = jnp.clip(ri + 1, 0, n_steps - 1)
-        at_start = (ri == 0) & (elevations[0] >= min_el)
+        at_start = (ri == 0) & (constraint_vals[0] >= 0.0)
         t_rise_refined = jnp.where(
             at_start,
             times[0],
-            _refine_boundary(shifted_el, times[ri], times[ri_safe], tol),
+            _refine_boundary(constraint_at_t, times[ri], times[ri_safe], tol),
         )
 
         # Set refinement: bracket is [times[si+1], times[si]]
         # (reversed: si+1 is below threshold, si is above)
         # If si==n_steps-1 and visible at end, use times[-1] directly
         si_safe = jnp.clip(si + 1, 0, n_steps - 1)
-        at_end = (si == n_steps - 1) & (elevations[-1] >= min_el)
+        at_end = (si == n_steps - 1) & (constraint_vals[-1] >= 0.0)
         t_set_refined = jnp.where(
             at_end,
             times[-1],
-            _refine_boundary(shifted_el, times[si_safe], times[si], tol),
+            _refine_boundary(constraint_at_t, times[si_safe], times[si], tol),
         )
 
         return t_rise_refined, t_set_refined
@@ -676,6 +697,10 @@ def find_access_windows_jit(
     t_rises, t_sets = jax.vmap(refine_one_window)(jnp.arange(max_windows))
 
     # --- Stage 4: find max elevation via vmap ---
+    # Always find max *elevation* regardless of constraint type
+    def el_at_t(t):
+        return _elevation_at_time(position_ecef_fn, station_ecef, rot_enz, t)
+
     def max_el_one_window(i):
         return _find_max_elevation(el_at_t, t_rises[i], t_sets[i])
 
@@ -716,11 +741,11 @@ def find_all_access_windows(
     rot_enz: ArrayLike,
     t_start: float,
     t_end: float,
-    min_elevation: float,
     max_windows: int = 100,
     n_steps: int = 181,
     batch_size: int = 10,
     tol: float = 0.001,
+    constraint_fn: Callable | None = None,
 ) -> list[AccessWindow]:
     """Find all access windows by paging through the time span.
 
@@ -741,12 +766,14 @@ def find_all_access_windows(
             (e.g. ``location.rot_enz``).
         t_start: Start time in seconds.
         t_end: End time in seconds.
-        min_elevation: Minimum elevation threshold in radians.
         max_windows: Maximum total windows to return (default 100).
         n_steps: Grid samples per JIT call (default 181).
         batch_size: Windows per JIT call (default 10).  Kept constant
             across calls to avoid JIT recompilation.
         tol: Bisection tolerance in seconds (default 0.001).
+        constraint_fn: Constraint function with signature
+            ``(sat_ecef, station_ecef, rot_enz) -> float``.  Defaults
+            to ``elevation_constraint(0.0)``.
 
     Returns:
         List of :class:`AccessWindow` instances, at most ``max_windows``.
@@ -762,10 +789,10 @@ def find_all_access_windows(
             rot_enz,
             current_start,
             t_end_f,
-            min_elevation,
             max_windows=batch_size,
             n_steps=n_steps,
             tol=tol,
+            constraint_fn=constraint_fn,
         )
 
         n = int(result.n_windows)

@@ -586,7 +586,6 @@ class TestFindAccessWindowsJit:
             loc.rot_enz,
             0.0,
             5400.0,
-            0.0,
             max_windows=10,
             n_steps=n_steps,
         )
@@ -619,7 +618,6 @@ class TestFindAccessWindowsJit:
             loc.rot_enz,
             0.0,
             5400.0,
-            0.0,
             max_windows=10,
             n_steps=181,
         )
@@ -637,7 +635,6 @@ class TestFindAccessWindowsJit:
             loc.rot_enz,
             0.0,
             5400.0,
-            0.0,
             max_windows=10,
             n_steps=181,
         )
@@ -659,7 +656,6 @@ class TestFindAccessWindowsJit:
             loc.rot_enz,
             0.0,
             5400.0,
-            0.0,
             max_windows=10,
             n_steps=181,
         )
@@ -700,7 +696,7 @@ class TestFindAccessWindowsJitCompilability:
 
         jitted = jax.jit(
             find_access_windows_jit,
-            static_argnums=(0, 6, 7),
+            static_argnums=(0, 5, 6),
         )
         result = jitted(
             pos_fn,
@@ -708,7 +704,6 @@ class TestFindAccessWindowsJitCompilability:
             loc.rot_enz,
             0.0,
             5400.0,
-            0.0,
             10,
             181,
         )
@@ -734,7 +729,6 @@ class TestFindAccessWindowsJitCompilability:
                 rot,
                 0.0,
                 5400.0,
-                0.0,
                 max_windows=10,
                 n_steps=181,
             )
@@ -776,7 +770,6 @@ class TestFindAllAccessWindows:
             loc.rot_enz,
             0.0,
             5400.0,
-            0.0,
             n_steps=181,
             batch_size=10,
         )
@@ -800,7 +793,6 @@ class TestFindAllAccessWindows:
             loc.rot_enz,
             0.0,
             5400.0,
-            0.0,
             n_steps=181,
             batch_size=1,
         )
@@ -821,7 +813,6 @@ class TestFindAllAccessWindows:
             loc.rot_enz,
             0.0,
             5400.0,
-            0.0,
             max_windows=1,
             n_steps=181,
             batch_size=10,
@@ -846,11 +837,125 @@ class TestFindAllAccessWindows:
             loc.rot_enz,
             0.0,
             5400.0,
-            0.0,
             n_steps=181,
             batch_size=10,
         )
         assert result == []
+
+
+class TestConstraintIntegration:
+    """Test constraint_fn integration with the access pipeline."""
+
+    def _make_circular_orbit_fn(self, alt_km=500.0, period_s=5400.0):
+        dtype = get_dtype()
+        r = dtype(R_EARTH + alt_km * 1e3)
+        omega = dtype(2.0 * jnp.pi / period_s)
+
+        def pos_fn(t):
+            t = jnp.asarray(t, dtype=dtype)
+            theta = omega * t
+            x = r * jnp.cos(theta)
+            y = dtype(0.0)
+            z = r * jnp.sin(theta)
+            return jnp.array([x, y, z])
+
+        return pos_fn
+
+    def test_elevation_constraint_matches_old_min_elevation(self):
+        """elevation_constraint(min_el) should match old min_elevation behavior."""
+        from astrojax.access.constraints import elevation_constraint
+
+        pos_fn = self._make_circular_orbit_fn()
+        loc = ground_location(lon=0.0, lat=0.0, alt=0.0)
+        min_el = jnp.deg2rad(5.0)
+
+        # Old behavior via min_elevation parameter
+        ref = find_access_windows(pos_fn, loc, 0.0, 5400.0, min_elevation=float(min_el), dt=30.0)
+
+        # New behavior via constraint_fn
+        result = find_access_windows(
+            pos_fn, loc, 0.0, 5400.0, dt=30.0, constraint_fn=elevation_constraint(float(min_el))
+        )
+
+        assert len(result) == len(ref)
+        for r, w in zip(result, ref, strict=False):
+            assert abs(r.t_rise - w.t_rise) < _TIME_TOL
+            assert abs(r.t_set - w.t_set) < _TIME_TOL
+
+    def test_constraint_fn_jit(self):
+        """constraint_fn works with find_access_windows_jit under JIT."""
+        from astrojax.access.constraints import elevation_constraint
+
+        pos_fn = self._make_circular_orbit_fn()
+        loc = ground_location(lon=0.0, lat=0.0, alt=0.0)
+
+        result = find_access_windows_jit(
+            pos_fn,
+            loc.ecef,
+            loc.rot_enz,
+            0.0,
+            5400.0,
+            max_windows=10,
+            n_steps=181,
+            constraint_fn=elevation_constraint(jnp.deg2rad(5.0)),
+        )
+        assert int(result.n_windows) >= 1
+
+    def test_composed_constraint_jit(self):
+        """Composed constraints work in the JIT pipeline."""
+        from astrojax.access.constraints import (
+            constraint_all,
+            elevation_constraint,
+            off_nadir_constraint,
+        )
+
+        pos_fn = self._make_circular_orbit_fn()
+        loc = ground_location(lon=0.0, lat=0.0, alt=0.0)
+
+        combined = constraint_all(
+            elevation_constraint(0.0),
+            off_nadir_constraint(jnp.deg2rad(80.0)),
+        )
+
+        result = find_access_windows_jit(
+            pos_fn,
+            loc.ecef,
+            loc.rot_enz,
+            0.0,
+            5400.0,
+            max_windows=10,
+            n_steps=181,
+            constraint_fn=combined,
+        )
+        # Should still find windows (off-nadir 80° is generous)
+        assert int(result.n_windows) >= 1
+
+    def test_elevation_mask_narrows_windows(self):
+        """An elevation mask with high threshold should narrow windows."""
+        from astrojax.access.constraints import elevation_constraint, elevation_mask_constraint
+
+        pos_fn = self._make_circular_orbit_fn()
+        loc = ground_location(lon=0.0, lat=0.0, alt=0.0)
+
+        # Flat low threshold
+        w_flat = find_access_windows(
+            pos_fn, loc, 0.0, 5400.0, dt=30.0, constraint_fn=elevation_constraint(0.0)
+        )
+
+        # Higher threshold via mask (uniform 20°)
+        mask_az = jnp.linspace(0, 2 * jnp.pi, 8, endpoint=False)
+        mask_el = jnp.full(8, jnp.deg2rad(20.0))
+        w_mask = find_access_windows(
+            pos_fn,
+            loc,
+            0.0,
+            5400.0,
+            dt=30.0,
+            constraint_fn=elevation_mask_constraint(mask_az, mask_el),
+        )
+
+        if len(w_flat) > 0 and len(w_mask) > 0:
+            assert w_mask[0].duration <= w_flat[0].duration + _TIME_TOL
 
 
 class TestImports:
@@ -868,3 +973,11 @@ class TestImports:
         assert hasattr(astrojax, "find_access_windows_jit")
         assert hasattr(astrojax, "find_all_access_windows")
         assert hasattr(astrojax, "find_access_windows_from_ephemeris")
+        # Constraint exports
+        assert hasattr(astrojax, "compute_off_nadir")
+        assert hasattr(astrojax, "elevation_constraint")
+        assert hasattr(astrojax, "elevation_mask_constraint")
+        assert hasattr(astrojax, "off_nadir_constraint")
+        assert hasattr(astrojax, "constraint_all")
+        assert hasattr(astrojax, "constraint_any")
+        assert hasattr(astrojax, "constraint_not")
