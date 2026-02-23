@@ -85,6 +85,10 @@ nav = [
         { "Integrators" = "user_guide/integrators.md" },
         { "Estimation" = "user_guide/estimation.md" },
         { "Orbit Measurements" = "user_guide/orbit_measurements.md" },
+        { "Access" = [
+            { "Overview" = "user_guide/access/index.md" },
+            { "Constraints" = "user_guide/access/constraints.md" },
+        ]},
         { "Datasets" = [
             { "Overview" = "user_guide/datasets/index.md" },
             { "MPC Asteroids" = "user_guide/datasets/mpc_asteroids.md" },
@@ -157,6 +161,11 @@ nav = [
         { "Orbit Measurements" = [
             { "Overview" = "api_reference/orbit_measurements/index.md" },
             { "GNSS" = "api_reference/orbit_measurements/gnss.md" },
+        ]},
+        { "Access" = [
+            { "Overview" = "api_reference/access/index.md" },
+            { "Windows" = "api_reference/access/windows.md" },
+            { "Constraints" = "api_reference/access/constraints.md" },
         ]},
         { "Datasets" = [
             { "Overview" = "api_reference/datasets/index.md" },
