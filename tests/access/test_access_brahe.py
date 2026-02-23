@@ -33,7 +33,7 @@ _DURATION_TOL = 0.1  # seconds
 # Fixture path
 # ---------------------------------------------------------------------------
 
-_FIXTURE_PATH = Path(__file__).parent / "fixtures" / "access_brahe_trajectory.npz"
+_FIXTURE_PATH = Path(__file__).parent.parent / "fixtures" / "access_brahe_trajectory.npz"
 
 
 @pytest.fixture(scope="module")
