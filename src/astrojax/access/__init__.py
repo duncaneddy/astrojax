@@ -39,6 +39,10 @@ from astrojax.access.windows import (
     AccessResult,
     AccessWindow,
     GroundLocation,
+    _detect_crossings_jit,  # noqa: F401
+    _detect_windows,  # noqa: F401
+    _find_max_elevation,  # noqa: F401
+    _refine_boundary,  # noqa: F401
     compute_azel,
     compute_elevation,
     find_access_windows,
