@@ -60,6 +60,7 @@ use std::hint::black_box;
 use std::time::Instant;
 
 use brahe::celestrak::CelestrakClient;
+use brahe::eop::{EOPExtrapolation, FileEOPProvider};
 use brahe::propagators::SGPPropagator;
 use brahe::traits::SStatePropagator;
 
@@ -204,7 +205,13 @@ fn main() {
     let (iterations, mode) = parse_args();
 
     // --- Initialize EOP provider (required for time conversions / propagation) ---
-    brahe::initialize_eop().unwrap();
+    // Use FileEOPProvider instead of CachingEOPProvider (initialize_eop) because
+    // CachingEOPProvider wraps its inner data in a Mutex, which serializes all
+    // reads and destroys rayon parallelism. FileEOPProvider is immutable after
+    // construction, so concurrent reads through the global RwLock are lock-free.
+    let provider = FileEOPProvider::from_default_standard(true, EOPExtrapolation::Hold)
+        .expect("Failed to load bundled EOP data");
+    brahe::eop::set_global_eop_provider(provider);
 
     // --- Download active catalog ---
     println!("Downloading active satellite catalog from Celestrak...");
