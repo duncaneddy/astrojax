@@ -57,6 +57,7 @@
 
 use rayon::prelude::*;
 use std::hint::black_box;
+use std::panic::{self, AssertUnwindSafe};
 use std::time::Instant;
 
 use brahe::celestrak::CelestrakClient;
@@ -139,10 +140,17 @@ fn run_sequential(satellites: &mut [SGPPropagator], n_sats: usize, iterations: u
     let mut total_props_per_sec = 0.0;
     for (label, tsince_seconds) in DURATIONS {
         let mut total_ns = 0u128;
+        let mut num_failed = 0u32;
         for _ in 0..iterations {
             let start = Instant::now();
             for prop in satellites.iter_mut() {
-                black_box(prop.step_by(*tsince_seconds));
+                if panic::catch_unwind(AssertUnwindSafe(|| {
+                    black_box(prop.step_by(*tsince_seconds));
+                }))
+                .is_err()
+                {
+                    num_failed += 1;
+                }
             }
             total_ns += start.elapsed().as_nanos();
 
@@ -155,9 +163,10 @@ fn run_sequential(satellites: &mut [SGPPropagator], n_sats: usize, iterations: u
         let avg_ms = total_ns as f64 / iterations as f64 / 1_000_000.0;
         let props_per_sec = n_sats as f64 / (avg_ms / 1000.0);
         total_props_per_sec += props_per_sec;
+        let failed_per_iter = num_failed / iterations;
         println!(
-            "{:<30} {:>10.3} ms  ({:>12.2} prop/s)",
-            label, avg_ms, props_per_sec
+            "{:<30} {:>10.3} ms  ({:>12.2} prop/s, {} failed)",
+            label, avg_ms, props_per_sec, failed_per_iter
         );
     }
     println!(
@@ -173,12 +182,25 @@ fn run_parallel(satellites: &mut [SGPPropagator], n_sats: usize, iterations: u32
     let mut total_props_per_sec = 0.0;
     for (label, tsince_seconds) in DURATIONS {
         let mut total_ns = 0u128;
+        let mut num_failed = 0u32;
         for _ in 0..iterations {
             let start = Instant::now();
-            satellites.par_iter_mut().for_each(|prop| {
-                black_box(prop.step_by(*tsince_seconds));
-            });
+            let failed: u32 = satellites
+                .par_iter_mut()
+                .map(|prop| {
+                    if panic::catch_unwind(AssertUnwindSafe(|| {
+                        black_box(prop.step_by(*tsince_seconds));
+                    }))
+                    .is_err()
+                    {
+                        1u32
+                    } else {
+                        0u32
+                    }
+                })
+                .sum();
             total_ns += start.elapsed().as_nanos();
+            num_failed += failed;
 
             // Reset outside timing loop
             for prop in satellites.iter_mut() {
@@ -189,9 +211,10 @@ fn run_parallel(satellites: &mut [SGPPropagator], n_sats: usize, iterations: u32
         let avg_ms = total_ns as f64 / iterations as f64 / 1_000_000.0;
         let props_per_sec = n_sats as f64 / (avg_ms / 1000.0);
         total_props_per_sec += props_per_sec;
+        let failed_per_iter = num_failed / iterations;
         println!(
-            "{:<30} {:>10.3} ms  ({:>12.2} prop/s)",
-            label, avg_ms, props_per_sec
+            "{:<30} {:>10.3} ms  ({:>12.2} prop/s, {} failed)",
+            label, avg_ms, props_per_sec, failed_per_iter
         );
     }
     println!(
@@ -203,6 +226,10 @@ fn run_parallel(satellites: &mut [SGPPropagator], n_sats: usize, iterations: u32
 
 fn main() {
     let (iterations, mode) = parse_args();
+
+    // Suppress default panic messages -- SGP4 panics on decayed orbits and we
+    // catch those with catch_unwind; no need to flood stderr.
+    panic::set_hook(Box::new(|_| {}));
 
     // --- Initialize EOP provider (required for time conversions / propagation) ---
     // Use FileEOPProvider instead of CachingEOPProvider (initialize_eop) because
