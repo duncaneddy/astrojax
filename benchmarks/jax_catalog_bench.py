@@ -240,8 +240,12 @@ def _run_multi_gpu(
         params_padded = jnp.concatenate([params_batch, padding], axis=0)
     else:
         params_padded = params_batch
-    # Reshape to (num_gpus, sats_per_gpu, params)
-    params_sharded = params_padded.reshape(num_gpus, -1, params_padded.shape[1])
+    # Reshape to (num_gpus, sats_per_gpu, params) and place each shard on its GPU
+    params_reshaped = params_padded.reshape(num_gpus, -1, params_padded.shape[1])
+    params_sharded = jax.device_put_sharded(
+        [params_reshaped[i] for i in range(num_gpus)],
+        gpus[:num_gpus],
+    )
 
     pmap_propagate = jax.pmap(
         jax.vmap(sgp4_propagate_unified, in_axes=(0, None)), in_axes=(0, None)
