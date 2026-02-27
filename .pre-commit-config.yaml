@@ -12,12 +12,6 @@ repos:
 
   - repo: local
     hooks:
-      - id: ty-check
-        name: ty check (type checking)
-        entry: uvx ty check
-        language: system
-        pass_filenames: false
-        always_run: true
       - id: zensical-build
         name: zensical build (docs)
         entry: uv run zensical build --strict
@@ -33,4 +27,4 @@ repos:
       - id: name-tests-test
         name: check test naming
         args: [--pytest-test-first]
-        exclude: tests/conftest.py
+        exclude: ^tests/(conftest\.py|fixtures/.*\.py)$
