@@ -203,6 +203,9 @@ fn run_parallel(satellites: &mut [SGPPropagator], n_sats: usize, iterations: u32
 fn main() {
     let (iterations, mode) = parse_args();
 
+    // --- Initialize EOP provider (required for time conversions / propagation) ---
+    brahe::initialize_eop().unwrap();
+
     // --- Download active catalog ---
     println!("Downloading active satellite catalog from Celestrak...");
     let client = CelestrakClient::new();
