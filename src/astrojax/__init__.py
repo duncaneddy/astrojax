@@ -84,6 +84,12 @@ from .coordinates import (
     state_eci_to_koe,
     state_koe_to_eci,
 )
+from .covariance import (
+    augmented_initial_state,
+    create_variational_dynamics,
+    extract_state_and_stm,
+    propagate_covariance,
+)
 from .datasets import (
     asteroid_state_ecliptic,
     download_mpc_file,
@@ -304,6 +310,11 @@ __all__ = [
     # Config
     "set_dtype",
     "get_dtype",
+    # Covariance Propagation
+    "create_variational_dynamics",
+    "augmented_initial_state",
+    "extract_state_and_stm",
+    "propagate_covariance",
     # EOP
     "EOPData",
     "EOPExtrapolation",
