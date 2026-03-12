@@ -16,4 +16,5 @@ Complete reference for all public modules in astrojax.
 | [Attitude Representations](attitude_representations.md) | Quaternion, rotation matrix, Euler angle, and Euler axis classes |
 | [Attitude Dynamics](attitude_dynamics.md) | Rigid-body attitude dynamics (Euler equations, gravity gradient) |
 | [Integrators](integrators.md) | Numerical integration methods |
+| [Covariance](covariance.md) | Covariance propagation via variational equations and STM |
 | [Datasets](datasets/index.md) | MPC asteroid orbit catalog and asteroid masses download, parsing, and state computation |
