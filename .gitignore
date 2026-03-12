@@ -9,6 +9,11 @@ refs/
 seamstress/*
 test_seamstress.py
 output/*
+./*.png
+./*.jpg
+./*.jpeg
+./*.html
+./*.svg
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
