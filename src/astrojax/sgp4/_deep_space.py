@@ -1977,6 +1977,7 @@ def _dspace_jax(
     nodem: ArrayLike,
     nm: ArrayLike,
     idx: dict[str, int],
+    max_dspace_iters: int = 200,
 ) -> tuple[
     ArrayLike,
     ArrayLike,
@@ -2118,21 +2119,29 @@ def _dspace_jax(
         xnddt = jnp.where(is_half_day, xnddt_hd, xnddt_sync)
         return xndt, xldot, xnddt
 
-    # Integration loop using while_loop
-    def _loop_cond(state):
-        atime_s, xni_s, xli_s = state
-        return jnp.abs(t - atime_s) >= stepp
+    # Integration loop using lax.scan with static upper bound.
+    # The loop runs floor(|t|/stepp) iterations. We use scan with a fixed
+    # max iteration count to support reverse-mode AD (jax.grad), since
+    # while_loop and fori_loop with dynamic bounds do not.
+    # Each iteration covers 720 minutes, so max_dspace_iters=200 ≈ 100 days.
+    n_iters = jnp.floor(jnp.abs(t) / stepp).astype(jnp.int32)
 
-    def _loop_body(state):
+    def _scan_body(state, i):
         atime_s, xni_s, xli_s = state
+        active = i < n_iters
         xndt, xldot, xnddt = _compute_dot_terms(xli_s, xni_s, atime_s)
-        xli_s = xli_s + xldot * delt + xndt * step2
-        xni_s = xni_s + xndt * delt + xnddt * step2
-        atime_s = atime_s + delt
-        return (atime_s, xni_s, xli_s)
+        new_xli = xli_s + xldot * delt + xndt * step2
+        new_xni = xni_s + xndt * delt + xnddt * step2
+        new_atime = atime_s + delt
+        atime_s = jnp.where(active, new_atime, atime_s)
+        xni_s = jnp.where(active, new_xni, xni_s)
+        xli_s = jnp.where(active, new_xli, xli_s)
+        return (atime_s, xni_s, xli_s), None
 
     init_state = (atime_init, xni_init, xli_init)
-    final_state = jax.lax.while_loop(_loop_cond, _loop_body, init_state)
+    final_state, _ = jax.lax.scan(
+        _scan_body, init_state, jnp.arange(max_dspace_iters)
+    )
     atime_f, xni_f, xli_f = final_state
 
     # Final interpolation to exact time t
@@ -2168,6 +2177,7 @@ def sgp4_propagate_deep_space_impl(
     params: Array,
     tsince: ArrayLike,
     idx: dict[str, int],
+    max_dspace_iters: int = 200,
 ) -> tuple[Array, Array]:
     """Propagate deep-space satellite using SDP4 (JAX, JIT-compatible).
 
@@ -2179,6 +2189,9 @@ def sgp4_propagate_deep_space_impl(
         params: Flat parameter array from ``sgp4_init``.
         tsince: Time since epoch in minutes.
         idx: Parameter index mapping.
+        max_dspace_iters: Maximum number of deep-space resonance integration
+            steps. Each step covers 720 minutes. Default 200 (≈100 days).
+            Increase for propagation times beyond 100 days from epoch.
 
     Returns:
         Tuple of ``(r, v)`` where ``r`` is position [km] and ``v`` is
@@ -2242,7 +2255,7 @@ def sgp4_propagate_deep_space_impl(
         nodem,
         dndt,
         nm,
-    ) = _dspace_jax(params, t, tc, em, argpm, inclm, mm, nodem, nm, idx)
+    ) = _dspace_jax(params, t, tc, em, argpm, inclm, mm, nodem, nm, idx, max_dspace_iters)
 
     # Error check: nm <= 0
     nm_ok = nm > 0.0

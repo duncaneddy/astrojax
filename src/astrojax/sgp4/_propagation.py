@@ -1152,12 +1152,16 @@ def _sgp4_propagate_near_earth(params: Array, tsince: ArrayLike) -> tuple[Array,
     return r, v
 
 
-def _sgp4_propagate_deep_space(params: Array, tsince: ArrayLike) -> tuple[Array, Array]:
+def _sgp4_propagate_deep_space(
+    params: Array, tsince: ArrayLike, max_dspace_iters: int = 200
+) -> tuple[Array, Array]:
     """Propagate deep-space satellite using SDP4 (JAX, JIT-compatible).
 
     Args:
         params: Flat parameter array from ``sgp4_init``.
         tsince: Time since epoch in minutes.
+        max_dspace_iters: Maximum number of deep-space resonance integration
+            steps. Each step covers 720 minutes. Default 200 (≈100 days).
 
     Returns:
         Tuple of ``(r, v)`` where ``r`` is position [km] and ``v`` is
@@ -1165,10 +1169,15 @@ def _sgp4_propagate_deep_space(params: Array, tsince: ArrayLike) -> tuple[Array,
     """
     from astrojax.sgp4._deep_space import sgp4_propagate_deep_space_impl
 
-    return sgp4_propagate_deep_space_impl(params, tsince, _I)
+    return sgp4_propagate_deep_space_impl(params, tsince, _I, max_dspace_iters)
 
 
-def sgp4_propagate(params: Array, tsince: ArrayLike, method: str) -> tuple[Array, Array]:
+def sgp4_propagate(
+    params: Array,
+    tsince: ArrayLike,
+    method: str,
+    max_dspace_iters: int = 200,
+) -> tuple[Array, Array]:
     """Propagate a satellite using SGP4/SDP4.
 
     This is the main propagation entry point. The ``method`` flag selects
@@ -1179,6 +1188,9 @@ def sgp4_propagate(params: Array, tsince: ArrayLike, method: str) -> tuple[Array
         params: Flat parameter array from ``sgp4_init``.
         tsince: Time since epoch in minutes.
         method: ``'n'`` for near-Earth SGP4, ``'d'`` for deep-space SDP4.
+        max_dspace_iters: Maximum number of deep-space resonance integration
+            steps. Each step covers 720 minutes. Default 200 (≈100 days).
+            Only used when ``method='d'``.
 
     Returns:
         Tuple of ``(r, v)`` where ``r`` is position [km] and ``v`` is
@@ -1187,10 +1199,14 @@ def sgp4_propagate(params: Array, tsince: ArrayLike, method: str) -> tuple[Array
     if method == "n":
         return _sgp4_propagate_near_earth(params, tsince)
     else:
-        return _sgp4_propagate_deep_space(params, tsince)
+        return _sgp4_propagate_deep_space(params, tsince, max_dspace_iters)
 
 
-def sgp4_propagate_unified(params: Array, tsince: ArrayLike) -> tuple[Array, Array]:
+def sgp4_propagate_unified(
+    params: Array,
+    tsince: ArrayLike,
+    max_dspace_iters: int = 200,
+) -> tuple[Array, Array]:
     """Propagate a satellite using SGP4/SDP4 with auto-detection (JAX, JIT-compatible).
 
     Unlike ``sgp4_propagate``, this function does not require a separate
@@ -1204,15 +1220,21 @@ def sgp4_propagate_unified(params: Array, tsince: ArrayLike) -> tuple[Array, Arr
     Args:
         params: Flat parameter array from ``sgp4_init`` or ``sgp4_init_jax``.
         tsince: Time since epoch in minutes.
+        max_dspace_iters: Maximum number of deep-space resonance integration
+            steps. Each step covers 720 minutes. Default 200 (≈100 days).
 
     Returns:
         Tuple of ``(r, v)`` where ``r`` is position [km] and ``v`` is
         velocity [km/s], both as 3-element arrays in the TEME frame.
     """
     is_deep = params[_IDX["method"]] > 0.5
+
+    def _deep_branch(p, t):
+        return _sgp4_propagate_deep_space(p, t, max_dspace_iters)
+
     return jax.lax.cond(
         is_deep,
-        _sgp4_propagate_deep_space,
+        _deep_branch,
         _sgp4_propagate_near_earth,
         params,
         tsince,
