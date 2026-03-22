@@ -18,7 +18,9 @@ from astrojax.sgp4._propagation import (
     sgp4_init,
     sgp4_init_jax,
     sgp4_propagate,
+    sgp4_propagate_unbounded,
     sgp4_propagate_unified,
+    sgp4_propagate_unified_unbounded,
 )
 from astrojax.sgp4._satellite import TLE
 from astrojax.sgp4._tle import compute_checksum, parse_omm, parse_tle, validate_tle_line
@@ -45,6 +47,9 @@ __all__ = [
     "create_sgp4_propagator_from_elements",
     "create_sgp4_propagator_from_omm",
     "create_sgp4_propagator_from_gp_record",
+    # Unbounded propagation (while-loop, forward-mode AD only)
+    "sgp4_propagate_unbounded",
+    "sgp4_propagate_unified_unbounded",
     # JIT-compilable init and unified propagation
     "sgp4_init_jax",
     "sgp4_propagate_unified",

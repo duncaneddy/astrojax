@@ -1241,6 +1241,92 @@ def sgp4_propagate_unified(
     )
 
 
+def _sgp4_propagate_deep_space_unbounded(params: Array, tsince: ArrayLike) -> tuple[Array, Array]:
+    """Propagate deep-space satellite using SDP4 with unbounded integration.
+
+    Uses ``jax.lax.while_loop`` for deep-space resonance integration,
+    imposing no upper bound on propagation time. Supports forward-mode AD
+    (``jax.jacfwd`` / ``jax.jvp``) but **not** reverse-mode AD
+    (``jax.grad`` / ``jax.vjp``).
+
+    Args:
+        params: Flat parameter array from ``sgp4_init``.
+        tsince: Time since epoch in minutes.
+
+    Returns:
+        Tuple of ``(r, v)`` where ``r`` is position [km] and ``v`` is
+        velocity [km/s], both as 3-element arrays in the TEME frame.
+    """
+    from astrojax.sgp4._deep_space import sgp4_propagate_deep_space_impl_unbounded
+
+    return sgp4_propagate_deep_space_impl_unbounded(params, tsince, _I)
+
+
+def sgp4_propagate_unbounded(
+    params: Array,
+    tsince: ArrayLike,
+    method: str,
+) -> tuple[Array, Array]:
+    """Propagate a satellite using SGP4/SDP4 with unbounded deep-space integration.
+
+    This variant uses ``jax.lax.while_loop`` for deep-space resonance
+    integration, imposing no upper bound on propagation time. It supports
+    forward-mode AD (``jax.jacfwd`` / ``jax.jvp``) but **not** reverse-mode
+    AD (``jax.grad`` / ``jax.vjp``).
+
+    For near-earth satellites (``method='n'``), the behavior is identical
+    to :func:`sgp4_propagate`.
+
+    Args:
+        params: Flat parameter array from ``sgp4_init``.
+        tsince: Time since epoch in minutes.
+        method: ``'n'`` for near-Earth SGP4, ``'d'`` for deep-space SDP4.
+
+    Returns:
+        Tuple of ``(r, v)`` where ``r`` is position [km] and ``v`` is
+        velocity [km/s], both as 3-element arrays in the TEME frame.
+    """
+    if method == "n":
+        return _sgp4_propagate_near_earth(params, tsince)
+    else:
+        return _sgp4_propagate_deep_space_unbounded(params, tsince)
+
+
+def sgp4_propagate_unified_unbounded(
+    params: Array,
+    tsince: ArrayLike,
+) -> tuple[Array, Array]:
+    """Propagate a satellite using SGP4/SDP4 with unbounded deep-space integration
+    and auto-detection.
+
+    This variant uses ``jax.lax.while_loop`` for deep-space resonance
+    integration, imposing no upper bound on propagation time. It supports
+    forward-mode AD (``jax.jacfwd`` / ``jax.jvp``) but **not** reverse-mode
+    AD (``jax.grad`` / ``jax.vjp``).
+
+    Unlike :func:`sgp4_propagate_unbounded`, this function does not require a
+    separate ``method`` string. It reads the method flag from ``params`` and
+    dispatches using ``jax.lax.cond``.
+
+    Args:
+        params: Flat parameter array from ``sgp4_init`` or ``sgp4_init_jax``.
+        tsince: Time since epoch in minutes.
+
+    Returns:
+        Tuple of ``(r, v)`` where ``r`` is position [km] and ``v`` is
+        velocity [km/s], both as 3-element arrays in the TEME frame.
+    """
+    is_deep = params[_IDX["method"]] > 0.5
+
+    return jax.lax.cond(
+        is_deep,
+        _sgp4_propagate_deep_space_unbounded,
+        _sgp4_propagate_near_earth,
+        params,
+        tsince,
+    )
+
+
 def _create_propagator_from_elements(
     elements: SGP4Elements,
     gravity: EarthGravity,

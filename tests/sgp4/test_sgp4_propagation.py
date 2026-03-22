@@ -20,7 +20,9 @@ from astrojax.sgp4 import (
     sgp4_init,
     sgp4_init_jax,
     sgp4_propagate,
+    sgp4_propagate_unbounded,
     sgp4_propagate_unified,
+    sgp4_propagate_unified_unbounded,
 )
 
 # Enable float64 for precise comparison tests
@@ -1102,4 +1104,188 @@ class TestSGP4DeepSpaceDifferentiability:
 
         assert jnp.allclose(jvp_grad, vjp_grad, atol=1e-10), (
             f"Max diff: {jnp.max(jnp.abs(jvp_grad - vjp_grad))}"
+        )
+
+
+# ---------------------------------------------------------------------------
+# Unbounded propagation (while-loop variant)
+# ---------------------------------------------------------------------------
+
+
+class TestSGP4UnboundedPropagation:
+    """Test unbounded (while-loop) SGP4 propagation."""
+
+    def _assert_parity(
+        self,
+        line1: str,
+        line2: str,
+        tsince: float,
+    ) -> None:
+        """Assert unbounded variant matches scan variant exactly."""
+        elements = parse_tle(line1, line2)
+        params, method = sgp4_init(elements, WGS72)
+
+        r_scan, v_scan = sgp4_propagate(params, jnp.float64(tsince), method)
+        r_wl, v_wl = sgp4_propagate_unbounded(params, jnp.float64(tsince), method)
+
+        assert jnp.allclose(r_scan, r_wl, atol=0.0), (
+            f"Position mismatch at t={tsince}: scan={r_scan} vs unbounded={r_wl}, "
+            f"diff={float(jnp.max(jnp.abs(r_scan - r_wl)))}"
+        )
+        assert jnp.allclose(v_scan, v_wl, atol=0.0), (
+            f"Velocity mismatch at t={tsince}: scan={v_scan} vs unbounded={v_wl}, "
+            f"diff={float(jnp.max(jnp.abs(v_scan - v_wl)))}"
+        )
+
+    # --- Parity: deep-space satellites ---
+
+    def test_molniya_2_14_parity(self) -> None:
+        for t in [0.0, 359.117678, 718.235357, 1440.0]:
+            self._assert_parity(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2, t)
+
+    def test_molniya_1_36_parity(self) -> None:
+        for t in [0.0, 358.541428, 717.082857, 1440.0]:
+            self._assert_parity(MOLNIYA_1_36_L1, MOLNIYA_1_36_L2, t)
+
+    def test_italsat_2_parity(self) -> None:
+        for t in [0.0, 714.441261, 1428.882522, 1440.0]:
+            self._assert_parity(ITALSAT_2_L1, ITALSAT_2_L2, t)
+
+    def test_vela_5a_parity(self) -> None:
+        for t in [0.0, 291.163502, 582.327004, 1440.0]:
+            self._assert_parity(VELA_5A_L1, VELA_5A_L2, t)
+
+    # --- Parity: near-earth satellite ---
+
+    def test_iss_near_earth_parity(self) -> None:
+        """Near-earth path is identical for both variants."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        params, method = sgp4_init(elements, WGS72)
+        assert method == "n"
+
+        for t in [0.0, 60.0, 360.0, 1440.0]:
+            r_scan, v_scan = sgp4_propagate(params, jnp.float64(t), method)
+            r_wl, v_wl = sgp4_propagate_unbounded(params, jnp.float64(t), method)
+            assert jnp.array_equal(r_scan, r_wl)
+            assert jnp.array_equal(v_scan, v_wl)
+
+    # --- Long time span (beyond scan default of 100 days) ---
+
+    def test_long_horizon_deep_space(self) -> None:
+        """Unbounded variant produces valid output beyond 100 days."""
+        elements = parse_tle(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2)
+        params, method = sgp4_init(elements, WGS72)
+        assert method == "d"
+
+        # 200 days = 288,000 minutes — exceeds default max_dspace_iters=200
+        tsince = jnp.float64(288_000.0)
+
+        r, v = sgp4_propagate_unbounded(params, tsince, method)
+        assert jnp.all(jnp.isfinite(r)), f"Position contains NaN/Inf: {r}"
+        assert jnp.all(jnp.isfinite(v)), f"Velocity contains NaN/Inf: {v}"
+
+        # Validate against python-sgp4 reference
+        e_ref, r_ref, v_ref = _get_reference(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2, 288_000.0)
+        assert e_ref == 0, f"Reference SGP4 error {e_ref}"
+        assert jnp.allclose(r, jnp.array(r_ref), atol=1e-6), (
+            f"Position mismatch at 200 days: {r} vs {r_ref}"
+        )
+        assert jnp.allclose(v, jnp.array(v_ref), atol=1e-9), (
+            f"Velocity mismatch at 200 days: {v} vs {v_ref}"
+        )
+
+    def test_long_horizon_negative_time(self) -> None:
+        """Unbounded variant works for backward propagation beyond 100 days."""
+        elements = parse_tle(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2)
+        params, method = sgp4_init(elements, WGS72)
+
+        tsince = jnp.float64(-288_000.0)
+        r, v = sgp4_propagate_unbounded(params, tsince, method)
+        assert jnp.all(jnp.isfinite(r)), f"Position contains NaN/Inf: {r}"
+        assert jnp.all(jnp.isfinite(v)), f"Velocity contains NaN/Inf: {v}"
+
+    # --- Unified unbounded ---
+
+    def test_unified_unbounded_deep_space(self) -> None:
+        """Unified unbounded matches scan-based unified for deep-space."""
+        elements = parse_tle(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        t = jnp.float64(60.0)
+        r_scan, v_scan = sgp4_propagate_unified(params, t)
+        r_wl, v_wl = sgp4_propagate_unified_unbounded(params, t)
+
+        assert jnp.allclose(r_scan, r_wl, atol=0.0)
+        assert jnp.allclose(v_scan, v_wl, atol=0.0)
+
+    def test_unified_unbounded_near_earth(self) -> None:
+        """Unified unbounded matches scan-based unified for near-earth."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        t = jnp.float64(60.0)
+        r_scan, v_scan = sgp4_propagate_unified(params, t)
+        r_wl, v_wl = sgp4_propagate_unified_unbounded(params, t)
+
+        assert jnp.allclose(r_scan, r_wl, atol=0.0)
+        assert jnp.allclose(v_scan, v_wl, atol=0.0)
+
+
+class TestSGP4UnboundedDifferentiability:
+    """Test forward-mode AD through unbounded SGP4 propagation.
+
+    Note: reverse-mode AD (jax.grad / jax.vjp) is NOT expected to work
+    with the unbounded variant — this is by design, as jax.lax.while_loop
+    does not support reverse-mode differentiation.
+    """
+
+    def test_jacfwd_deep_space_unbounded(self) -> None:
+        """jax.jacfwd through unbounded deep-space propagation produces finite Jacobian."""
+        elements = parse_tle(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2)
+        params, method = sgp4_init(elements, WGS72)
+        assert method == "d"
+
+        def pos_fn(p):
+            r, _v = sgp4_propagate_unbounded(p, jnp.float64(60.0), "d")
+            return r
+
+        jac = jax.jacfwd(pos_fn)(params)
+        assert jac.shape == (3, params.shape[0])
+        assert jnp.all(jnp.isfinite(jac)), "Jacobian contains NaN or Inf"
+
+    def test_jacfwd_near_earth_unbounded(self) -> None:
+        """jax.jacfwd through unbounded near-earth propagation produces finite Jacobian."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        params, method = sgp4_init(elements, WGS72)
+        assert method == "n"
+
+        def pos_fn(p):
+            r, _v = sgp4_propagate_unbounded(p, jnp.float64(60.0), "n")
+            return r
+
+        jac = jax.jacfwd(pos_fn)(params)
+        assert jac.shape == (3, params.shape[0])
+        assert jnp.all(jnp.isfinite(jac)), "Jacobian contains NaN or Inf"
+
+    def test_jacfwd_consistency_scan_vs_unbounded(self) -> None:
+        """Forward-mode Jacobians match between scan and unbounded variants."""
+        elements = parse_tle(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2)
+        params, method = sgp4_init(elements, WGS72)
+        assert method == "d"
+
+        def loss_scan(p):
+            r, _v = sgp4_propagate(p, jnp.float64(60.0), "d")
+            return jnp.sum(r**2)
+
+        def loss_unbounded(p):
+            r, _v = sgp4_propagate_unbounded(p, jnp.float64(60.0), "d")
+            return jnp.sum(r**2)
+
+        jac_scan = jax.jacfwd(loss_scan)(params)
+        jac_unbounded = jax.jacfwd(loss_unbounded)(params)
+
+        assert jnp.allclose(jac_scan, jac_unbounded, atol=1e-10), (
+            f"Max diff: {jnp.max(jnp.abs(jac_scan - jac_unbounded))}"
         )

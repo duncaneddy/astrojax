@@ -2139,9 +2139,207 @@ def _dspace_jax(
         return (atime_s, xni_s, xli_s), None
 
     init_state = (atime_init, xni_init, xli_init)
-    final_state, _ = jax.lax.scan(
-        _scan_body, init_state, jnp.arange(max_dspace_iters)
-    )
+    final_state, _ = jax.lax.scan(_scan_body, init_state, jnp.arange(max_dspace_iters))
+    atime_f, xni_f, xli_f = final_state
+
+    # Final interpolation to exact time t
+    ft = t - atime_f
+    xndt, xldot, xnddt = _compute_dot_terms(xli_f, xni_f, atime_f)
+
+    nm_res = xni_f + xndt * ft + xnddt * ft * ft * 0.5
+    xl = xli_f + xldot * ft + xndt * ft * ft * 0.5
+
+    # Mean anomaly update (different for irez==1 vs irez==2)
+    is_sync = jnp.abs(irez - 1.0) < 0.5
+    mm_sync = xl - nodem - argpm + theta
+    mm_half = xl - 2.0 * nodem + 2.0 * theta
+    mm_res = jnp.where(is_sync, mm_sync, mm_half)
+
+    dndt_res = nm_res - no
+    nm_res = no + dndt_res
+
+    # Apply resonance results only if resonant
+    nm = jnp.where(is_resonant, nm_res, nm)
+    mm = jnp.where(is_resonant, mm_res, mm)
+    dndt = jnp.where(is_resonant, dndt_res, dndt)
+
+    return em, argpm, inclm, mm, xni_f, nodem, dndt, nm
+
+
+def _dspace_jax_whileloop(
+    params: Array,
+    t: ArrayLike,
+    tc: ArrayLike,
+    em: ArrayLike,
+    argpm: ArrayLike,
+    inclm: ArrayLike,
+    mm: ArrayLike,
+    nodem: ArrayLike,
+    nm: ArrayLike,
+    idx: dict[str, int],
+) -> tuple[
+    ArrayLike,
+    ArrayLike,
+    ArrayLike,
+    ArrayLike,
+    ArrayLike,
+    ArrayLike,
+    ArrayLike,
+    ArrayLike,
+    ArrayLike,
+]:
+    """Numerical integration of deep-space resonance effects (JAX, while-loop).
+
+    This variant uses ``jax.lax.while_loop`` for the resonance integration,
+    which imposes no upper bound on the number of iterations. It supports
+    forward-mode AD (``jax.jacfwd`` / ``jax.jvp``) but **not** reverse-mode
+    AD (``jax.grad`` / ``jax.vjp``).
+
+    Args:
+        params: Flat parameter array.
+        t: Time since epoch [min].
+        tc: Same as t (for compatibility).
+        em: Eccentricity.
+        argpm: Argument of perigee [rad].
+        inclm: Inclination [rad].
+        mm: Mean anomaly [rad].
+        nodem: RAAN [rad].
+        nm: Mean motion [rad/min].
+        idx: Parameter index mapping.
+
+    Returns:
+        Tuple of (em, argpm, inclm, mm, xni, nodem, dndt, nm).
+    """
+    twopi = 2.0 * jnp.pi
+    fasx2 = 0.13130908
+    fasx4 = 2.8843198
+    fasx6 = 0.37448087
+    g22 = 5.7686396
+    g32 = 0.95240898
+    g44 = 1.8014998
+    g52 = 1.0508330
+    g54 = 4.4108898
+    rptim = 4.37526908801129966e-3
+    stepp = 720.0
+    step2 = 259200.0
+
+    irez = params[idx["irez"]]
+    d2201 = params[idx["d2201"]]
+    d2211 = params[idx["d2211"]]
+    d3210 = params[idx["d3210"]]
+    d3222 = params[idx["d3222"]]
+    d4410 = params[idx["d4410"]]
+    d4422 = params[idx["d4422"]]
+    d5220 = params[idx["d5220"]]
+    d5232 = params[idx["d5232"]]
+    d5421 = params[idx["d5421"]]
+    d5433 = params[idx["d5433"]]
+    dedt = params[idx["dedt"]]
+    del1 = params[idx["del1"]]
+    del2 = params[idx["del2"]]
+    del3 = params[idx["del3"]]
+    didt = params[idx["didt"]]
+    dmdt = params[idx["dmdt"]]
+    dnodt = params[idx["dnodt"]]
+    domdt = params[idx["domdt"]]
+    argpo = params[idx["argpo"]]
+    argpdot = params[idx["argpdot"]]
+    gsto = params[idx["gsto"]]
+    xfact = params[idx["xfact"]]
+    xlamo = params[idx["xlamo"]]
+    no = params[idx["no_unkozai"]]
+
+    dndt = jnp.float64(0.0) if params.dtype == jnp.float64 else jnp.float32(0.0)
+    theta = (gsto + tc * rptim) % twopi
+    em = em + dedt * t
+    inclm = inclm + didt * t
+    argpm = argpm + domdt * t
+    nodem = nodem + dnodt * t
+    mm = mm + dmdt * t
+
+    # Resonance integration (only if irez != 0)
+    is_resonant = jnp.abs(irez) > 0.5
+
+    # Initialize integration state
+    atime_init = jnp.zeros_like(t)
+    xni_init = no
+    xli_init = xlamo
+
+    delt = jnp.where(t > 0.0, stepp, -stepp)
+
+    def _compute_dot_terms(xli_val, xni_val, atime_val):
+        """Compute xndt, xldot, xnddt for both resonance types."""
+        # Synchronous (irez == 1)
+        xndt_sync = (
+            del1 * jnp.sin(xli_val - fasx2)
+            + del2 * jnp.sin(2.0 * (xli_val - fasx4))
+            + del3 * jnp.sin(3.0 * (xli_val - fasx6))
+        )
+        xldot_sync = xni_val + xfact
+        xnddt_sync = (
+            del1 * jnp.cos(xli_val - fasx2)
+            + 2.0 * del2 * jnp.cos(2.0 * (xli_val - fasx4))
+            + 3.0 * del3 * jnp.cos(3.0 * (xli_val - fasx6))
+        )
+        xnddt_sync = xnddt_sync * xldot_sync
+
+        # Half-day (irez == 2)
+        xomi = argpo + argpdot * atime_val
+        x2omi = xomi + xomi
+        x2li = xli_val + xli_val
+        xndt_hd = (
+            d2201 * jnp.sin(x2omi + xli_val - g22)
+            + d2211 * jnp.sin(xli_val - g22)
+            + d3210 * jnp.sin(xomi + xli_val - g32)
+            + d3222 * jnp.sin(-xomi + xli_val - g32)
+            + d4410 * jnp.sin(x2omi + x2li - g44)
+            + d4422 * jnp.sin(x2li - g44)
+            + d5220 * jnp.sin(xomi + xli_val - g52)
+            + d5232 * jnp.sin(-xomi + xli_val - g52)
+            + d5421 * jnp.sin(xomi + x2li - g54)
+            + d5433 * jnp.sin(-xomi + x2li - g54)
+        )
+        xldot_hd = xni_val + xfact
+        xnddt_hd = (
+            d2201 * jnp.cos(x2omi + xli_val - g22)
+            + d2211 * jnp.cos(xli_val - g22)
+            + d3210 * jnp.cos(xomi + xli_val - g32)
+            + d3222 * jnp.cos(-xomi + xli_val - g32)
+            + d5220 * jnp.cos(xomi + xli_val - g52)
+            + d5232 * jnp.cos(-xomi + xli_val - g52)
+            + 2.0
+            * (
+                d4410 * jnp.cos(x2omi + x2li - g44)
+                + d4422 * jnp.cos(x2li - g44)
+                + d5421 * jnp.cos(xomi + x2li - g54)
+                + d5433 * jnp.cos(-xomi + x2li - g54)
+            )
+        )
+        xnddt_hd = xnddt_hd * xldot_hd
+
+        is_half_day = jnp.abs(irez - 2.0) < 0.5
+        xndt = jnp.where(is_half_day, xndt_hd, xndt_sync)
+        xldot = jnp.where(is_half_day, xldot_hd, xldot_sync)
+        xnddt = jnp.where(is_half_day, xnddt_hd, xnddt_sync)
+        return xndt, xldot, xnddt
+
+    # Integration loop using while_loop with dynamic termination.
+    # This supports forward-mode AD (jacfwd/jvp) but NOT reverse-mode
+    # AD (grad/vjp). There is no upper bound on iteration count.
+    def _loop_cond(state):
+        atime_s, xni_s, xli_s = state
+        return jnp.abs(t - atime_s) >= stepp
+
+    def _loop_body(state):
+        atime_s, xni_s, xli_s = state
+        xndt, xldot, xnddt = _compute_dot_terms(xli_s, xni_s, atime_s)
+        xli_s = xli_s + xldot * delt + xndt * step2
+        xni_s = xni_s + xndt * delt + xnddt * step2
+        atime_s = atime_s + delt
+        return (atime_s, xni_s, xli_s)
+
+    init_state = (atime_init, xni_init, xli_init)
+    final_state = jax.lax.while_loop(_loop_cond, _loop_body, init_state)
     atime_f, xni_f, xli_f = final_state
 
     # Final interpolation to exact time t
@@ -2256,6 +2454,223 @@ def sgp4_propagate_deep_space_impl(
         dndt,
         nm,
     ) = _dspace_jax(params, t, tc, em, argpm, inclm, mm, nodem, nm, idx, max_dspace_iters)
+
+    # Error check: nm <= 0
+    nm_ok = nm > 0.0
+
+    am = (xke / nm) ** x2o3 * tempa * tempa
+    nm = xke / am**1.5
+    em = em - tempe
+
+    em_ok = (em < 1.0) & (em >= -0.001)
+    em = jnp.clip(em, 1.0e-6, 0.999999)
+
+    mm = mm + no_unkozai * templ
+    xlm = mm + argpm + nodem
+
+    nodem = nodem % twopi
+    argpm = argpm % twopi
+    xlm = xlm % twopi
+    mm = (xlm - argpm - nodem) % twopi
+
+    # --- Deep space: _dpper ---
+    ep = em
+    xincp = inclm
+    argpp = argpm
+    nodep = nodem
+    mp = mm
+
+    ep, xincp, nodep, argpp, mp = _dpper_jax(params, t, ep, xincp, nodep, argpp, mp, idx)
+
+    # Fix negative inclination
+    xincp = jnp.where(xincp < 0.0, -xincp, xincp)
+    nodep = jnp.where(xincp < 0.0, nodep + jnp.pi, nodep)
+    argpp = jnp.where(xincp < 0.0, argpp - jnp.pi, argpp)
+
+    ep_ok = (ep >= 0.0) & (ep <= 1.0)
+
+    # Recompute sinip/cosip for deep space
+    sinip = jnp.sin(xincp)
+    cosip = jnp.cos(xincp)
+
+    # Recompute aycof and xlcof for deep space
+    aycof = -0.5 * j3oj2 * sinip
+    xlcof_ds = jnp.where(
+        jnp.abs(cosip + 1.0) > 1.5e-12,
+        -0.25 * j3oj2 * sinip * (3.0 + 5.0 * cosip) / (1.0 + cosip),
+        -0.25 * j3oj2 * sinip * (3.0 + 5.0 * cosip) / temp4,
+    )
+
+    # --- Long period periodics ---
+    axnl = ep * jnp.cos(argpp)
+    temp_lp = 1.0 / (am * (1.0 - ep * ep))
+    aynl = ep * jnp.sin(argpp) + temp_lp * aycof
+    xl = mp + argpp + nodep + temp_lp * xlcof_ds * axnl
+
+    # --- Kepler's equation ---
+    u = (xl - nodep) % twopi
+
+    def kepler_step(i, eo1):
+        sineo1 = jnp.sin(eo1)
+        coseo1 = jnp.cos(eo1)
+        denom = 1.0 - coseo1 * axnl - sineo1 * aynl
+        tem5 = (u - aynl * coseo1 + axnl * sineo1 - eo1) / denom
+        tem5 = jnp.clip(tem5, -0.95, 0.95)
+        return eo1 + tem5
+
+    eo1 = jax.lax.fori_loop(0, 10, kepler_step, u)
+
+    sineo1 = jnp.sin(eo1)
+    coseo1 = jnp.cos(eo1)
+
+    # --- Short period quantities ---
+    ecose = axnl * coseo1 + aynl * sineo1
+    esine = axnl * sineo1 - aynl * coseo1
+    el2 = axnl * axnl + aynl * aynl
+    pl = am * (1.0 - el2)
+    pl_ok = pl >= 0.0
+
+    rl = am * (1.0 - ecose)
+    rdotl = jnp.sqrt(am) * esine / rl
+    rvdotl = jnp.sqrt(pl) / rl
+    betal = jnp.sqrt(1.0 - el2)
+    temp_sp = esine / (1.0 + betal)
+    sinu = am / rl * (sineo1 - aynl - axnl * temp_sp)
+    cosu = am / rl * (coseo1 - axnl + aynl * temp_sp)
+    su = jnp.arctan2(sinu, cosu)
+    sin2u = (cosu + cosu) * sinu
+    cos2u = 1.0 - 2.0 * sinu * sinu
+    temp_sp2 = 1.0 / pl
+    temp1 = 0.5 * j2 * temp_sp2
+    temp2 = temp1 * temp_sp2
+
+    # For deep space, recompute con41, x1mth2, x7thm1
+    cosisq = cosip * cosip
+    con41 = 3.0 * cosisq - 1.0
+    x1mth2 = 1.0 - cosisq
+    x7thm1 = 7.0 * cosisq - 1.0
+
+    mrt = rl * (1.0 - 1.5 * temp2 * betal * con41) + 0.5 * temp1 * x1mth2 * cos2u
+    su = su - 0.25 * temp2 * x7thm1 * sin2u
+    xnode = nodep + 1.5 * temp2 * cosip * sin2u
+    xinc = xincp + 1.5 * temp2 * cosip * sinip * cos2u
+    mvt = rdotl - nm * temp1 * x1mth2 * sin2u / xke
+    rvdot = rvdotl + nm * temp1 * (x1mth2 * cos2u + 1.5 * con41) / xke
+
+    # --- Orientation vectors ---
+    sinsu = jnp.sin(su)
+    cossu = jnp.cos(su)
+    snod = jnp.sin(xnode)
+    cnod = jnp.cos(xnode)
+    sini = jnp.sin(xinc)
+    cosi = jnp.cos(xinc)
+    xmx = -snod * cosi
+    xmy = cnod * cosi
+    ux = xmx * sinsu + cnod * cossu
+    uy = xmy * sinsu + snod * cossu
+    uz = sini * sinsu
+    vx = xmx * cossu - cnod * sinsu
+    vy = xmy * cossu - snod * sinsu
+    vz = sini * cossu
+
+    _mr = mrt * radiusearthkm
+    r = jnp.array([_mr * ux, _mr * uy, _mr * uz])
+    v = jnp.array(
+        [
+            (mvt * ux + rvdot * vx) * vkmpersec,
+            (mvt * uy + rvdot * vy) * vkmpersec,
+            (mvt * uz + rvdot * vz) * vkmpersec,
+        ]
+    )
+
+    valid = nm_ok & em_ok & ep_ok & pl_ok & (mrt >= 1.0)
+    nan3 = jnp.full(3, jnp.nan)
+    r = jnp.where(valid, r, nan3)
+    v = jnp.where(valid, v, nan3)
+
+    return r, v
+
+
+def sgp4_propagate_deep_space_impl_unbounded(
+    params: Array,
+    tsince: ArrayLike,
+    idx: dict[str, int],
+) -> tuple[Array, Array]:
+    """Propagate deep-space satellite using SDP4 with unbounded integration.
+
+    This variant uses ``jax.lax.while_loop`` for the resonance integration,
+    which imposes no upper bound on the number of iterations. It supports
+    forward-mode AD (``jax.jacfwd`` / ``jax.jvp``) but **not** reverse-mode
+    AD (``jax.grad`` / ``jax.vjp``).
+
+    Args:
+        params: Flat parameter array from ``sgp4_init``.
+        tsince: Time since epoch in minutes.
+        idx: Parameter index mapping.
+
+    Returns:
+        Tuple of ``(r, v)`` where ``r`` is position [km] and ``v`` is
+        velocity [km/s], both as 3-element arrays in the TEME frame.
+    """
+    twopi = 2.0 * jnp.pi
+    x2o3 = 2.0 / 3.0
+    temp4 = 1.5e-12
+
+    p = params
+    radiusearthkm = p[idx["radiusearthkm"]]
+    xke = p[idx["xke"]]
+    j2 = p[idx["j2"]]
+    j3oj2 = p[idx["j3oj2"]]
+    bstar = p[idx["bstar"]]
+    ecco = p[idx["ecco"]]
+    argpo = p[idx["argpo"]]
+    inclo = p[idx["inclo"]]
+    mo = p[idx["mo"]]
+    nodeo = p[idx["nodeo"]]
+    no_unkozai = p[idx["no_unkozai"]]
+    con41 = p[idx["con41"]]
+    cc1 = p[idx["cc1"]]
+    cc4 = p[idx["cc4"]]
+    argpdot = p[idx["argpdot"]]
+    t2cof = p[idx["t2cof"]]
+    mdot = p[idx["mdot"]]
+    nodedot = p[idx["nodedot"]]
+    nodecf = p[idx["nodecf"]]
+    aycof = p[idx["aycof"]]
+
+    vkmpersec = radiusearthkm * xke / 60.0
+    t = tsince
+
+    # --- Secular gravity and atmospheric drag ---
+    xmdf = mo + mdot * t
+    argpdf = argpo + argpdot * t
+    nodedf = nodeo + nodedot * t
+    argpm = argpdf
+    mm = xmdf
+    t2 = t * t
+    nodem = nodedf + nodecf * t2
+    tempa = 1.0 - cc1 * t
+    tempe = bstar * cc4 * t
+    templ = t2cof * t2
+
+    # isimp is always 1 for deep space, so skip non-simplified corrections
+
+    nm = no_unkozai
+    em = ecco
+    inclm = inclo
+
+    # --- Deep space: _dspace (while-loop variant) ---
+    tc = t
+    (
+        em,
+        argpm,
+        inclm,
+        mm,
+        xni,
+        nodem,
+        dndt,
+        nm,
+    ) = _dspace_jax_whileloop(params, t, tc, em, argpm, inclm, mm, nodem, nm, idx)
 
     # Error check: nm <= 0
     nm_ok = nm > 0.0
