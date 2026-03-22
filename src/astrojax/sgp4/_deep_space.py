@@ -2118,21 +2118,30 @@ def _dspace_jax(
         xnddt = jnp.where(is_half_day, xnddt_hd, xnddt_sync)
         return xndt, xldot, xnddt
 
-    # Integration loop using while_loop
-    def _loop_cond(state):
-        atime_s, xni_s, xli_s = state
-        return jnp.abs(t - atime_s) >= stepp
+    # Integration loop using lax.scan with static upper bound.
+    # The loop runs floor(|t|/stepp) iterations. We use scan with a fixed
+    # max iteration count to support reverse-mode AD (jax.grad), since
+    # while_loop and fori_loop with dynamic bounds do not.
+    # Max 200 iterations = 200*720 = 144000 minutes ≈ 100 days.
+    _MAX_DSPACE_ITERS = 200
+    n_iters = jnp.floor(jnp.abs(t) / stepp).astype(jnp.int32)
 
-    def _loop_body(state):
+    def _scan_body(state, i):
         atime_s, xni_s, xli_s = state
+        active = i < n_iters
         xndt, xldot, xnddt = _compute_dot_terms(xli_s, xni_s, atime_s)
-        xli_s = xli_s + xldot * delt + xndt * step2
-        xni_s = xni_s + xndt * delt + xnddt * step2
-        atime_s = atime_s + delt
-        return (atime_s, xni_s, xli_s)
+        new_xli = xli_s + xldot * delt + xndt * step2
+        new_xni = xni_s + xndt * delt + xnddt * step2
+        new_atime = atime_s + delt
+        atime_s = jnp.where(active, new_atime, atime_s)
+        xni_s = jnp.where(active, new_xni, xni_s)
+        xli_s = jnp.where(active, new_xli, xli_s)
+        return (atime_s, xni_s, xli_s), None
 
     init_state = (atime_init, xni_init, xli_init)
-    final_state = jax.lax.while_loop(_loop_cond, _loop_body, init_state)
+    final_state, _ = jax.lax.scan(
+        _scan_body, init_state, jnp.arange(_MAX_DSPACE_ITERS)
+    )
     atime_f, xni_f, xli_f = final_state
 
     # Final interpolation to exact time t

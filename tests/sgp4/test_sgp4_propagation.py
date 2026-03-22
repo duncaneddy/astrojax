@@ -995,13 +995,7 @@ class TestSGP4InitJaxEndToEnd:
 
 
 class TestSGP4Differentiability:
-    """Test gradient computation through init + propagate.
-
-    Note: sgp4_propagate_unified uses jax.lax.cond which traces both
-    branches. The deep-space branch contains a while_loop that is not
-    compatible with reverse-mode AD. Use sgp4_propagate with method='n'
-    for differentiable near-earth propagation.
-    """
+    """Test gradient computation through init + propagate (near-earth)."""
 
     def test_grad_through_near_earth_propagate(self) -> None:
         """jax.grad through near-earth propagation produces finite gradients."""
@@ -1032,3 +1026,80 @@ class TestSGP4Differentiability:
         grads = grad_fn(arr)
         assert grads.shape == (11,)
         assert jnp.all(jnp.isfinite(grads)), f"Gradients contain NaN/Inf: {grads}"
+
+
+class TestSGP4DeepSpaceDifferentiability:
+    """Test reverse-mode AD (jax.grad) through deep-space SGP4 propagation."""
+
+    def test_grad_deep_space_propagate(self) -> None:
+        """jax.grad through deep-space propagation produces finite gradients."""
+        elements = parse_tle(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2)
+        params, method = sgp4_init(elements, WGS72)
+        assert method == "d"
+
+        def loss(p):
+            r, _v = sgp4_propagate(p, jnp.float64(60.0), "d")
+            return jnp.sum(r**2)
+
+        grads = jax.grad(loss)(params)
+        assert jnp.all(jnp.isfinite(grads)), "Gradients contain NaN or Inf"
+
+    def test_grad_unified_deep_space(self) -> None:
+        """jax.grad through unified propagation with a deep-space satellite."""
+        elements = parse_tle(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        def loss(p):
+            r, _v = sgp4_propagate_unified(p, jnp.float64(60.0))
+            return jnp.sum(r**2)
+
+        grads = jax.grad(loss)(params)
+        assert jnp.all(jnp.isfinite(grads)), "Gradients contain NaN or Inf"
+
+    def test_grad_unified_near_earth(self) -> None:
+        """jax.grad through unified propagation still works for near-earth."""
+        elements = parse_tle(ISS_LINE1, ISS_LINE2)
+        arr = elements_to_array(elements)
+        params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
+
+        def loss(p):
+            r, _v = sgp4_propagate_unified(p, jnp.float64(60.0))
+            return jnp.sum(r**2)
+
+        grads = jax.grad(loss)(params)
+        assert jnp.all(jnp.isfinite(grads)), "Gradients contain NaN or Inf"
+
+    def test_grad_through_init_and_deep_space_propagate(self) -> None:
+        """jax.grad through init + deep-space propagate end-to-end."""
+        elements = parse_tle(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2)
+        arr = elements_to_array(elements)
+
+        @jax.jit
+        def loss(elems):
+            p = sgp4_init_jax(elems, gravity=WGS72, opsmode="i")
+            r, _v = sgp4_propagate_unified(p, jnp.float64(60.0))
+            return jnp.sum(r**2)
+
+        grads = jax.grad(loss)(arr)
+        assert grads.shape == (11,)
+        assert jnp.all(jnp.isfinite(grads)), f"Gradients contain NaN/Inf: {grads}"
+
+    def test_grad_consistency_with_jvp(self) -> None:
+        """Verify jax.grad matches jax.jacfwd for deep-space propagation."""
+        elements = parse_tle(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2)
+        params, method = sgp4_init(elements, WGS72)
+        assert method == "d"
+
+        def loss(p):
+            r, _v = sgp4_propagate(p, jnp.float64(60.0), "d")
+            return jnp.sum(r**2)
+
+        # Forward-mode gradient (via jacfwd)
+        jvp_grad = jax.jacfwd(loss)(params)
+        # Reverse-mode gradient (via grad)
+        vjp_grad = jax.grad(loss)(params)
+
+        assert jnp.allclose(jvp_grad, vjp_grad, atol=1e-10), (
+            f"Max diff: {jnp.max(jnp.abs(jvp_grad - vjp_grad))}"
+        )
