@@ -161,11 +161,60 @@ class GravityModel:
         self.data = data
         self.tide_system = tide_system
         self.normalization = normalization
+        self._precompute_coefficients()
 
     @property
     def is_normalized(self) -> bool:
         """Whether the coefficients are fully normalized."""
         return self.normalization == "fully_normalized"
+
+    def _precompute_coefficients(self) -> None:
+        """Precompute denormalized C_nm, S_nm, and the recursion factor Fac.
+
+        Builds three ``(n_max+1, n_max+1)`` arrays ready for the spherical
+        harmonic acceleration loop:
+
+        - ``coeff_c[n, m]`` — denormalized cosine coefficient
+        - ``coeff_s[n, m]`` — denormalized sine coefficient (zero for m=0)
+        - ``fac[n, m]``     — ``0.5 * (n - m + 1) * (n - m + 2)`` (m >= 1 only)
+
+        Hoisting the sqrt + factorial work out of the per-evaluation hot loop
+        gives a large propagation speedup on high-degree models (see brahe
+        PR #290 for the analogous Rust change).
+
+        Must be called whenever ``data``, ``n_max``, ``m_max``, or
+        ``normalization`` changes.
+        """
+        dtype = get_dtype()
+        size = self.n_max + 1
+        coeff_c = [[0.0] * size for _ in range(size)]
+        coeff_s = [[0.0] * size for _ in range(size)]
+        fac = [[0.0] * size for _ in range(size)]
+
+        is_normalized = self.is_normalized
+        for n in range(self.n_max + 1):
+            nf = float(n)
+            c_raw_zonal = float(self.data[n, 0])
+            coeff_c[n][0] = (
+                math.sqrt(2.0 * nf + 1.0) * c_raw_zonal if is_normalized else c_raw_zonal
+            )
+
+            for m in range(1, min(n, self.m_max) + 1):
+                mf = float(m)
+                c_raw = float(self.data[n, m])
+                s_raw = float(self.data[m - 1, n])
+                if is_normalized:
+                    norm = math.sqrt(2.0 * (2.0 * nf + 1.0) * _factorial_product(n, m))
+                    coeff_c[n][m] = norm * c_raw
+                    coeff_s[n][m] = norm * s_raw
+                else:
+                    coeff_c[n][m] = c_raw
+                    coeff_s[n][m] = s_raw
+                fac[n][m] = 0.5 * (nf - mf + 1.0) * (nf - mf + 2.0)
+
+        self.coeff_c = jnp.array(coeff_c, dtype=dtype)
+        self.coeff_s = jnp.array(coeff_s, dtype=dtype)
+        self.fac = jnp.array(fac, dtype=dtype)
 
     # ------------------------------------------------------------------
     # Factory methods
@@ -277,6 +326,7 @@ class GravityModel:
         self.data = self.data[:new_size, :new_size].copy()
         self.n_max = n
         self.m_max = m
+        self._precompute_coefficients()
 
     # ------------------------------------------------------------------
     # GFC parser
@@ -449,18 +499,17 @@ def accel_gravity_spherical_harmonics(
     # Transform to body-fixed frame
     r_bf = R @ r
 
-    # Convert model data to JAX array
-    CS = jnp.asarray(gravity_model.data, dtype=_float)
-
-    # Compute acceleration in body-fixed frame
+    # Compute acceleration in body-fixed frame using precomputed coefficient
+    # tables (built once at model load by _precompute_coefficients).
     a_bf = _compute_spherical_harmonics(
         r_bf,
-        CS,
+        gravity_model.coeff_c,
+        gravity_model.coeff_s,
+        gravity_model.fac,
         n_max,
         m_max,
         gravity_model.radius,
         gravity_model.gm,
-        gravity_model.is_normalized,
     )
 
     # Transform back to ECI
@@ -469,12 +518,13 @@ def accel_gravity_spherical_harmonics(
 
 def _compute_spherical_harmonics(
     r_bf: Array,
-    CS: Array,
+    coeff_c: Array,
+    coeff_s: Array,
+    fac: Array,
     n_max: int,
     m_max: int,
     r_ref: float,
     gm: float,
-    is_normalized: bool,
 ) -> Array:
     """Core V/W recursion for spherical harmonic gravity using ``jax.lax.fori_loop``.
 
@@ -484,12 +534,16 @@ def _compute_spherical_harmonics(
 
     Args:
         r_bf: Position in body-fixed frame [m], shape ``(3,)``.
-        CS: Coefficient matrix from GravityModel, shape ``(N+1, M+1)``.
+        coeff_c: Denormalized C_nm coefficients (precomputed by GravityModel),
+            shape ``(N+1, N+1)``.
+        coeff_s: Denormalized S_nm coefficients (precomputed by GravityModel),
+            shape ``(N+1, N+1)``. Entries with m=0 are zero.
+        fac: Recursion factor ``0.5 * (n - m + 1) * (n - m + 2)`` (precomputed
+            by GravityModel), shape ``(N+1, N+1)``. Entries with m=0 are zero.
         n_max: Maximum degree for evaluation.
         m_max: Maximum order for evaluation.
         r_ref: Reference radius [m].
         gm: Gravitational parameter [m^3/s^2].
-        is_normalized: Whether coefficients are fully normalized.
 
     Returns:
         Acceleration in body-fixed frame [m/s^2], shape ``(3,)``.
@@ -560,31 +614,7 @@ def _compute_spherical_harmonics(
 
     V, W = jax.lax.fori_loop(1, m_max + 2, tesseral_outer, (V, W))
 
-    # --- Precompute denormalized coefficient arrays ---
-    # Build normalization matrix using pure Python loops (no tracing)
-    norm = [[1.0] * (m_max + 1) for _ in range(n_max + 1)]
-    if is_normalized:
-        for n in range(n_max + 1):
-            nf = float(n)
-            norm[n][0] = math.sqrt(2.0 * nf + 1.0)
-            for m in range(1, min(n, m_max) + 1):
-                norm[n][m] = math.sqrt(2.0 * (2.0 * nf + 1.0) * _factorial_product(n, m))
-
-    norm_jax = jnp.array(norm, dtype=dtype)
-
-    # Denormalized C coefficients: C_arr[n, m] = norm[n, m] * CS[n, m]
-    C_arr = CS[: n_max + 1, : m_max + 1] * norm_jax
-
-    # Denormalized S coefficients from lower-triangle storage
-    # S_arr[n, m] = norm[n, m] * CS[m-1, n]  for m >= 1;  column 0 stays zero
-    S_arr = jnp.zeros((n_max + 1, m_max + 1), dtype=dtype)
-    if m_max > 0:
-        # CS[m-1, n] for m=1..m_max, n=0..n_max  =>  CS[0:m_max, 0:n_max+1].T
-        S_arr = S_arr.at[:, 1 : m_max + 1].set(
-            CS[0:m_max, 0 : n_max + 1].T * norm_jax[:, 1 : m_max + 1]
-        )
-
-    # --- Loop 3: Acceleration accumulation ---
+    # --- Loop 3: Acceleration accumulation (reads precomputed coeff_c/coeff_s/fac) ---
     def accum_outer(m: int, state: tuple[Array, Array, Array]) -> tuple[Array, Array, Array]:
         ax, ay, az = state
         mf = m.astype(dtype)
@@ -594,8 +624,8 @@ def _compute_spherical_harmonics(
         ) -> tuple[Array, Array, Array]:
             ax, ay, az = inner_state
             nf = n.astype(dtype)
-            C = C_arr[n, m]
-            S = S_arr[n, m]
+            C = coeff_c[n, m]
+            S = coeff_s[n, m]
 
             # m == 0 branch (zonal)
             ax_z = ax - C * V[n + 1, 1]
@@ -603,7 +633,7 @@ def _compute_spherical_harmonics(
             az_z = az - (nf + 1.0) * C * V[n + 1, 0]
 
             # m != 0 branch (tesseral/sectorial)
-            Fac = 0.5 * (nf - mf + 1.0) * (nf - mf + 2.0)
+            Fac = fac[n, m]
             ax_t = ax + (
                 0.5 * (-C * V[n + 1, m + 1] - S * W[n + 1, m + 1])
                 + Fac * (C * V[n + 1, m - 1] + S * W[n + 1, m - 1])
