@@ -22,9 +22,9 @@ from pathlib import Path
 import jax.numpy as jnp
 
 from astrojax.config import get_dtype
-from astrojax.eop._download import _STANDARD_FILENAME, download_standard_eop_file
-from astrojax.eop._parsers import parse_standard_file
-from astrojax.eop._types import EOPData
+from astrojax.eop.download import _STANDARD_FILENAME, download_standard_eop_file
+from astrojax.eop.parsers import parse_standard_file
+from astrojax.eop.types import EOPData
 from astrojax.utils.caching import get_eop_cache_dir, is_file_stale
 
 logger = logging.getLogger(__name__)

@@ -32,7 +32,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
-from _brahe_reference import full_force_state_after, two_body_state_after
+from brahe_reference import full_force_state_after, two_body_state_after
 
 from astrojax.config import get_dtype, set_dtype
 from astrojax.constants import GM_EARTH, R_EARTH

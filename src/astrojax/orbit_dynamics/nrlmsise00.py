@@ -41,12 +41,12 @@ from astrojax.orbit_dynamics.nrlmsise00_data import (
     PTL,
     PTM,
 )
-from astrojax.space_weather._lookup import (
+from astrojax.space_weather.lookup import (
     get_sw_ap_array,
     get_sw_f107_obs,
     get_sw_f107_obs_ctr81,
 )
-from astrojax.space_weather._types import SpaceWeatherData
+from astrojax.space_weather.types import SpaceWeatherData
 from astrojax.time import caldate_to_mjd, mjd_to_caldate
 
 # ---------------------------------------------------------------------------

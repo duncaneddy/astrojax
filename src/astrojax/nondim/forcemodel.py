@@ -22,7 +22,7 @@ from jax import Array
 from jax.typing import ArrayLike
 
 from astrojax.constants import GM_EARTH, P_SUN
-from astrojax.eop._types import EOPData
+from astrojax.eop.types import EOPData
 from astrojax.epoch import Epoch
 from astrojax.frames import rotation_eci_to_ecef
 from astrojax.frames.gcrf_itrf import bias_precession_nutation
@@ -51,7 +51,7 @@ from astrojax.orbit_dynamics.third_body import (
     accel_third_body_moon,
     accel_third_body_sun,
 )
-from astrojax.space_weather._types import SpaceWeatherData
+from astrojax.space_weather.types import SpaceWeatherData
 
 
 def to_nondim_gravity_model(model: GravityModel, units: UnitSystem) -> GravityModel:

@@ -9,8 +9,8 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from astrojax.sgp4._tle import parse_omm
-from astrojax.sgp4._types import SGP4Elements
+from astrojax.sgp4.tle import parse_omm
+from astrojax.sgp4.types import SGP4Elements
 
 
 def _flex_float(val: object) -> float | None:
@@ -149,7 +149,7 @@ class GPRecord:
     def to_sgp4_elements(self) -> SGP4Elements:
         """Convert this GP record to SGP4 orbital elements.
 
-        Delegates to :func:`~astrojax.sgp4._tle.parse_omm` using the
+        Delegates to :func:`~astrojax.sgp4.tle.parse_omm` using the
         OMM field names expected by that function.
 
         Returns:

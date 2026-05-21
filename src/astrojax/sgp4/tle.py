@@ -9,7 +9,7 @@ for SGP4 initialization.
 from datetime import datetime
 from math import pi
 
-from astrojax.sgp4._types import SGP4Elements
+from astrojax.sgp4.types import SGP4Elements
 
 # Conversion constants (matching reference sgp4 library exactly)
 _DEG2RAD = pi / 180.0

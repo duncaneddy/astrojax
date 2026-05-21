@@ -3,13 +3,13 @@
 Provides a client for querying satellite catalog data from Space-Track.org.
 """
 
-from astrojax._gp_record import GPRecord
-from astrojax.spacetrack._client import SpaceTrackClient
-from astrojax.spacetrack._operators import operators
-from astrojax.spacetrack._query import SpaceTrackQuery
-from astrojax.spacetrack._rate_limiter import RateLimitConfig
-from astrojax.spacetrack._responses import SATCATRecord
-from astrojax.spacetrack._types import (
+from astrojax.gp_record import GPRecord
+from astrojax.spacetrack.client import SpaceTrackClient
+from astrojax.spacetrack.operators import operators
+from astrojax.spacetrack.query import SpaceTrackQuery
+from astrojax.spacetrack.rate_limiter import RateLimitConfig
+from astrojax.spacetrack.responses import SATCATRecord
+from astrojax.spacetrack.types import (
     OutputFormat,
     RequestClass,
     RequestController,

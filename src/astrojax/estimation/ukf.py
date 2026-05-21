@@ -24,7 +24,7 @@ from jax import Array
 from jax.typing import ArrayLike
 
 from astrojax.config import get_dtype
-from astrojax.estimation._types import FilterResult, FilterState, UKFConfig
+from astrojax.estimation.types import FilterResult, FilterState, UKFConfig
 
 
 def _sigma_points(

@@ -20,9 +20,9 @@ from pathlib import Path
 import jax.numpy as jnp
 
 from astrojax.config import get_dtype
-from astrojax.space_weather._download import _SW_FILENAME, download_sw_file
-from astrojax.space_weather._parsers import parse_cssi_file
-from astrojax.space_weather._types import SpaceWeatherData
+from astrojax.space_weather.download import _SW_FILENAME, download_sw_file
+from astrojax.space_weather.parsers import parse_cssi_file
+from astrojax.space_weather.types import SpaceWeatherData
 from astrojax.utils.caching import get_sw_cache_dir, is_file_stale
 
 logger = logging.getLogger(__name__)

@@ -26,7 +26,8 @@ from jax import Array
 from astrojax.attitude_representations import Rx, Rz
 from astrojax.constants import AU
 from astrojax.epoch import Epoch
-from astrojax.orbit_dynamics._jpl_planetary_coefficients import (
+from astrojax.orbit_dynamics.ephemerides import _julian_centuries_from_j2000
+from astrojax.orbit_dynamics.jpl_planetary_coefficients import (
     EMB_ID,
     JUPITER_ID,
     MARS_ID,
@@ -38,7 +39,6 @@ from astrojax.orbit_dynamics._jpl_planetary_coefficients import (
     URANUS_ID,
     VENUS_ID,
 )
-from astrojax.orbit_dynamics.ephemerides import _julian_centuries_from_j2000
 from astrojax.orbits import anomaly_mean_to_eccentric
 
 

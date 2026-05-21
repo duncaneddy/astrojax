@@ -1,13 +1,13 @@
 """Tests for Celestrak client-side filter engine."""
 
-from astrojax._gp_record import GPRecord
-from astrojax.celestrak._filter import (
+from astrojax.celestrak.filter import (
     apply_filters,
     apply_limit,
     apply_order_by,
     get_field,
 )
-from astrojax.celestrak._responses import CelestrakSATCATRecord
+from astrojax.celestrak.responses import CelestrakSATCATRecord
+from astrojax.gp_record import GPRecord
 
 
 class TestGetField:

@@ -3,8 +3,7 @@
 Provides angle conversion helpers and filesystem cache management.
 """
 
-from astrojax.utils._angle import from_radians, to_radians
-from astrojax.utils._interpolation import hermite_interp, make_hermite_position_fn
+from astrojax.utils.angle import from_radians, to_radians
 from astrojax.utils.caching import (
     file_age_days,
     file_age_seconds,
@@ -14,6 +13,7 @@ from astrojax.utils.caching import (
     get_eop_cache_dir,
     is_file_stale,
 )
+from astrojax.utils.interpolation import hermite_interp, make_hermite_position_fn
 
 __all__ = [
     "file_age_days",

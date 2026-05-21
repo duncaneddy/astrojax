@@ -6,20 +6,20 @@ See the [DAMIT User Guide](../../user_guide/datasets/damit.md) for concepts and 
 
 ## Download
 
-::: astrojax.datasets._damit_download
+::: astrojax.datasets.damit_download
 
 ## Parsers
 
-::: astrojax.datasets._damit_parsers
+::: astrojax.datasets.damit_parsers
 
 ## Providers
 
-::: astrojax.datasets._damit_providers
+::: astrojax.datasets.damit_providers
 
 ## Spin Computation
 
-::: astrojax.datasets._damit_spin
+::: astrojax.datasets.damit_spin
 
 ## Mesh Export
 
-::: astrojax.datasets._damit_shapes
+::: astrojax.datasets.damit_shapes

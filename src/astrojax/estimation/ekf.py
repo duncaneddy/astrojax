@@ -24,7 +24,7 @@ from jax import Array
 from jax.typing import ArrayLike
 
 from astrojax.config import get_dtype
-from astrojax.estimation._types import FilterResult, FilterState
+from astrojax.estimation.types import FilterResult, FilterState
 
 
 def ekf_predict(

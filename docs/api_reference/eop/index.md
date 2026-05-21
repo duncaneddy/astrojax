@@ -6,12 +6,12 @@ See the [EOP User Guide](../../user_guide/eop.md) for concepts and usage.
 
 ## Types
 
-::: astrojax.eop._types
+::: astrojax.eop.types
 
 ## Query Functions
 
-::: astrojax.eop._lookup
+::: astrojax.eop.lookup
 
 ## Providers
 
-::: astrojax.eop._providers
+::: astrojax.eop.providers

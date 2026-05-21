@@ -17,13 +17,13 @@ from pathlib import Path
 import polars as pl
 from jax import Array
 
-from astrojax.datasets._damit_download import (
+from astrojax.datasets.damit_download import (
     _EXTRACTED_MARKER,
     _FILENAME,
     download_damit_file,
     extract_damit_archive,
 )
-from astrojax.datasets._damit_parsers import (
+from astrojax.datasets.damit_parsers import (
     _find_extracted_prefix,
     _shape_index,
     load_shape_for_model,

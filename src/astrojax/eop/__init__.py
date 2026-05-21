@@ -11,9 +11,9 @@ Typical usage::
     ut1_utc = get_ut1_utc(eop, 59569.5)
 """
 
-from astrojax.eop._download import download_standard_eop_file
-from astrojax.eop._lookup import get_dxdy, get_eop, get_lod, get_pm, get_ut1_utc
-from astrojax.eop._providers import (
+from astrojax.eop.download import download_standard_eop_file
+from astrojax.eop.lookup import get_dxdy, get_eop, get_lod, get_pm, get_ut1_utc
+from astrojax.eop.providers import (
     load_cached_eop,
     load_default_eop,
     load_eop_from_file,
@@ -21,7 +21,7 @@ from astrojax.eop._providers import (
     static_eop,
     zero_eop,
 )
-from astrojax.eop._types import EOPData, EOPExtrapolation
+from astrojax.eop.types import EOPData, EOPExtrapolation
 
 __all__ = [
     "EOPData",

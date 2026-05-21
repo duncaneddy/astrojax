@@ -6,7 +6,7 @@ with both server-side parameters and client-side post-processing options.
 
 from __future__ import annotations
 
-from astrojax.celestrak._types import (
+from astrojax.celestrak.types import (
     CelestrakOutputFormat,
     CelestrakQueryType,
     SupGPSource,

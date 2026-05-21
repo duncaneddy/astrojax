@@ -8,13 +8,13 @@ from unittest.mock import patch
 
 import pytest
 
-from astrojax.datasets._astmass_download import _FILENAME
-from astrojax.datasets._astmass_parsers import (
+from astrojax.datasets.astmass_download import _FILENAME
+from astrojax.datasets.astmass_parsers import (
     _FIELD_DEFS,
     _TAB_FILENAME,
     load_astmass_tab_to_dataframe,
 )
-from astrojax.datasets._astmass_providers import load_asteroid_masses, load_astmass_from_file
+from astrojax.datasets.astmass_providers import load_asteroid_masses, load_astmass_from_file
 
 # ---------------------------------------------------------------------------
 # Synthetic test data helpers
@@ -258,7 +258,7 @@ class TestLoadAsteroidMasses:
         fp = tmp_path / "astmass" / "nonexistent.zip"
 
         with patch(
-            "astrojax.datasets._astmass_providers.download_astmass_file",
+            "astrojax.datasets.astmass_providers.download_astmass_file",
             side_effect=ConnectionError("mocked"),
         ):
             with pytest.raises(RuntimeError, match="Failed to download asteroid masses"):
@@ -270,7 +270,7 @@ class TestLoadAsteroidMasses:
         _make_test_zip(fp, [_CERES_RECORD])
 
         with patch(
-            "astrojax.datasets._astmass_providers.download_astmass_file",
+            "astrojax.datasets.astmass_providers.download_astmass_file",
             side_effect=ConnectionError("mocked"),
         ):
             # max_age_days=0 forces staleness check

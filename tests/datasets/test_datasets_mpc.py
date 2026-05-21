@@ -13,14 +13,14 @@ import polars as pl
 import pytest
 
 from astrojax.constants import AU, GM_SUN
-from astrojax.datasets._mpc_download import _FILENAME
-from astrojax.datasets._mpc_parsers import (
+from astrojax.datasets.mpc_download import _FILENAME
+from astrojax.datasets.mpc_parsers import (
     load_mpc_json_to_dataframe,
     packed_mpc_epoch_to_jd,
     unpack_mpc_epoch,
 )
-from astrojax.datasets._mpc_providers import load_mpc_asteroids, load_mpc_from_file
-from astrojax.datasets._mpc_state import asteroid_state_ecliptic, get_asteroid_ephemeris
+from astrojax.datasets.mpc_providers import load_mpc_asteroids, load_mpc_from_file
+from astrojax.datasets.mpc_state import asteroid_state_ecliptic, get_asteroid_ephemeris
 from astrojax.time import caldate_to_jd
 
 # ---------------------------------------------------------------------------
@@ -280,7 +280,7 @@ class TestLoadMpcAsteroids:
         fp = tmp_path / "mpc" / "nonexistent.json.gz"
 
         with patch(
-            "astrojax.datasets._mpc_providers.download_mpc_file",
+            "astrojax.datasets.mpc_providers.download_mpc_file",
             side_effect=ConnectionError("mocked"),
         ):
             with pytest.raises(RuntimeError, match="Failed to download MPC data"):

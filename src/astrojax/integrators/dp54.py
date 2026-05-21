@@ -33,8 +33,8 @@ from jax import Array
 from jax.typing import ArrayLike
 
 from astrojax.config import get_dtype
-from astrojax.integrators._adaptive import compute_error_norm, compute_next_step_size
-from astrojax.integrators._types import AdaptiveConfig, StepResult
+from astrojax.integrators.adaptive import compute_error_norm, compute_next_step_size
+from astrojax.integrators.types import AdaptiveConfig, StepResult
 
 # Butcher tableau coefficients as Python tuples (cast at call time).
 # Nodes

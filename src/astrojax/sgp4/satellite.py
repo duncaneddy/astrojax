@@ -14,20 +14,20 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from astrojax.eop._types import EOPData
+from astrojax.eop.types import EOPData
 from astrojax.epoch import Epoch
 from astrojax.frames.teme import (
     state_teme_to_gcrf,
     state_teme_to_itrf,
     state_teme_to_pef,
 )
-from astrojax.sgp4._constants import GRAVITY_MODELS, EarthGravity
-from astrojax.sgp4._propagation import sgp4_init, sgp4_propagate
-from astrojax.sgp4._tle import parse_omm, parse_tle
-from astrojax.sgp4._types import SGP4Elements
+from astrojax.sgp4.constants import GRAVITY_MODELS, EarthGravity
+from astrojax.sgp4.propagation import sgp4_init, sgp4_propagate
+from astrojax.sgp4.tle import parse_omm, parse_tle
+from astrojax.sgp4.types import SGP4Elements
 
 if TYPE_CHECKING:
-    from astrojax._gp_record import GPRecord
+    from astrojax.gp_record import GPRecord
 
 _RAD2DEG = 180.0 / _py_pi
 

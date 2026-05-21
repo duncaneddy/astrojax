@@ -1,6 +1,6 @@
 """Tests for SpaceTrack rate limiter."""
 
-from astrojax.spacetrack._rate_limiter import RateLimitConfig, RateLimiter
+from astrojax.spacetrack.rate_limiter import RateLimitConfig, RateLimiter
 
 
 class TestRateLimitConfig:

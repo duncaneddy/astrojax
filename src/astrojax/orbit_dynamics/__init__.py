@@ -13,16 +13,6 @@ orbit propagation:
 - **Polyhedral gravity**: Full gravity field of irregular polyhedral bodies
 """
 
-from ._jpl_planetary_coefficients import (
-    EMB_ID,
-    JUPITER_ID,
-    MARS_ID,
-    MERCURY_ID,
-    NEPTUNE_ID,
-    SATURN_ID,
-    URANUS_ID,
-    VENUS_ID,
-)
 from .config import ForceModelConfig, SpacecraftParams
 from .density import density_harris_priester
 from .drag import accel_drag
@@ -33,6 +23,16 @@ from .gravity import (
     accel_gravity,
     accel_gravity_spherical_harmonics,
     accel_point_mass,
+)
+from .jpl_planetary_coefficients import (
+    EMB_ID,
+    JUPITER_ID,
+    MARS_ID,
+    MERCURY_ID,
+    NEPTUNE_ID,
+    SATURN_ID,
+    URANUS_ID,
+    VENUS_ID,
 )
 from .nrlmsise00 import density_nrlmsise00, density_nrlmsise00_geod
 from .planetary_ephemerides import (

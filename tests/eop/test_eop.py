@@ -23,7 +23,7 @@ from astrojax.eop import (
     static_eop,
     zero_eop,
 )
-from astrojax.eop._parsers import parse_standard_line
+from astrojax.eop.parsers import parse_standard_line
 
 
 def _make_test_eop(

@@ -5,7 +5,7 @@ Provides a fluent builder API for constructing Space-Track.org API queries.
 
 from __future__ import annotations
 
-from astrojax.spacetrack._types import (
+from astrojax.spacetrack.types import (
     OutputFormat,
     RequestClass,
     RequestController,

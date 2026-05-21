@@ -1,3 +1,3 @@
 # Types
 
-::: astrojax.estimation._types
+::: astrojax.estimation.types

@@ -56,7 +56,7 @@ class TestOperatorsModule:
 
     def test_module_functions(self):
         """Operator functions are accessible as module-level functions."""
-        from astrojax.spacetrack._operators import (
+        from astrojax.spacetrack.operators import (
             greater_than,
             inclusive_range,
             less_than,

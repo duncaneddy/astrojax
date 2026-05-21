@@ -29,8 +29,8 @@ from jax.typing import ArrayLike
 from astrojax.attitude_representations import Rz
 from astrojax.config import get_dtype
 from astrojax.constants import OMEGA_EARTH
-from astrojax.eop._lookup import get_dxdy, get_pm, get_ut1_utc
-from astrojax.eop._types import EOPData
+from astrojax.eop.lookup import get_dxdy, get_pm, get_ut1_utc
+from astrojax.eop.types import EOPData
 from astrojax.epoch import Epoch
 from astrojax.sofa import (
     MJD_ZERO,

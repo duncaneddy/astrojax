@@ -11,10 +11,10 @@ import polars as pl
 import pytest
 
 from astrojax.constants import AU, GM_SUN
-from astrojax.datasets._mpc_state import asteroid_state_ecliptic
-from astrojax.datasets._sbdb_download import _FILENAME
-from astrojax.datasets._sbdb_parsers import load_sbdb_csv_to_dataframe
-from astrojax.datasets._sbdb_providers import (
+from astrojax.datasets.mpc_state import asteroid_state_ecliptic
+from astrojax.datasets.sbdb_download import _FILENAME
+from astrojax.datasets.sbdb_parsers import load_sbdb_csv_to_dataframe
+from astrojax.datasets.sbdb_providers import (
     get_sbdb_asteroid_ephemeris,
     load_sbdb_asteroids,
     load_sbdb_from_file,
@@ -170,7 +170,7 @@ class TestLoadSbdbAsteroids:
         fp = tmp_path / "sbdb" / "nonexistent.csv"
 
         with patch(
-            "astrojax.datasets._sbdb_providers.download_sbdb_file",
+            "astrojax.datasets.sbdb_providers.download_sbdb_file",
             side_effect=ConnectionError("mocked"),
         ):
             with pytest.raises(RuntimeError, match="Failed to download SBDB data"):
@@ -182,7 +182,7 @@ class TestLoadSbdbAsteroids:
         _make_test_csv(fp, [_CERES_ROW])
 
         with patch(
-            "astrojax.datasets._sbdb_providers.download_sbdb_file",
+            "astrojax.datasets.sbdb_providers.download_sbdb_file",
             side_effect=ConnectionError("mocked"),
         ):
             df = load_sbdb_asteroids(fp, max_age_days=0.0)

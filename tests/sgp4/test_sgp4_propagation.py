@@ -6,7 +6,7 @@ import pytest
 from sgp4.api import WGS72 as SGP4_WGS72
 from sgp4.api import Satrec
 
-from astrojax._gp_record import GPRecord
+from astrojax.gp_record import GPRecord
 from astrojax.sgp4 import (
     WGS72,
     create_sgp4_propagator,
@@ -622,7 +622,7 @@ class TestSGP4InitJax:
         elements = parse_tle(ISS_LINE1, ISS_LINE2)
         arr = elements_to_array(elements)
         params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
-        from astrojax.sgp4._propagation import _IDX
+        from astrojax.sgp4.propagation import _IDX
 
         assert float(params[_IDX["method"]]) == 0.0
 
@@ -631,7 +631,7 @@ class TestSGP4InitJax:
         elements = parse_tle(MOLNIYA_2_14_L1, MOLNIYA_2_14_L2)
         arr = elements_to_array(elements)
         params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
-        from astrojax.sgp4._propagation import _IDX
+        from astrojax.sgp4.propagation import _IDX
 
         assert float(params[_IDX["method"]]) == 1.0
 
@@ -640,7 +640,7 @@ class TestSGP4InitJax:
         elements = parse_tle(ITALSAT_2_L1, ITALSAT_2_L2)
         arr = elements_to_array(elements)
         params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
-        from astrojax.sgp4._propagation import _IDX
+        from astrojax.sgp4.propagation import _IDX
 
         assert float(params[_IDX["method"]]) == 1.0
 
@@ -649,7 +649,7 @@ class TestSGP4InitJax:
         elements = parse_tle(VELA_5A_L1, VELA_5A_L2)
         arr = elements_to_array(elements)
         params = sgp4_init_jax(arr, gravity=WGS72, opsmode="i")
-        from astrojax.sgp4._propagation import _IDX
+        from astrojax.sgp4.propagation import _IDX
 
         assert float(params[_IDX["method"]]) == 1.0
 

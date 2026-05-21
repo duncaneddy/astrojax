@@ -19,11 +19,11 @@ where ``dynamics(t, x) -> dx`` defines the ODE right-hand side, and the
 result is a :class:`StepResult` named tuple.
 """
 
-from astrojax.integrators._types import AdaptiveConfig, StepResult
 from astrojax.integrators.dp54 import dp54_step
 from astrojax.integrators.rk4 import rk4_step
 from astrojax.integrators.rkf45 import rkf45_step
 from astrojax.integrators.rkn1210 import rkn1210_step
+from astrojax.integrators.types import AdaptiveConfig, StepResult
 
 __all__ = [
     "AdaptiveConfig",

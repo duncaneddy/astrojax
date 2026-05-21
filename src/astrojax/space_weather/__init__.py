@@ -11,8 +11,8 @@ Typical usage::
     f107 = get_sw_f107_obs(sw, 59569.5)
 """
 
-from astrojax.space_weather._download import download_sw_file
-from astrojax.space_weather._lookup import (
+from astrojax.space_weather.download import download_sw_file
+from astrojax.space_weather.lookup import (
     get_sw_ap,
     get_sw_ap_array,
     get_sw_ap_daily,
@@ -22,14 +22,14 @@ from astrojax.space_weather._lookup import (
     get_sw_f107_obs_lst81,
     get_sw_kp,
 )
-from astrojax.space_weather._providers import (
+from astrojax.space_weather.providers import (
     load_cached_sw,
     load_default_sw,
     load_sw_from_file,
     static_space_weather,
     zero_space_weather,
 )
-from astrojax.space_weather._types import SpaceWeatherData
+from astrojax.space_weather.types import SpaceWeatherData
 
 __all__ = [
     "SpaceWeatherData",

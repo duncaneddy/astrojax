@@ -13,12 +13,12 @@ import numpy as np
 import polars as pl
 import pytest
 
-from astrojax.datasets._damit_download import (
+from astrojax.datasets.damit_download import (
     _EXTRACTED_MARKER,
     _FILENAME,
     extract_damit_archive,
 )
-from astrojax.datasets._damit_parsers import (
+from astrojax.datasets.damit_parsers import (
     _find_extracted_prefix,
     _ShapePathIndex,
     build_shape_index,
@@ -28,14 +28,14 @@ from astrojax.datasets._damit_parsers import (
     parse_shape_file,
     write_shape_index,
 )
-from astrojax.datasets._damit_providers import (
+from astrojax.datasets.damit_providers import (
     _is_extraction_stale,
     get_damit_shape,
     get_damit_spin,
     load_damit_asteroids,
     load_damit_models,
 )
-from astrojax.datasets._damit_shapes import (
+from astrojax.datasets.damit_shapes import (
     _HAS_TRIMESH,
     compute_spherical_uvs,
     export_shape_glb,
@@ -43,7 +43,7 @@ from astrojax.datasets._damit_shapes import (
     export_shape_stl,
     shape_to_trimesh,
 )
-from astrojax.datasets._damit_spin import (
+from astrojax.datasets.damit_spin import (
     damit_spin_to_rotation,
     rotate_shape_points,
     scale_shape_vertices,
@@ -414,7 +414,7 @@ class TestLoadDamitAsteroids:
         fp = tmp_path / "damit" / "nonexistent.tar.gz"
 
         with patch(
-            "astrojax.datasets._damit_providers.download_damit_file",
+            "astrojax.datasets.damit_providers.download_damit_file",
             side_effect=ConnectionError("mocked"),
         ):
             with pytest.raises(RuntimeError, match="Failed to download DAMIT"):
@@ -426,7 +426,7 @@ class TestLoadDamitAsteroids:
         _make_damit_tar(fp)
 
         with patch(
-            "astrojax.datasets._damit_providers.download_damit_file",
+            "astrojax.datasets.damit_providers.download_damit_file",
             side_effect=ConnectionError("mocked"),
         ):
             df = load_damit_asteroids(fp, max_age_days=0.0)
@@ -448,7 +448,7 @@ class TestLoadDamitModels:
         fp = tmp_path / "damit" / "nonexistent.tar.gz"
 
         with patch(
-            "astrojax.datasets._damit_providers.download_damit_file",
+            "astrojax.datasets.damit_providers.download_damit_file",
             side_effect=ConnectionError("mocked"),
         ):
             with pytest.raises(RuntimeError, match="Failed to download DAMIT"):
@@ -1165,7 +1165,7 @@ class TestMeshExportWithoutTrimesh:
 
     def test_shape_to_trimesh_import_error(self) -> None:
         """Should raise ImportError when trimesh is unavailable."""
-        with patch("astrojax.datasets._damit_shapes._HAS_TRIMESH", False):
+        with patch("astrojax.datasets.damit_shapes._HAS_TRIMESH", False):
             with pytest.raises(ImportError, match="trimesh is required"):
                 shape_to_trimesh(
                     jnp.array([[1.0, 0.0, 0.0]]),
@@ -1174,7 +1174,7 @@ class TestMeshExportWithoutTrimesh:
 
     def test_export_glb_import_error(self) -> None:
         """Should raise ImportError when trimesh is unavailable."""
-        with patch("astrojax.datasets._damit_shapes._HAS_TRIMESH", False):
+        with patch("astrojax.datasets.damit_shapes._HAS_TRIMESH", False):
             with pytest.raises(ImportError, match="trimesh is required"):
                 export_shape_glb(
                     jnp.array([[1.0, 0.0, 0.0]]),
@@ -1184,7 +1184,7 @@ class TestMeshExportWithoutTrimesh:
 
     def test_export_stl_import_error(self) -> None:
         """Should raise ImportError when trimesh is unavailable."""
-        with patch("astrojax.datasets._damit_shapes._HAS_TRIMESH", False):
+        with patch("astrojax.datasets.damit_shapes._HAS_TRIMESH", False):
             with pytest.raises(ImportError, match="trimesh is required"):
                 export_shape_stl(
                     jnp.array([[1.0, 0.0, 0.0]]),
@@ -1307,7 +1307,7 @@ class TestExportShapeGlbTextured:
         from PIL import Image
 
         tex_img = Image.fromarray(np.full((4, 4, 3), 128, dtype=np.uint8))
-        with patch("astrojax.datasets._damit_shapes._HAS_TRIMESH", False):
+        with patch("astrojax.datasets.damit_shapes._HAS_TRIMESH", False):
             with pytest.raises(ImportError, match="trimesh is required"):
                 export_shape_glb_textured(
                     jnp.array([[1.0, 0.0, 0.0]]),

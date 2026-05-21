@@ -13,7 +13,7 @@ from astrojax.eop import (
     get_ut1_utc,
     load_cached_eop,
 )
-from astrojax.eop._download import IERS_STANDARD_URL
+from astrojax.eop.download import IERS_STANDARD_URL
 
 # ---------------------------------------------------------------------------
 # download_standard_eop_file tests
@@ -61,7 +61,7 @@ class TestDownloadStandardEOPFile:
         assert not dest.parent.exists()
 
         # Use mock to avoid actual network call -- we only test dir creation
-        with patch("astrojax.eop._download.httpx.Client") as mock_client_cls:
+        with patch("astrojax.eop.download.httpx.Client") as mock_client_cls:
             mock_response = mock_client_cls.return_value.__enter__.return_value.get.return_value
             mock_response.text = "mock eop data\n"
             mock_response.raise_for_status.return_value = None
@@ -96,7 +96,7 @@ class TestLoadCachedEOP:
             dest = tmp_path / "finals.all.iau2000.txt"
             dest.write_bytes(src.read_bytes())
 
-        with patch("astrojax.eop._providers.download_standard_eop_file") as mock_dl:
+        with patch("astrojax.eop.providers.download_standard_eop_file") as mock_dl:
             eop = load_cached_eop(dest, max_age_days=7.0)
             mock_dl.assert_not_called()
 
@@ -119,7 +119,7 @@ class TestLoadCachedEOP:
         old_time = dest.stat().st_mtime - 30 * 86400
         os.utime(dest, (old_time, old_time))
 
-        with patch("astrojax.eop._providers.download_standard_eop_file") as mock_dl:
+        with patch("astrojax.eop.providers.download_standard_eop_file") as mock_dl:
             # Make the download a no-op (file is already valid from copy)
             mock_dl.return_value = dest
             eop = load_cached_eop(dest, max_age_days=7.0)
@@ -132,7 +132,7 @@ class TestLoadCachedEOP:
         dest = tmp_path / "finals.all.iau2000.txt"
         assert not dest.exists()
 
-        with patch("astrojax.eop._providers.download_standard_eop_file") as mock_dl:
+        with patch("astrojax.eop.providers.download_standard_eop_file") as mock_dl:
             # Simulate download creating a valid file
             import importlib.resources
 
@@ -156,7 +156,7 @@ class TestLoadCachedEOP:
         dest = tmp_path / "finals.all.iau2000.txt"
 
         with patch(
-            "astrojax.eop._providers.download_standard_eop_file",
+            "astrojax.eop.providers.download_standard_eop_file",
             side_effect=RuntimeError("network error"),
         ):
             eop = load_cached_eop(dest)
@@ -169,7 +169,7 @@ class TestLoadCachedEOP:
         dest = tmp_path / "finals.all.iau2000.txt"
         dest.write_text("this is not valid EOP data\n" * 10, encoding="utf-8")
 
-        with patch("astrojax.eop._providers.download_standard_eop_file") as mock_dl:
+        with patch("astrojax.eop.providers.download_standard_eop_file") as mock_dl:
             # Download "succeeds" but file is still corrupt
             mock_dl.return_value = dest
             eop = load_cached_eop(dest, max_age_days=0.0)
@@ -186,11 +186,11 @@ class TestLoadCachedEOP:
         expected_file = expected_dir / "finals.all.iau2000.txt"
 
         with (
-            patch("astrojax.eop._providers.is_file_stale", return_value=False) as mock_stale,
-            patch("astrojax.eop._providers.load_eop_from_file") as mock_load,
-            patch("astrojax.eop._providers.get_eop_cache_dir", return_value=expected_dir),
+            patch("astrojax.eop.providers.is_file_stale", return_value=False) as mock_stale,
+            patch("astrojax.eop.providers.load_eop_from_file") as mock_load,
+            patch("astrojax.eop.providers.get_eop_cache_dir", return_value=expected_dir),
         ):
-            from astrojax.eop._types import EOPData as _EOPData
+            from astrojax.eop.types import EOPData as _EOPData
 
             mock_load.return_value = _EOPData(
                 mjd=None,
@@ -243,13 +243,13 @@ class TestLoadCachedEOP:
         os.utime(dest, (old_time, old_time))
 
         # With max_age_days=3, file should be fresh (no download)
-        with patch("astrojax.eop._providers.download_standard_eop_file") as mock_dl:
+        with patch("astrojax.eop.providers.download_standard_eop_file") as mock_dl:
             eop = load_cached_eop(dest, max_age_days=3.0)
             mock_dl.assert_not_called()
         assert isinstance(eop, EOPData)
 
         # With max_age_days=1, file should be stale (triggers download)
-        with patch("astrojax.eop._providers.download_standard_eop_file") as mock_dl:
+        with patch("astrojax.eop.providers.download_standard_eop_file") as mock_dl:
             mock_dl.return_value = dest
             eop = load_cached_eop(dest, max_age_days=1.0)
             mock_dl.assert_called_once()

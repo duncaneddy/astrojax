@@ -17,8 +17,8 @@ from pathlib import Path
 
 import polars as pl
 
-from astrojax.datasets._sbdb_download import _FILENAME, download_sbdb_file
-from astrojax.datasets._sbdb_parsers import load_sbdb_csv_to_dataframe
+from astrojax.datasets.sbdb_download import _FILENAME, download_sbdb_file
+from astrojax.datasets.sbdb_parsers import load_sbdb_csv_to_dataframe
 from astrojax.utils.caching import get_datasets_cache_dir, is_file_stale
 
 logger = logging.getLogger(__name__)

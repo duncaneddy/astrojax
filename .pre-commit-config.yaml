@@ -27,4 +27,4 @@ repos:
       - id: name-tests-test
         name: check test naming
         args: [--pytest-test-first]
-        exclude: ^tests/(conftest\.py|fixtures/.*\.py)$
+        exclude: ^tests/(conftest\.py|fixtures/.*\.py|nondim/brahe_reference\.py)$

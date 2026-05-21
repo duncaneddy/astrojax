@@ -15,8 +15,8 @@ from pathlib import Path
 
 import polars as pl
 
-from astrojax.datasets._astmass_download import _FILENAME, download_astmass_file
-from astrojax.datasets._astmass_parsers import load_astmass_tab_to_dataframe
+from astrojax.datasets.astmass_download import _FILENAME, download_astmass_file
+from astrojax.datasets.astmass_parsers import load_astmass_tab_to_dataframe
 from astrojax.utils.caching import get_datasets_cache_dir, is_file_stale
 
 logger = logging.getLogger(__name__)

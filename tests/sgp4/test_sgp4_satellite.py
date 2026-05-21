@@ -6,10 +6,10 @@ import pytest
 from sgp4.api import WGS72 as SGP4_WGS72
 from sgp4.api import Satrec
 
-from astrojax._gp_record import GPRecord
 from astrojax.config import set_dtype
 from astrojax.eop import zero_eop
 from astrojax.epoch import Epoch
+from astrojax.gp_record import GPRecord
 from astrojax.sgp4 import TLE, parse_tle
 
 jax.config.update("jax_enable_x64", True)

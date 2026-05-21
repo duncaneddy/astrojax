@@ -22,7 +22,7 @@ from astrojax.space_weather import (
     static_space_weather,
     zero_space_weather,
 )
-from astrojax.space_weather._parsers import (
+from astrojax.space_weather.parsers import (
     _convert_kp_to_float,
     _parse_cssi_data_line,
     is_data_line,

@@ -3,15 +3,15 @@
 Provides a client for querying satellite catalog data from Celestrak.
 """
 
-from astrojax._gp_record import GPRecord
-from astrojax.celestrak._client import CelestrakClient
-from astrojax.celestrak._query import CelestrakQuery
-from astrojax.celestrak._responses import CelestrakSATCATRecord
-from astrojax.celestrak._types import (
+from astrojax.celestrak.client import CelestrakClient
+from astrojax.celestrak.query import CelestrakQuery
+from astrojax.celestrak.responses import CelestrakSATCATRecord
+from astrojax.celestrak.types import (
     CelestrakOutputFormat,
     CelestrakQueryType,
     SupGPSource,
 )
+from astrojax.gp_record import GPRecord
 
 __all__ = [
     # Enums

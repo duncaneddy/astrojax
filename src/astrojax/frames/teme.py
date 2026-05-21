@@ -20,7 +20,7 @@ from jax.typing import ArrayLike
 from astrojax.attitude_representations import Rz
 from astrojax.config import get_dtype
 from astrojax.constants import OMEGA_EARTH
-from astrojax.eop._types import EOPData
+from astrojax.eop.types import EOPData
 from astrojax.epoch import Epoch
 from astrojax.frames.gcrf_itrf import (
     polar_motion,

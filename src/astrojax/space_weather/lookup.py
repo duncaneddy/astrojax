@@ -11,7 +11,7 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from astrojax.space_weather._types import SpaceWeatherData
+from astrojax.space_weather.types import SpaceWeatherData
 
 
 def _day_index(sw: SpaceWeatherData, mjd: Array) -> Array:

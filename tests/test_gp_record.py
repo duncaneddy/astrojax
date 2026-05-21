@@ -2,7 +2,7 @@
 
 import pytest
 
-from astrojax._gp_record import GPRecord
+from astrojax.gp_record import GPRecord
 
 
 class TestGPRecordCreation:

@@ -13,15 +13,15 @@ from typing import Any
 
 import httpx
 
-from astrojax._gp_record import GPRecord
-from astrojax.celestrak._filter import apply_filters, apply_limit, apply_order_by
-from astrojax.celestrak._query import CelestrakQuery
-from astrojax.celestrak._responses import CelestrakSATCATRecord
-from astrojax.celestrak._types import (
+from astrojax.celestrak.filter import apply_filters, apply_limit, apply_order_by
+from astrojax.celestrak.query import CelestrakQuery
+from astrojax.celestrak.responses import CelestrakSATCATRecord
+from astrojax.celestrak.types import (
     CelestrakOutputFormat,
     CelestrakQueryType,
     SupGPSource,
 )
+from astrojax.gp_record import GPRecord
 from astrojax.utils.caching import get_cache_dir
 
 _DEFAULT_BASE_URL = "https://celestrak.org"

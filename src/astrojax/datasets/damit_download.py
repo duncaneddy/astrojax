@@ -17,7 +17,7 @@ from pathlib import Path
 
 import httpx
 
-from astrojax.datasets._damit_parsers import write_shape_index
+from astrojax.datasets.damit_parsers import write_shape_index
 
 logger = logging.getLogger(__name__)
 

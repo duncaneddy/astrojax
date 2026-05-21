@@ -18,8 +18,8 @@ All functions are compatible with ``jax.jit`` and ``jax.lax.scan`` for
 efficient sequential filtering.
 """
 
-from astrojax.estimation._types import FilterResult, FilterState, UKFConfig
 from astrojax.estimation.ekf import ekf_predict, ekf_update
+from astrojax.estimation.types import FilterResult, FilterState, UKFConfig
 from astrojax.estimation.ukf import ukf_predict, ukf_update
 
 __all__ = [

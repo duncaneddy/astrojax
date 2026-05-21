@@ -27,54 +27,54 @@ Typical usage::
     eph = get_sbdb_asteroid_ephemeris(sbdb_df, 1)  # Ceres
 """
 
-from astrojax.datasets._astmass_download import download_astmass_file
-from astrojax.datasets._astmass_parsers import load_astmass_tab_to_dataframe
-from astrojax.datasets._astmass_providers import (
+from astrojax.datasets.astmass_download import download_astmass_file
+from astrojax.datasets.astmass_parsers import load_astmass_tab_to_dataframe
+from astrojax.datasets.astmass_providers import (
     load_asteroid_masses,
     load_astmass_from_file,
 )
-from astrojax.datasets._damit_download import download_damit_file, extract_damit_archive
-from astrojax.datasets._damit_parsers import (
+from astrojax.datasets.damit_download import download_damit_file, extract_damit_archive
+from astrojax.datasets.damit_parsers import (
     load_shape_for_model,
     parse_damit_asteroids_table,
     parse_damit_models_table,
     parse_shape_file,
 )
-from astrojax.datasets._damit_providers import (
+from astrojax.datasets.damit_providers import (
     get_damit_shape,
     get_damit_spin,
     load_damit_asteroids,
     load_damit_models,
 )
-from astrojax.datasets._damit_shapes import (
+from astrojax.datasets.damit_shapes import (
     compute_spherical_uvs,
     export_shape_glb,
     export_shape_glb_textured,
     export_shape_stl,
     shape_to_trimesh,
 )
-from astrojax.datasets._damit_spin import (
+from astrojax.datasets.damit_spin import (
     damit_spin_to_rotation,
     rotate_shape_points,
     scale_shape_vertices,
 )
-from astrojax.datasets._mpc_download import download_mpc_file
-from astrojax.datasets._mpc_parsers import (
+from astrojax.datasets.mpc_download import download_mpc_file
+from astrojax.datasets.mpc_parsers import (
     load_mpc_json_to_dataframe,
     packed_mpc_epoch_to_jd,
     unpack_mpc_epoch,
 )
-from astrojax.datasets._mpc_providers import (
+from astrojax.datasets.mpc_providers import (
     load_mpc_asteroids,
     load_mpc_from_file,
 )
-from astrojax.datasets._mpc_state import (
+from astrojax.datasets.mpc_state import (
     asteroid_state_ecliptic,
     get_asteroid_ephemeris,
 )
-from astrojax.datasets._sbdb_download import download_sbdb_file
-from astrojax.datasets._sbdb_parsers import load_sbdb_csv_to_dataframe
-from astrojax.datasets._sbdb_providers import (
+from astrojax.datasets.sbdb_download import download_sbdb_file
+from astrojax.datasets.sbdb_parsers import load_sbdb_csv_to_dataframe
+from astrojax.datasets.sbdb_providers import (
     get_sbdb_asteroid_ephemeris,
     load_sbdb_asteroids,
     load_sbdb_from_file,

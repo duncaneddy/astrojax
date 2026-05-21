@@ -18,8 +18,8 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from astrojax.sgp4._constants import EarthGravity
-from astrojax.sgp4._types import SGP4Elements
+from astrojax.sgp4.constants import EarthGravity
+from astrojax.sgp4.types import SGP4Elements
 
 _twopi = 2.0 * _py_pi
 

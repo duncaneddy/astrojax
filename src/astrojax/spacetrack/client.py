@@ -12,10 +12,10 @@ from typing import Any
 
 import httpx
 
-from astrojax._gp_record import GPRecord
-from astrojax.spacetrack._query import SpaceTrackQuery
-from astrojax.spacetrack._rate_limiter import RateLimitConfig, RateLimiter
-from astrojax.spacetrack._responses import SATCATRecord
+from astrojax.gp_record import GPRecord
+from astrojax.spacetrack.query import SpaceTrackQuery
+from astrojax.spacetrack.rate_limiter import RateLimitConfig, RateLimiter
+from astrojax.spacetrack.responses import SATCATRecord
 
 _DEFAULT_BASE_URL = "https://www.space-track.org"
 

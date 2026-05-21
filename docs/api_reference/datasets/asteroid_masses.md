@@ -6,12 +6,12 @@ See the [Asteroid Masses User Guide](../../user_guide/datasets/asteroid_masses.m
 
 ## Download
 
-::: astrojax.datasets._astmass_download
+::: astrojax.datasets.astmass_download
 
 ## Parsers
 
-::: astrojax.datasets._astmass_parsers
+::: astrojax.datasets.astmass_parsers
 
 ## Providers
 
-::: astrojax.datasets._astmass_providers
+::: astrojax.datasets.astmass_providers

@@ -15,8 +15,8 @@ from pathlib import Path
 
 import polars as pl
 
-from astrojax.datasets._mpc_download import _FILENAME, download_mpc_file
-from astrojax.datasets._mpc_parsers import load_mpc_json_to_dataframe
+from astrojax.datasets.mpc_download import _FILENAME, download_mpc_file
+from astrojax.datasets.mpc_parsers import load_mpc_json_to_dataframe
 from astrojax.utils.caching import get_datasets_cache_dir, is_file_stale
 
 logger = logging.getLogger(__name__)

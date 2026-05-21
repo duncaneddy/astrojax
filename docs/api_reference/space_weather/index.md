@@ -6,12 +6,12 @@ See the [Space Weather User Guide](../../user_guide/space_weather.md) for concep
 
 ## Types
 
-::: astrojax.space_weather._types
+::: astrojax.space_weather.types
 
 ## Query Functions
 
-::: astrojax.space_weather._lookup
+::: astrojax.space_weather.lookup
 
 ## Providers
 
-::: astrojax.space_weather._providers
+::: astrojax.space_weather.providers

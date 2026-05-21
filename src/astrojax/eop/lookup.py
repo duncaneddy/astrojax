@@ -14,7 +14,7 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from astrojax.eop._types import EOPData, EOPExtrapolation
+from astrojax.eop.types import EOPData, EOPExtrapolation
 
 
 def _interpolate_scalar(

@@ -27,12 +27,12 @@ import jax.numpy as jnp
 from jax import Array
 from jax.typing import ArrayLike
 
-from astrojax.sgp4._constants import GRAVITY_MODELS, WGS72, EarthGravity
-from astrojax.sgp4._tle import parse_omm, parse_tle
-from astrojax.sgp4._types import SGP4Elements, elements_to_array
+from astrojax.sgp4.constants import GRAVITY_MODELS, WGS72, EarthGravity
+from astrojax.sgp4.tle import parse_omm, parse_tle
+from astrojax.sgp4.types import SGP4Elements, elements_to_array
 
 if TYPE_CHECKING:
-    from astrojax._gp_record import GPRecord
+    from astrojax.gp_record import GPRecord
 
 # ---------------------------------------------------------------------------
 # Parameter index layout for the flat params array
@@ -588,7 +588,7 @@ def sgp4_init(
 
         # Deep-space initialization
         if method == "d":
-            from astrojax.sgp4._deep_space import deep_space_init
+            from astrojax.sgp4.deep_space import deep_space_init
 
             deep_space_init(
                 d,
@@ -692,7 +692,7 @@ def sgp4_init_jax(
         Flat ``jnp.array`` of shape ``(_NUM_PARAMS,)`` with all SGP4
         parameters, including a method flag at index ``_IDX["method"]``.
     """
-    from astrojax.sgp4._deep_space import _deep_space_init_jax
+    from astrojax.sgp4.deep_space import _deep_space_init_jax
 
     # Unpack elements
     jdsatepoch = elements[0]
@@ -1167,7 +1167,7 @@ def _sgp4_propagate_deep_space(
         Tuple of ``(r, v)`` where ``r`` is position [km] and ``v`` is
         velocity [km/s], both as 3-element arrays in the TEME frame.
     """
-    from astrojax.sgp4._deep_space import sgp4_propagate_deep_space_impl
+    from astrojax.sgp4.deep_space import sgp4_propagate_deep_space_impl
 
     return sgp4_propagate_deep_space_impl(params, tsince, _I, max_dspace_iters)
 
@@ -1257,7 +1257,7 @@ def _sgp4_propagate_deep_space_unbounded(params: Array, tsince: ArrayLike) -> tu
         Tuple of ``(r, v)`` where ``r`` is position [km] and ``v`` is
         velocity [km/s], both as 3-element arrays in the TEME frame.
     """
-    from astrojax.sgp4._deep_space import sgp4_propagate_deep_space_impl_unbounded
+    from astrojax.sgp4.deep_space import sgp4_propagate_deep_space_impl_unbounded
 
     return sgp4_propagate_deep_space_impl_unbounded(params, tsince, _I)
 

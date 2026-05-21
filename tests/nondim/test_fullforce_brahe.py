@@ -1,7 +1,7 @@
 """Full force model (5x5 + Sun + Moon + SRP + drag): 3-way assertion.
 
 The full-force reference comes from astrojax-SI at float64 (see
-``tests/nondim/_brahe_reference.py``). Until brahe exposes a matching
+``tests/nondim/brahe_reference.py``). Until brahe exposes a matching
 SI force-model API, this is the best ground truth available.
 
 What this test buys us:
@@ -21,7 +21,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import pytest
-from _brahe_reference import full_force_state_after
+from brahe_reference import full_force_state_after
 
 from astrojax.config import get_dtype, set_dtype
 from astrojax.constants import GM_EARTH, R_EARTH

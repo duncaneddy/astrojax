@@ -20,7 +20,7 @@ from astrojax.access.constraints import (
     off_nadir_constraint,
 )
 from astrojax.config import set_dtype
-from astrojax.utils._interpolation import make_hermite_position_fn
+from astrojax.utils.interpolation import make_hermite_position_fn
 
 # ---------------------------------------------------------------------------
 # Tolerances

@@ -1,7 +1,7 @@
 """Typed response classes for Celestrak API responses.
 
 Provides a dataclass for Celestrak's SATCAT endpoint.
-GP query responses use GPRecord from astrojax._gp_record.
+GP query responses use GPRecord from astrojax.gp_record.
 """
 
 from __future__ import annotations

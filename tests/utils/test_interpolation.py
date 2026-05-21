@@ -3,7 +3,7 @@
 import jax
 import jax.numpy as jnp
 
-from astrojax.utils._interpolation import hermite_interp, make_hermite_position_fn
+from astrojax.utils.interpolation import hermite_interp, make_hermite_position_fn
 
 
 class TestHermiteInterp:

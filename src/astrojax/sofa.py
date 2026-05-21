@@ -14,9 +14,9 @@ from __future__ import annotations
 import jax.numpy as jnp
 from jax import Array
 
-from astrojax._sofa_nutation_data import LUNI_SOLAR_COEFFS, PLANETARY_COEFFS
 from astrojax.attitude_representations import Rx, Ry, Rz
 from astrojax.config import get_dtype
+from astrojax.sofa_nutation_data import LUNI_SOLAR_COEFFS, PLANETARY_COEFFS
 
 # ---------------------------------------------------------------------------
 # Constants

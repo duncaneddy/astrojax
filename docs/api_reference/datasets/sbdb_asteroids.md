@@ -6,12 +6,12 @@ See the [SBDB Asteroids User Guide](../../user_guide/datasets/sbdb_asteroids.md)
 
 ## Download
 
-::: astrojax.datasets._sbdb_download
+::: astrojax.datasets.sbdb_download
 
 ## Parsers
 
-::: astrojax.datasets._sbdb_parsers
+::: astrojax.datasets.sbdb_parsers
 
 ## Providers
 
-::: astrojax.datasets._sbdb_providers
+::: astrojax.datasets.sbdb_providers

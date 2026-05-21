@@ -7,8 +7,8 @@ for propagating Two-Line Element (TLE) sets. The implementation supports JIT
 compilation and ``vmap`` over time arrays.
 """
 
-from astrojax.sgp4._constants import WGS72, WGS72OLD, WGS84, EarthGravity
-from astrojax.sgp4._propagation import (
+from astrojax.sgp4.constants import WGS72, WGS72OLD, WGS84, EarthGravity
+from astrojax.sgp4.propagation import (
     create_sgp4_propagator,
     create_sgp4_propagator_from_elements,
     create_sgp4_propagator_from_gp_record,
@@ -22,9 +22,9 @@ from astrojax.sgp4._propagation import (
     sgp4_propagate_unified,
     sgp4_propagate_unified_unbounded,
 )
-from astrojax.sgp4._satellite import TLE
-from astrojax.sgp4._tle import compute_checksum, parse_omm, parse_tle, validate_tle_line
-from astrojax.sgp4._types import SGP4Elements, elements_to_array
+from astrojax.sgp4.satellite import TLE
+from astrojax.sgp4.tle import compute_checksum, parse_omm, parse_tle, validate_tle_line
+from astrojax.sgp4.types import SGP4Elements, elements_to_array
 
 __all__ = [
     # Types

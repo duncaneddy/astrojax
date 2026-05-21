@@ -30,7 +30,7 @@ from jax import Array
 from jax.typing import ArrayLike
 
 from astrojax.config import get_dtype
-from astrojax.integrators._types import StepResult
+from astrojax.integrators.types import StepResult
 
 
 def rk4_step(

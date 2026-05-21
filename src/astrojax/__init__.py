@@ -2,7 +2,6 @@
 astrojax is a simple, minimal satellite orbit and attitude dynamics library implemented in JAX.
 """
 
-from ._gp_record import GPRecord
 from .access import (
     AccessResult,
     AccessWindow,
@@ -145,6 +144,7 @@ from .frames import (
     state_gcrf_to_itrf,
     state_itrf_to_gcrf,
 )
+from .gp_record import GPRecord
 from .integrators import (
     AdaptiveConfig,
     StepResult,

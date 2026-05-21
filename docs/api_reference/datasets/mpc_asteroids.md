@@ -6,16 +6,16 @@ See the [MPC Asteroids User Guide](../../user_guide/datasets/mpc_asteroids.md) f
 
 ## Download
 
-::: astrojax.datasets._mpc_download
+::: astrojax.datasets.mpc_download
 
 ## Parsers
 
-::: astrojax.datasets._mpc_parsers
+::: astrojax.datasets.mpc_parsers
 
 ## Providers
 
-::: astrojax.datasets._mpc_providers
+::: astrojax.datasets.mpc_providers
 
 ## State & Lookup
 
-::: astrojax.datasets._mpc_state
+::: astrojax.datasets.mpc_state
