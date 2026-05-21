@@ -41,14 +41,14 @@ N_STEPS = int(T_PROP / DT)
 REFERENCE = two_body_state_after(STATE_SI, GM_EARTH, T_PROP)
 
 # Tolerances refined empirically (see Task 5 report).
-# Observed errors with DT=30s over T_PROP=1800s vs float64 RK4 1s-step ref:
-#   float64:  err_SI=3.009e-08, err_nondim=3.009e-08, err_consistency=5.363e-16
-#   float32:  err_SI=2.577e-07, err_nondim=2.248e-07, err_consistency=7.143e-08
-#   bfloat16: err_SI=2.128e-02, err_nondim=1.322e-02, err_consistency=9.322e-03
+# Observed errors with DT=30s over T_PROP=1800s vs float64 RK4 1s-step ref.
+# Consistency errors vary across JAX/XLA builds; tolerances include headroom.
+#   Local (Apple Silicon, JAX dev env): err_consistency ~5.4e-16 (f64), ~7.1e-8 (f32)
+#   CI (Linux/macOS/Windows, py3.11-3.14): err_consistency ~1.08e-15 (f64), ~1.01e-7 (f32)
 # (tol_si, tol_nondim, tol_consistency); None = skip that check.
 TOL_TABLE = {
-    jnp.float64: (5e-8, 5e-8, 1e-15),
-    jnp.float32: (5e-7, 5e-7, 1e-7),
+    jnp.float64: (5e-8, 5e-8, 5e-15),
+    jnp.float32: (5e-7, 5e-7, 5e-7),
     jnp.bfloat16: (None, 5e-2, 5e-2),
     jnp.float16: (None, None, None),  # characterization-only; SI overflows, nondim may diverge
 }
