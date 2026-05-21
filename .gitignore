@@ -3,6 +3,7 @@
 .vscode/
 .python-version
 uv.lock
+.DS_Store
 
 # Miscellaneous Development
 refs/
