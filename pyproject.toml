@@ -1,6 +1,6 @@
 [project]
 name = "astrojax"
-version = "0.7.3"
+version = "0.8.0"
 description = "Astrodynamics written in JAX for massively parallel computation"
 readme = "README.md"
 authors = [
