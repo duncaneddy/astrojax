@@ -166,6 +166,15 @@ Applications*, 2012.
 GM_MOON = 4902.800066 * 1e9
 
 """
+Nominal mean lunar radius. [m]
+
+References:
+
+1. IAU 2015 Resolution B3 nominal value (1737.4 km).
+"""
+R_MOON = 1.7374e6  # [m] IAU 2015 nominal mean lunar radius
+
+"""
 Gravitational constant of Mercury. [m^3/s^2]
 
 References:

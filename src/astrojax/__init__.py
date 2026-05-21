@@ -153,6 +153,12 @@ from .integrators import (
     rkf45_step,
     rkn1210_step,
 )
+from .nondim import (
+    UnitSystem,
+    from_nondim_state,
+    nondim_orbit_dynamics,
+    to_nondim_state,
+)
 from .orbit_dynamics import (
     EMB_ID,
     JUPITER_ID,
@@ -456,6 +462,11 @@ __all__ = [
     "rkf45_step",
     "dp54_step",
     "rkn1210_step",
+    # Nondimensional units
+    "UnitSystem",
+    "from_nondim_state",
+    "nondim_orbit_dynamics",
+    "to_nondim_state",
     # Datasets (MPC)
     "asteroid_state_ecliptic",
     "download_mpc_file",

@@ -99,6 +99,9 @@ nav = [
             { "SBDB Asteroids" = "user_guide/datasets/sbdb_asteroids.md" },
         ]},
     ]},
+    { "Tutorials" = [
+        { "ML-Friendly Units" = "tutorials/ml-friendly-units.md" },
+    ]},
     { "API Reference" = [
         { "API Reference" = "api_reference/index.md" },
         { "Config" = "api_reference/config.md" },
