@@ -354,6 +354,15 @@ _EA_TO_Q_BRANCHES = [
     _ea_to_q_zyz,  # 11
 ]
 
+# astrojax and brahe interpret an Euler angle sequence as an *intrinsic*
+# rotation (each rotation about the axes of the rotating frame).  The per-order
+# branch formulas above encode the equivalent *extrinsic* product, so they are
+# evaluated with the axis order reversed and the first/third angles swapped:
+#   intrinsic(ABC; phi, theta, psi) == extrinsic(CBA; psi, theta, phi)
+# ``_REVERSE_ORDER`` maps each order index to the index of its reversed axis
+# sequence (e.g. XYZ (1) -> ZYX (10)).
+_REVERSE_ORDER = jnp.array([0, 10, 2, 6, 4, 8, 3, 7, 5, 9, 1, 11])
+
 
 def euler_angle_to_quaternion(
     order_idx: jax.Array, phi: jax.Array, theta: jax.Array, psi: jax.Array
@@ -368,18 +377,26 @@ def euler_angle_to_quaternion(
 
     Returns:
         jnp.ndarray: Quaternion of shape ``(4,)`` in scalar-first order.
+
+    Note:
+        The sequence is interpreted as an intrinsic rotation.  The extrinsic
+        branch formulas are reused via ``intrinsic(ABC; phi, theta, psi) ==
+        extrinsic(CBA; psi, theta, phi)``, i.e. the axis order is reversed and
+        ``phi``/``psi`` are swapped before evaluating the branch.
     """
-    cp = jnp.cos(phi / 2.0)
+    rev_idx = _REVERSE_ORDER[order_idx]
+
+    cp = jnp.cos(psi / 2.0)
     ct = jnp.cos(theta / 2.0)
-    cs = jnp.cos(psi / 2.0)
-    sp = jnp.sin(phi / 2.0)
+    cs = jnp.cos(phi / 2.0)
+    sp = jnp.sin(psi / 2.0)
     st = jnp.sin(theta / 2.0)
-    ss = jnp.sin(psi / 2.0)
+    ss = jnp.sin(phi / 2.0)
 
     trig = (cp, ct, cs, sp, st, ss)
 
     branches = [lambda t, f=f: f(*t) for f in _EA_TO_Q_BRANCHES]
-    q = jax.lax.switch(order_idx, branches, trig)
+    q = jax.lax.switch(rev_idx, branches, trig)
 
     # Normalize
     return q / jnp.linalg.norm(q)
@@ -487,9 +504,17 @@ def rotation_matrix_to_euler_angle(order_idx: jax.Array, R: jax.Array) -> jax.Ar
 
     Returns:
         jnp.ndarray: Array ``[phi, theta, psi]`` in radians.
+
+    Note:
+        The sequence is interpreted as an intrinsic rotation.  The extrinsic
+        extraction branches are reused via the reversed axis order, and the
+        resulting first/third angles are swapped to recover the intrinsic
+        angles (see :func:`euler_angle_to_quaternion`).
     """
+    rev_idx = _REVERSE_ORDER[order_idx]
     branches = [lambda r, f=f: f(r) for f in _RM_TO_EA_BRANCHES]
-    return jax.lax.switch(order_idx, branches, R)
+    ang = jax.lax.switch(rev_idx, branches, R)
+    return jnp.array([ang[2], ang[1], ang[0]])
 
 
 # ---------------------------------------------------------------------------

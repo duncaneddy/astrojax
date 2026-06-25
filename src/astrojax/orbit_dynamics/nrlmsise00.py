@@ -2129,8 +2129,10 @@ def density_nrlmsise00_geod(
     # Local solar time
     lst = sec_of_day / 3600.0 + lon_deg / 15.0
 
-    # Space weather lookups
-    f107_val = get_sw_f107_obs(sw, mjd)
+    # Space weather lookups.  Per the standard NRLMSISE-00 driver convention,
+    # the daily F10.7 is the observed flux from the *previous* day, while the
+    # 81-day centered average is taken at the current day.
+    f107_val = get_sw_f107_obs(sw, mjd - 1.0)
     f107a_val = get_sw_f107_obs_ctr81(sw, mjd)
     ap_arr = get_sw_ap_array(sw, mjd)
     ap_daily = ap_arr[0]
