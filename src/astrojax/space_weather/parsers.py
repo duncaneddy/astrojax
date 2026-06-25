@@ -125,7 +125,7 @@ def parse_cssi_file(
     list[list[float]],  # ap (each entry is 8 values)
     list[float],  # ap_daily
     list[float],  # f107_obs
-    list[float],  # f107_adj (f107_adj_ctr81 used as "adjusted")
+    list[float],  # f107_adj (adjusted daily F10.7)
     list[float],  # f107_obs_ctr81
     list[float],  # f107_obs_lst81
     list[float],  # f107_adj_ctr81
@@ -261,6 +261,10 @@ def _parse_cssi_data_line(
     Returns:
         Tuple of parsed values, or None if the line cannot be parsed.
     """
+    # Observed/daily-predicted rows carry the full F10.7 block (observed values
+    # occupy columns 112-130).  Monthly-predicted rows may omit the trailing
+    # observed 81-day-last field, so they are gated at 124; any absent trailing
+    # field then parses to NaN via ``_parse_float`` rather than dropping the row.
     min_len = 124 if is_monthly else 130
 
     if len(line) < min_len:
@@ -303,17 +307,16 @@ def _parse_cssi_data_line(
         # Parse Ap daily average (position 78, width 4)
         ap_daily = _parse_float(line, 78, 82)
 
-    # Parse F10.7 observed (position 92, width 6)
-    f107_obs = _parse_float(line, 92, 98)
-
-    # Parse F10.7 averages (each width 6)
+    # F10.7 block (each F6.1).  Per the CSSI format the fields are, in order:
+    # adjusted daily, [I2 quality flag], adjusted 81-day centered, adjusted
+    # 81-day last, observed daily, observed 81-day centered, observed 81-day
+    # last.  The observed values start at column 112.
+    f107_adj = _parse_float(line, 92, 98)
     f107_adj_ctr81 = _parse_float(line, 100, 106)
     f107_adj_lst81 = _parse_float(line, 106, 112)
-    f107_obs_ctr81 = _parse_float(line, 112, 118)
-    f107_obs_lst81 = _parse_float(line, 118, 124)
-
-    # Use f107_adj_ctr81 as the "adjusted" F10.7
-    f107_adj = f107_adj_ctr81
+    f107_obs = _parse_float(line, 112, 118)
+    f107_obs_ctr81 = _parse_float(line, 118, 124)
+    f107_obs_lst81 = _parse_float(line, 124, 130)
 
     return (
         mjd,

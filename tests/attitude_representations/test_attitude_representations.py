@@ -262,10 +262,10 @@ class TestQuaternionConversions:
     def test_from_euler_angle_xyz_values(self):
         e = EulerAngle(EulerAngleOrder.XYZ, 30.0, 45.0, 60.0, use_degrees=True)
         q = e.to_quaternion()
-        assert float(q[0]) == pytest.approx(0.8223631719059994, abs=ATOL)
-        assert float(q[1]) == pytest.approx(0.022260026714733844, abs=1e-10)
-        assert float(q[2]) == pytest.approx(0.43967973954090955, abs=ATOL)
-        assert float(q[3]) == pytest.approx(0.3604234056503559, abs=ATOL)
+        assert float(q[0]) == pytest.approx(0.7233174113647118, abs=ATOL)
+        assert float(q[1]) == pytest.approx(0.39190383732911993, abs=1e-10)
+        assert float(q[2]) == pytest.approx(0.2005621211465751, abs=ATOL)
+        assert float(q[3]) == pytest.approx(0.5319756951821668, abs=ATOL)
 
 
 # ===========================================================================
