@@ -125,7 +125,7 @@ def parse_cssi_file(
     list[list[float]],  # ap (each entry is 8 values)
     list[float],  # ap_daily
     list[float],  # f107_obs
-    list[float],  # f107_adj (f107_adj_ctr81 used as "adjusted")
+    list[float],  # f107_adj (adjusted daily F10.7)
     list[float],  # f107_obs_ctr81
     list[float],  # f107_obs_lst81
     list[float],  # f107_adj_ctr81
@@ -261,9 +261,11 @@ def _parse_cssi_data_line(
     Returns:
         Tuple of parsed values, or None if the line cannot be parsed.
     """
-    # All data lines carry the full F10.7 block (observed values occupy
-    # columns 112-130), so a single minimum length applies to every section.
-    min_len = 130
+    # Observed/daily-predicted rows carry the full F10.7 block (observed values
+    # occupy columns 112-130).  Monthly-predicted rows may omit the trailing
+    # observed 81-day-last field, so they are gated at 124; any absent trailing
+    # field then parses to NaN via ``_parse_float`` rather than dropping the row.
+    min_len = 124 if is_monthly else 130
 
     if len(line) < min_len:
         return None

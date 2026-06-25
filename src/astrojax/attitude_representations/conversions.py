@@ -360,8 +360,10 @@ _EA_TO_Q_BRANCHES = [
 # evaluated with the axis order reversed and the first/third angles swapped:
 #   intrinsic(ABC; phi, theta, psi) == extrinsic(CBA; psi, theta, phi)
 # ``_REVERSE_ORDER`` maps each order index to the index of its reversed axis
-# sequence (e.g. XYZ (1) -> ZYX (10)).
-_REVERSE_ORDER = jnp.array([0, 10, 2, 6, 4, 8, 3, 7, 5, 9, 1, 11])
+# sequence (e.g. XYZ (1) -> ZYX (10)).  Kept as a plain tuple so importing this
+# module does not eagerly initialise the JAX backend; it is materialised with
+# ``jnp.asarray`` (a traced-index gather, constant-folded under jit) on use.
+_REVERSE_ORDER = (0, 10, 2, 6, 4, 8, 3, 7, 5, 9, 1, 11)
 
 
 def euler_angle_to_quaternion(
@@ -384,7 +386,7 @@ def euler_angle_to_quaternion(
         extrinsic(CBA; psi, theta, phi)``, i.e. the axis order is reversed and
         ``phi``/``psi`` are swapped before evaluating the branch.
     """
-    rev_idx = _REVERSE_ORDER[order_idx]
+    rev_idx = jnp.asarray(_REVERSE_ORDER)[order_idx]
 
     cp = jnp.cos(psi / 2.0)
     ct = jnp.cos(theta / 2.0)
@@ -511,7 +513,7 @@ def rotation_matrix_to_euler_angle(order_idx: jax.Array, R: jax.Array) -> jax.Ar
         resulting first/third angles are swapped to recover the intrinsic
         angles (see :func:`euler_angle_to_quaternion`).
     """
-    rev_idx = _REVERSE_ORDER[order_idx]
+    rev_idx = jnp.asarray(_REVERSE_ORDER)[order_idx]
     branches = [lambda r, f=f: f(r) for f in _RM_TO_EA_BRANCHES]
     ang = jax.lax.switch(rev_idx, branches, R)
     return jnp.array([ang[2], ang[1], ang[0]])
