@@ -13,8 +13,8 @@ Tolerances reflect the stated accuracy of the JPL Table 1 algorithm:
 inner planets ~1 arcminute, outer planets ~10 arcminutes.
 
 Note:
-    EMB (Earth-Moon Barycenter) is not tested here because brahe's DE
-    functions do not expose a direct EMB position.
+    EMB (Earth-Moon Barycenter) is not tested here because brahe does
+    not expose a per-body EMB accessor in its SPICE API.
 """
 
 import brahe as bh
@@ -57,7 +57,7 @@ def _make_epochs(
     return epc_bh, epc_aj
 
 
-_DE_SOURCE = bh.EphemerisSource.DE440s
+_SPICE_SOURCE = bh.EphemerisSource.DE440s
 
 
 def _brahe_heliocentric(planet_spice_fn, epc_bh):
@@ -70,8 +70,8 @@ def _brahe_heliocentric(planet_spice_fn, epc_bh):
     Returns:
         Heliocentric position as numpy array in metres, GCRF frame.
     """
-    r_planet_geo = planet_spice_fn(epc_bh, _DE_SOURCE)
-    r_sun_geo = bh.sun_position_spice(epc_bh, _DE_SOURCE)
+    r_planet_geo = planet_spice_fn(epc_bh, _SPICE_SOURCE)
+    r_sun_geo = bh.sun_position_spice(epc_bh, _SPICE_SOURCE)
     return r_planet_geo - r_sun_geo
 
 

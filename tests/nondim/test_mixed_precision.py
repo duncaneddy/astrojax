@@ -222,8 +222,8 @@ def test_two_body_mixed_precision_modes(low_dtype):
     # mixed-precision strategy.
     if np.isfinite(err_naive) and np.isfinite(err_scan):
         assert err_scan <= 1.25 * err_naive, (
-            f"Scan-boundary mixed ({err_scan:.3e} m) should be at least "
-            f"as good as naive ({err_naive:.3e} m)."
+            f"Scan-boundary mixed ({err_scan:.3e} m) should be within "
+            f"1.25x of naive ({err_naive:.3e} m)."
         )
 
 
@@ -323,7 +323,7 @@ def _propagate_full_scan_boundary_mixed(low_dtype: jnp.dtype) -> np.ndarray:
 
 
 @pytest.mark.parametrize("low_dtype", [jnp.bfloat16, jnp.float16])
-def test_full_force_scan_boundary_mixed_beats_naive(low_dtype):
+def test_full_force_scan_boundary_mixed_comparable_to_naive(low_dtype):
     naive = _propagate_full_naive(low_dtype)
     scan_boundary = _propagate_full_scan_boundary_mixed(low_dtype)
     err_naive = _abs_err_m(naive, REF_FF)
@@ -338,6 +338,6 @@ def test_full_force_scan_boundary_mixed_beats_naive(low_dtype):
 
     if np.isfinite(err_naive) and np.isfinite(err_scan):
         assert err_scan <= 1.25 * err_naive, (
-            f"Scan-boundary mixed ({err_scan:.3e} m) should be at least "
-            f"as good as naive ({err_naive:.3e} m)."
+            f"Scan-boundary mixed ({err_scan:.3e} m) should be within "
+            f"1.25x of naive ({err_naive:.3e} m)."
         )
