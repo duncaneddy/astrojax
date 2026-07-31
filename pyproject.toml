@@ -41,7 +41,7 @@ extras = [
 
 [dependency-groups]
 dev = [
-    "brahe>=1.1.2",
+    "brahe>=1.7.0,<2",
     "hypothesis>=6.151.2",
     "mkdocstrings-python>=2.0.1",
     "polyhedral-gravity>=3.2",

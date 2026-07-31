@@ -13,8 +13,8 @@ Tolerances reflect the stated accuracy of the JPL Table 1 algorithm:
 inner planets ~1 arcminute, outer planets ~10 arcminutes.
 
 Note:
-    EMB (Earth-Moon Barycenter) is not tested here because brahe's DE
-    functions do not expose a direct EMB position.
+    EMB (Earth-Moon Barycenter) is not tested here because brahe does
+    not expose a per-body EMB accessor in its SPICE API.
 """
 
 import brahe as bh
@@ -57,21 +57,21 @@ def _make_epochs(
     return epc_bh, epc_aj
 
 
-_DE_SOURCE = bh.EphemerisSource.DE440s
+_SPICE_SOURCE = bh.EphemerisSource.DE440s
 
 
-def _brahe_heliocentric(planet_de_fn, epc_bh):
+def _brahe_heliocentric(planet_spice_fn, epc_bh):
     """Get heliocentric position from brahe by subtracting Sun position.
 
     Args:
-        planet_de_fn: brahe DE function (e.g. brahe.mercury_position_de).
+        planet_spice_fn: brahe SPICE function (e.g. brahe.mercury_position_spice).
         epc_bh: brahe Epoch.
 
     Returns:
         Heliocentric position as numpy array in metres, GCRF frame.
     """
-    r_planet_geo = planet_de_fn(epc_bh, _DE_SOURCE)
-    r_sun_geo = bh.sun_position_de(epc_bh, _DE_SOURCE)
+    r_planet_geo = planet_spice_fn(epc_bh, _SPICE_SOURCE)
+    r_sun_geo = bh.sun_position_spice(epc_bh, _SPICE_SOURCE)
     return r_planet_geo - r_sun_geo
 
 
@@ -109,8 +109,8 @@ _TEST_DATES = [
 # ---------------------------------------------------------------------------
 
 _INNER_PLANETS = {
-    "mercury": (mercury_position_jpl_approx, bh.mercury_position_de),
-    "venus": (venus_position_jpl_approx, bh.venus_position_de),
+    "mercury": (mercury_position_jpl_approx, bh.mercury_position_spice),
+    "venus": (venus_position_jpl_approx, bh.venus_position_spice),
 }
 
 # Generous angular tolerance: JPL states ~1 arcmin for inner planets,
@@ -168,7 +168,7 @@ class TestMarsVsBrahe:
     def test_angular_separation(self, date):
         epc_bh, epc_aj = _make_epochs(*date)
         r_aj = np.array(mars_position_jpl_approx(epc_aj))
-        r_bh = _brahe_heliocentric(bh.mars_position_de, epc_bh)
+        r_bh = _brahe_heliocentric(bh.mars_barycenter_position_spice, epc_bh)
         sep = _angular_separation_arcmin(r_aj, r_bh)
         assert sep < _MARS_ANGLE_TOL_ARCMIN, (
             f"Mars angular separation {sep:.2f}' > {_MARS_ANGLE_TOL_ARCMIN}' at {date}"
@@ -180,7 +180,7 @@ class TestMarsVsBrahe:
     def test_distance_magnitude(self, date):
         epc_bh, epc_aj = _make_epochs(*date)
         r_aj = np.array(mars_position_jpl_approx(epc_aj))
-        r_bh = _brahe_heliocentric(bh.mars_position_de, epc_bh)
+        r_bh = _brahe_heliocentric(bh.mars_barycenter_position_spice, epc_bh)
         err = _distance_relative_error(r_aj, r_bh)
         assert err < _MARS_DIST_RTOL, f"Mars distance error {err:.4f} > {_MARS_DIST_RTOL} at {date}"
 
@@ -190,10 +190,10 @@ class TestMarsVsBrahe:
 # ---------------------------------------------------------------------------
 
 _OUTER_PLANETS = {
-    "jupiter": (jupiter_position_jpl_approx, bh.jupiter_position_de),
-    "saturn": (saturn_position_jpl_approx, bh.saturn_position_de),
-    "uranus": (uranus_position_jpl_approx, bh.uranus_position_de),
-    "neptune": (neptune_position_jpl_approx, bh.neptune_position_de),
+    "jupiter": (jupiter_position_jpl_approx, bh.jupiter_barycenter_position_spice),
+    "saturn": (saturn_position_jpl_approx, bh.saturn_barycenter_position_spice),
+    "uranus": (uranus_position_jpl_approx, bh.uranus_barycenter_position_spice),
+    "neptune": (neptune_position_jpl_approx, bh.neptune_barycenter_position_spice),
 }
 
 _OUTER_ANGLE_TOL_ARCMIN = 15.0
