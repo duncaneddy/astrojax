@@ -33,6 +33,22 @@ jobs:
       - name: Install dependencies
         run: uv sync --dev
 
+      - name: Cache brahe data (SPICE kernels)
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/brahe
+          key: brahe-data-v1
+
+      - name: Pre-download SPICE kernels
+        shell: bash
+        run: |
+          for i in 1 2 3 4 5; do
+            uv run python -c "import brahe; brahe.load_common_spice_kernels()" && exit 0
+            echo "Kernel download attempt $i failed; retrying in $((i * 15))s"
+            sleep $((i * 15))
+          done
+          exit 1
+
       - name: Run tests
         run: uv run pytest
 

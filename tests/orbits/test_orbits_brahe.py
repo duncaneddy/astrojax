@@ -373,14 +373,14 @@ class TestMeanToOscVsBrahe:
                 np.radians(90.0),
             ]
         )
-        expected = bh.state_koe_mean_to_osc(oe, RADIANS)
+        expected = bh.state_koe_mean_to_osc(oe, bh.MeanElementMethod.BROUWER_LYDDANE, RADIANS)
         actual = state_koe_mean_to_osc(jnp.array(oe))
         _compare_koe_rad(actual, expected)
 
     def test_leo_degrees(self):
         """state_koe_mean_to_osc matches brahe for LEO (degrees)."""
         oe = np.array([bh.R_EARTH + 500e3, 0.01, 45.0, 30.0, 60.0, 90.0])
-        expected = bh.state_koe_mean_to_osc(oe, DEGREES)
+        expected = bh.state_koe_mean_to_osc(oe, bh.MeanElementMethod.BROUWER_LYDDANE, DEGREES)
         actual = state_koe_mean_to_osc(jnp.array(oe), use_degrees=True)
         _compare_koe_deg(actual, expected)
 
@@ -397,7 +397,7 @@ class TestMeanToOscVsBrahe:
                 np.radians(m_deg),
             ]
         )
-        expected = bh.state_koe_mean_to_osc(oe, RADIANS)
+        expected = bh.state_koe_mean_to_osc(oe, bh.MeanElementMethod.BROUWER_LYDDANE, RADIANS)
         actual = state_koe_mean_to_osc(jnp.array(oe))
         _compare_koe_rad(actual, expected)
 
@@ -414,7 +414,7 @@ class TestMeanToOscVsBrahe:
                 np.radians(90.0),
             ]
         )
-        expected = bh.state_koe_mean_to_osc(oe, RADIANS)
+        expected = bh.state_koe_mean_to_osc(oe, bh.MeanElementMethod.BROUWER_LYDDANE, RADIANS)
         actual = state_koe_mean_to_osc(jnp.array(oe))
         _compare_koe_rad(actual, expected)
 
@@ -430,7 +430,7 @@ class TestMeanToOscVsBrahe:
                 0.0,
             ]
         )
-        expected = bh.state_koe_mean_to_osc(oe, RADIANS)
+        expected = bh.state_koe_mean_to_osc(oe, bh.MeanElementMethod.BROUWER_LYDDANE, RADIANS)
         actual = state_koe_mean_to_osc(jnp.array(oe))
         _compare_koe_rad(actual, expected, sma_atol=10.0)
 
@@ -446,7 +446,7 @@ class TestMeanToOscVsBrahe:
                 np.radians(270.0),
             ]
         )
-        expected = bh.state_koe_mean_to_osc(oe, RADIANS)
+        expected = bh.state_koe_mean_to_osc(oe, bh.MeanElementMethod.BROUWER_LYDDANE, RADIANS)
         actual = state_koe_mean_to_osc(jnp.array(oe))
         _compare_koe_rad(actual, expected)
 
@@ -464,14 +464,14 @@ class TestOscToMeanVsBrahe:
                 np.radians(90.0),
             ]
         )
-        expected = bh.state_koe_osc_to_mean(oe, RADIANS)
+        expected = bh.state_koe_osc_to_mean(oe, bh.MeanElementMethod.BROUWER_LYDDANE, RADIANS)
         actual = state_koe_osc_to_mean(jnp.array(oe))
         _compare_koe_rad(actual, expected)
 
     def test_leo_degrees(self):
         """state_koe_osc_to_mean matches brahe for LEO (degrees)."""
         oe = np.array([bh.R_EARTH + 500e3, 0.01, 45.0, 30.0, 60.0, 90.0])
-        expected = bh.state_koe_osc_to_mean(oe, DEGREES)
+        expected = bh.state_koe_osc_to_mean(oe, bh.MeanElementMethod.BROUWER_LYDDANE, DEGREES)
         actual = state_koe_osc_to_mean(jnp.array(oe), use_degrees=True)
         _compare_koe_deg(actual, expected)
 
@@ -488,6 +488,6 @@ class TestOscToMeanVsBrahe:
                 np.radians(m_deg),
             ]
         )
-        expected = bh.state_koe_osc_to_mean(oe, RADIANS)
+        expected = bh.state_koe_osc_to_mean(oe, bh.MeanElementMethod.BROUWER_LYDDANE, RADIANS)
         actual = state_koe_osc_to_mean(jnp.array(oe))
         _compare_koe_rad(actual, expected)
